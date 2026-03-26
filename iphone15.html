@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>UniGuide AI — Prototype</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="iphone15.css">
+</head>
+
+<body>
+
+    <div class="iphone">
+        <!-- Dynamic Island -->
+        <div class="dynamic-island">
+            <div class="di-sensor"></div>
+            <div class="di-camera"></div>
+        </div>
+
+        <!-- Status bar -->
+        <div class="status-bar">
+            <span>9:41</span>
+            <div class="sb-right">
+                <div class="sb-signal">
+                    <div class="sb-bar" style="height:4px"></div>
+                    <div class="sb-bar" style="height:6px"></div>
+                    <div class="sb-bar" style="height:9px"></div>
+                    <div class="sb-bar" style="height:12px"></div>
+                </div>
+                <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+                    <rect x="0" y="3" width="13" height="9" rx="2" stroke="#1A1916" stroke-width="1.5" />
+                    <rect x="1.5" y="4.5" width="8" height="6" rx="1" fill="#1A1916" />
+                    <path d="M14 5v4a2 2 0 000-4z" fill="#1A1916" opacity=".4" />
+                </svg>
+                <span style="font-size:13px">95%</span>
+            </div>
+        </div>
+
+        <!-- Home indicator -->
+        <div class="home-indicator"></div>
+
+        <!-- ══════ SCREENS ══════ -->
+        <div class="screens">
+
+            <!-- ① HOME -->
+            <div class="screen active" id="s-home">
+                <div class="topbar">
+                    <div class="notif-btn" onclick="navigate('notif-placeholder')">
+                        <div
+                            style="width:34px;height:34px;border-radius:10px;background:var(--c-bg);border:1.5px solid var(--c-border);display:flex;align-items:center;justify-content:center;font-size:18px">
+                            🔔</div>
+                        <div class="notif-bubble">2</div>
+                    </div>
+                    <div style="flex:1;margin-left:8px">
+                        <div class="tb-title">UniGuide</div>
+                        <div class="tb-sub">안녕하세요, Wei!</div>
+                    </div>
+                    <div onclick="navigate('s-profile')"
+                        style="width:36px;height:36px;border-radius:50%;background:var(--c-accent-l);border:2px solid var(--c-accent-m);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--c-accent);cursor:pointer">
+                        W</div>
+                </div>
+                <div class="info-chip urgent">
+                    🛂 D-2 비자 만료까지 <strong>87일</strong> 남았습니다
+                </div>
+                <div class="scroll-area">
+                    <div class="sec-lbl">내 채널</div>
+                    <div class="ch-item" onclick="navigate('s-visa')">
+                        <div class="ch-icon" style="background:var(--c-purple-l)">🛂</div>
+                        <div class="ch-body">
+                            <div class="ch-name">비자 & 체류</div>
+                            <div class="ch-preview">비자 연장하려면 뭐가 필요해요?</div>
+                        </div>
+                        <div class="ch-meta">
+                            <div class="ch-time">방금</div>
+                            <div class="badge" style="background:var(--c-red-l);color:var(--c-red)">D-87</div>
+                        </div>
+                    </div>
+                    <div class="ch-item" onclick="navigate('s-main')">
+                        <div class="ch-icon" style="background:var(--c-green-l)">🏫</div>
+                        <div class="ch-body">
+                            <div class="ch-name">학교생활</div>
+                            <div class="ch-preview">수강신청은 어떻게 하나요?</div>
+                        </div>
+                        <div class="ch-meta">
+                            <div class="ch-time">어제</div>
+                        </div>
+                    </div>
+                    <div class="ch-item" onclick="navigate('s-main')">
+                        <div class="ch-icon" style="background:var(--c-amber-l)">💼</div>
+                        <div class="ch-body">
+                            <div class="ch-name">취업 & 아르바이트</div>
+                            <div class="ch-preview">시간제 취업 허가 절차 안내 완료</div>
+                        </div>
+                        <div class="ch-meta">
+                            <div class="ch-time">3일 전</div>
+                            <div class="badge" style="background:var(--c-accent-l);color:var(--c-accent)">새 답변</div>
+                        </div>
+                    </div>
+                    <div class="ch-item" onclick="navigate('s-main')">
+                        <div class="ch-icon" style="background:var(--c-accent-l)">🏠</div>
+                        <div class="ch-body">
+                            <div class="ch-name">주거</div>
+                            <div class="ch-preview">계약 만료 60일 전 알림 설정됨</div>
+                        </div>
+                        <div class="ch-meta">
+                            <div class="ch-time">1주 전</div>
+                        </div>
+                    </div>
+                    <div class="ch-item" onclick="navigate('s-main')">
+                        <div class="ch-icon" style="background:#FEE2E2">🏥</div>
+                        <div class="ch-body">
+                            <div class="ch-name">병원 & 보험</div>
+                            <div class="ch-preview">건강보험 가입 완료</div>
+                        </div>
+                        <div class="ch-meta">
+                            <div class="ch-time">2주 전</div>
+                        </div>
+                    </div>
+                    <div class="sec-lbl">채널 추가</div>
+                    <div class="ch-item" onclick="showToast('채널 생성 화면으로 이동합니다')">
+                        <div class="ch-icon"
+                            style="background:var(--c-bg);border:1.5px dashed var(--c-border-s);font-size:22px">+</div>
+                        <div class="ch-body">
+                            <div class="ch-name" style="color:var(--c-t2)">새 채널 만들기</div>
+                            <div class="ch-preview">생활정보, 커뮤니티 등</div>
+                        </div>
+                    </div>
+                    <div style="height:20px"></div>
+                </div>
+                <div class="bottom-nav">
+                    <div class="bnav-item active">
+                        <div class="bnav-icon">⊞</div><span>홈</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-main')">
+                        <div class="bnav-icon">💬</div><span>채팅</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-calendar')">
+                        <div class="bnav-icon">📅</div><span>캘린더</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-search')">
+                        <div class="bnav-icon">🔍</div><span>검색</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-profile')">
+                        <div class="bnav-icon">👤</div><span>내정보</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ② VISA CHANNEL -->
+            <div class="screen" id="s-visa">
+                <div class="slim-header">
+                    <div class="tb-back" onclick="back()">
+                        <svg viewBox="0 0 8 14" fill="none">
+                            <path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                    <div class="slim-ch-icon" style="background:var(--c-purple-l)">🛂</div>
+                    <div class="slim-ch-name">비자 & 체류</div>
+                    <div class="slim-rag">RAG 활성</div>
+                    <div class="slim-d87" onclick="toggleInfo()">
+                        <span id="d87-txt">D-87</span>
+                        <span id="d87-arrow" style="font-size:10px">▾</span>
+                    </div>
+                </div>
+                <div class="info-panel" id="info-panel">
+                    <div class="i-chip">🗓 D-2 만료 <strong>2026. 8. 15</strong></div>
+                    <div class="i-chip green">🔔 알림 설정됨</div>
+                </div>
+                <div class="qa-scroll">
+                    <button class="qa-btn" onclick="navigate('s-step')">📋 비자 연장 절차</button>
+                    <button class="qa-btn" onclick="showToast('외국인등록증 재발급 안내를 불러옵니다')">🪪 외국인등록증</button>
+                    <button class="qa-btn" onclick="showToast('체류확인서 발급 안내를 불러옵니다')">📄 체류확인서</button>
+                    <button class="qa-btn" onclick="showToast('비자 변경 절차 안내를 불러옵니다')">🔄 비자 변경</button>
+                </div>
+                <div class="scroll-area">
+                    <div class="chat-area" id="visa-chat-area">
+                        <div class="msg-ai">
+                            <div class="ai-av">AI</div>
+                            <div class="bubble-ai">D-2 채널입니다. 만료까지 <strong>87일</strong> 남았어요. 위 버튼을 탭하거나 직접 질문해주세요!
+                            </div>
+                        </div>
+                    </div>
+                    <div style="height:8px"></div>
+                </div>
+                <div class="chat-input-bar">
+                    <input class="c-input" id="visa-input" placeholder="비자 관련 질문하기...">
+                    <button class="send-btn" onclick="sendVisaMessage()">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M2 8h12M9 3l5 5-5 5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ③ STEP GUIDE -->
+            <div class="screen" id="s-step">
+                <div class="topbar">
+                    <div class="tb-back" onclick="back()">
+                        <svg viewBox="0 0 8 14" fill="none">
+                            <path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                        비자 채널
+                    </div>
+                </div>
+                <div style="padding:12px 16px 4px">
+                    <div class="tb-title" style="font-size:17px">D-2 비자 연장 절차</div>
+                    <div class="tb-sub">출입국관리사무소 방문 기준</div>
+                </div>
+                <div class="progress-wrap">
+                    <div class="progress-bg">
+                        <div class="progress-fill" id="prog-fill" style="width:33%"></div>
+                    </div>
+                    <div class="prog-label"><span id="prog-txt">2 / 6 단계 완료</span><span id="prog-pct"
+                            style="color:var(--c-green)">33%</span></div>
+                </div>
+                <div class="scroll-area" style="padding-bottom:12px">
+                    <div class="step-card">
+                        <div class="step-card-hdr">
+                            <span>📁 서류 준비</span>
+                            <span id="grp1-prog" style="font-size:11px;font-weight:400">2/4 완료</span>
+                        </div>
+                        <div class="step-row" onclick="toggleStep(this)">
+                            <div class="step-cb checked">✓</div>
+                            <div class="step-label">
+                                <div class="step-text done">여권 원본 + 사본 1부</div>
+                                <div class="step-sub done">유효기간 6개월 이상</div>
+                            </div>
+                        </div>
+                        <div class="step-row" onclick="toggleStep(this)">
+                            <div class="step-cb checked">✓</div>
+                            <div class="step-label">
+                                <div class="step-text done">외국인등록증 원본</div>
+                            </div>
+                        </div>
+                        <div class="step-row" onclick="toggleStep(this)">
+                            <div class="step-cb current"></div>
+                            <div class="step-label">
+                                <div class="step-text">재학증명서 (영문) 발급</div>
+                                <div class="step-sub">포털 → 증명서 발급 → 영문 재학증명서</div>
+                            </div>
+                        </div>
+                        <div class="step-row" onclick="toggleStep(this)">
+                            <div class="step-cb"></div>
+                            <div class="step-label">
+                                <div class="step-text" style="color:var(--c-t3)">수수료 60,000원 준비</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="step-card">
+                        <div class="step-card-hdr">
+                            <span>📋 신청</span>
+                            <span style="font-size:11px;font-weight:400">0/2 완료</span>
+                        </div>
+                        <div class="step-row" onclick="toggleStep(this)">
+                            <div class="step-cb"></div>
+                            <div class="step-label">
+                                <div class="step-text" style="color:var(--c-t3)">출입국관리사무소 방문 예약</div>
+                                <div class="step-sub" style="color:var(--c-t3)">Hi Korea에서 사전 예약 필수</div>
+                            </div>
+                        </div>
+                        <div class="step-row" onclick="toggleStep(this)">
+                            <div class="step-cb"></div>
+                            <div class="step-label">
+                                <div class="step-text" style="color:var(--c-t3)">방문 접수 및 수령</div>
+                                <div class="step-sub" style="color:var(--c-t3)">처리 기간 약 5~7 영업일</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="save-note">✅ 체크 상태는 자동 저장됩니다. 앱을 닫아도 유지돼요.</div>
+                    <div style="margin:4px 14px">
+                        <button class="qa-btn" style="width:100%;text-align:left;border-radius:11px;padding:12px 14px"
+                            onclick="showToast('주의사항을 불러옵니다')">⚠️ 주의사항 더 보기</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ④ MAIN CHAT -->
+            <div class="screen" id="s-main">
+                <div class="topbar">
+                    <div class="tb-back" onclick="back()">
+                        <svg viewBox="0 0 8 14" fill="none">
+                            <path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="tb-title">메인 채팅</div>
+                        <div class="tb-sub">모든 채널에 질문하기</div>
+                    </div>
+                </div>
+                <div class="scroll-area">
+                    <div
+                        style="padding:10px 14px 6px;font-size:11px;font-weight:600;color:var(--c-t3);letter-spacing:.6px;text-transform:uppercase">
+                        케이스 A · 1차 답변 가능</div>
+                    <div class="chat-area" style="padding-top:4px">
+                        <div class="msg-user">
+                            <div class="bubble-user">외국인은 알바 어떻게 해요?</div>
+                        </div>
+                    </div>
+                    <div class="ans-wrap">
+                        <div class="ans-domain" style="background:var(--c-amber-l)">
+                            <div class="ans-dot" style="background:var(--c-amber)"></div>
+                            <span style="color:var(--c-amber);font-weight:600">취업 & 아르바이트</span>
+                        </div>
+                        <div class="ans-body">D-2 유학생은 <strong>시간제 취업 허가</strong> 후 주 20시간 이내 알바 가능합니다.</div>
+                        <div class="ans-tags">
+                            <span class="tag" style="background:var(--c-amber-l);color:var(--c-amber)">#취업</span>
+                            <span class="tag" style="background:var(--c-purple-l);color:var(--c-purple)">#비자</span>
+                        </div>
+                    </div>
+                    <div class="cta-card" onclick="navigate('s-channel-main')" style="margin-top:8px">
+                        <div class="cta-icon" style="background:var(--c-amber-l)">💼</div>
+                        <div class="cta-body">
+                            <div class="cta-title">채널에서 자세히 보기</div>
+                            <div class="cta-sub">허가 절차 · 학교 규정 · Step-by-step</div>
+                        </div>
+                        <div class="cta-arrow">›</div>
+                    </div>
+
+                    <div style="margin:16px 14px 10px;height:1px;background:var(--c-border)"></div>
+
+                    <div
+                        style="padding:0 14px 6px;font-size:11px;font-weight:600;color:var(--c-t3);letter-spacing:.6px;text-transform:uppercase">
+                        케이스 B · 1차 답변 불가</div>
+                    <div class="chat-area" style="padding-top:4px">
+                        <div class="msg-user">
+                            <div class="bubble-user">건강보험 외국인 특례 3조 내용이 뭐예요?</div>
+                        </div>
+                        <div class="msg-ai">
+                            <div class="ai-av">AI</div>
+                            <div class="bubble-ai" style="color:var(--c-t2);font-size:13px">이 질문은 <strong
+                                    style="color:var(--c-t1)">병원 & 보험</strong> 채널에서 정확하게 답변드릴 수 있어요.</div>
+                        </div>
+                    </div>
+                    <div class="cta-card neutral" onclick="showToast('병원 & 보험 채널로 이동합니다')">
+                        <div class="cta-icon" style="background:#FEE2E2">🏥</div>
+                        <div class="cta-body">
+                            <div class="cta-title">병원 & 보험 채널에서 답변 받기</div>
+                            <div class="cta-sub">건강보험 전용 RAG로 정확한 답변</div>
+                        </div>
+                        <div class="cta-arrow">›</div>
+                    </div>
+                    <div id="main-chat-area" class="chat-area" style="padding-top:0"></div>
+                    <div style="height:16px"></div>
+                </div>
+                <div class="chat-input-bar">
+                    <input id="main-input" class="c-input" placeholder="무엇이든 질문하세요...">
+                    <button class="send-btn" onclick="sendMainMessage()">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M2 8h12M9 3l5 5-5 5" stroke="#fff" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="bottom-nav">
+                    <div class="bnav-item" onclick="navigate('s-home')">
+                        <div class="bnav-icon">⊞</div><span>홈</span>
+                    </div>
+                    <div class="bnav-item active">
+                        <div class="bnav-icon">💬</div><span>채팅</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-calendar')">
+                        <div class="bnav-icon">📅</div><span>캘린더</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-search')">
+                        <div class="bnav-icon">🔍</div><span>검색</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-profile')">
+                        <div class="bnav-icon">👤</div><span>내정보</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ⑤ CALENDAR -->
+            <div class="screen" id="s-calendar">
+                <div class="topbar">
+                    <div class="tb-title" style="flex:1">캘린더</div>
+                    <div style="display:flex;gap:8px">
+                        <button onclick="showToast('이전 달로 이동합니다')"
+                            style="width:30px;height:30px;border-radius:9px;border:1.5px solid var(--c-border);background:var(--c-surface);cursor:pointer;font-size:14px">‹</button>
+                        <button onclick="showToast('다음 달로 이동합니다')"
+                            style="width:30px;height:30px;border-radius:9px;border:1.5px solid var(--c-border);background:var(--c-surface);cursor:pointer;font-size:14px">›</button>
+                    </div>
+                </div>
+                <div style="padding:2px 14px 6px;font-size:13px;font-weight:500;color:var(--c-t2)">2026년 8월</div>
+                <div class="scroll-area">
+                    <div style="padding:0 14px">
+                        <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px">
+                            <div
+                                style="text-align:center;font-size:11px;color:var(--c-t3);font-weight:500;padding:3px 0">
+                                일</div>
+                            <div
+                                style="text-align:center;font-size:11px;color:var(--c-t3);font-weight:500;padding:3px 0">
+                                월</div>
+                            <div
+                                style="text-align:center;font-size:11px;color:var(--c-t3);font-weight:500;padding:3px 0">
+                                화</div>
+                            <div
+                                style="text-align:center;font-size:11px;color:var(--c-t3);font-weight:500;padding:3px 0">
+                                수</div>
+                            <div
+                                style="text-align:center;font-size:11px;color:var(--c-t3);font-weight:500;padding:3px 0">
+                                목</div>
+                            <div
+                                style="text-align:center;font-size:11px;color:var(--c-t3);font-weight:500;padding:3px 0">
+                                금</div>
+                            <div
+                                style="text-align:center;font-size:11px;color:var(--c-t3);font-weight:500;padding:3px 0">
+                                토</div>
+                        </div>
+                        <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px"></div>
+                    </div>
+                    <div style="display:flex;gap:12px;padding:10px 14px 6px;flex-wrap:wrap">
+                        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--c-t2)">
+                            <div style="width:7px;height:7px;border-radius:50%;background:var(--c-purple)"></div>비자
+                        </div>
+                        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--c-t2)">
+                            <div style="width:7px;height:7px;border-radius:50%;background:var(--c-accent)"></div>학교
+                        </div>
+                        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--c-t2)">
+                            <div style="width:7px;height:7px;border-radius:50%;background:var(--c-green)"></div>보험
+                        </div>
+                        <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--c-t2)">
+                            <div style="width:7px;height:7px;border-radius:50%;background:var(--c-amber)"></div>주거
+                        </div>
+                    </div>
+                    <!-- Event list -->
+                    <div class="sec-lbl">8월 주요 일정</div>
+                    <div style="padding:0 14px;display:flex;flex-direction:column;gap:8px">
+                        <div style="display:flex;gap:10px;padding:11px 13px;border:1.5px solid var(--c-border);border-radius:13px;cursor:pointer"
+                            onclick="showToast('비자 채널로 이동합니다')">
+                            <div style="width:4px;border-radius:2px;background:var(--c-purple);flex-shrink:0"></div>
+                            <div style="display:flex;flex-direction:column;align-items:center;min-width:26px">
+                                <div style="font-size:18px;font-weight:700;color:var(--c-t1);line-height:1">10</div>
+                                <div style="font-size:10px;color:var(--c-t3)">월</div>
+                            </div>
+                            <div style="flex:1">
+                                <div style="font-size:13px;font-weight:500;color:var(--c-t1)">비자 연장 서류 준비</div>
+                                <div style="font-size:11px;color:var(--c-t2);margin-top:3px">만료 35일 전 — 서류 준비 권장</div>
+                                <div
+                                    style="display:inline-block;margin-top:5px;font-size:10px;font-weight:500;background:var(--c-purple-l);color:var(--c-purple);padding:2px 8px;border-radius:8px">
+                                    비자 채널</div>
+                            </div>
+                            <div
+                                style="font-size:11px;font-weight:600;background:var(--c-red-l);color:var(--c-red);padding:3px 8px;border-radius:8px;align-self:flex-start">
+                                중요</div>
+                        </div>
+                        <div style="display:flex;gap:10px;padding:11px 13px;border:1.5px solid var(--c-red-l);border-radius:13px;cursor:pointer"
+                            onclick="navigate('s-step')">
+                            <div style="width:4px;border-radius:2px;background:var(--c-red);flex-shrink:0"></div>
+                            <div style="display:flex;flex-direction:column;align-items:center;min-width:26px">
+                                <div style="font-size:18px;font-weight:700;color:var(--c-t1);line-height:1">15</div>
+                                <div style="font-size:10px;color:var(--c-t3)">토</div>
+                            </div>
+                            <div style="flex:1">
+                                <div style="font-size:13px;font-weight:500;color:var(--c-t1)">D-2 비자 만료일</div>
+                                <div style="font-size:11px;color:var(--c-t2);margin-top:3px">이 날 이전에 연장 완료 필수</div>
+                                <div
+                                    style="display:inline-block;margin-top:5px;font-size:10px;font-weight:500;background:var(--c-purple-l);color:var(--c-purple);padding:2px 8px;border-radius:8px">
+                                    비자 채널</div>
+                            </div>
+                            <div
+                                style="font-size:11px;font-weight:600;background:var(--c-red-l);color:var(--c-red);padding:3px 8px;border-radius:8px;align-self:flex-start">
+                                긴급</div>
+                        </div>
+                        <div style="display:flex;gap:10px;padding:11px 13px;border:1.5px solid var(--c-border);border-radius:13px;cursor:pointer"
+                            onclick="showToast('병원 & 보험 채널로 이동합니다')">
+                            <div style="width:4px;border-radius:2px;background:var(--c-green);flex-shrink:0"></div>
+                            <div style="display:flex;flex-direction:column;align-items:center;min-width:26px">
+                                <div style="font-size:18px;font-weight:700;color:var(--c-t1);line-height:1">20</div>
+                                <div style="font-size:10px;color:var(--c-t3)">목</div>
+                            </div>
+                            <div style="flex:1">
+                                <div style="font-size:13px;font-weight:500;color:var(--c-t1)">건강보험료 납부</div>
+                                <div style="font-size:11px;color:var(--c-t2);margin-top:3px">8월분 납부 마감</div>
+                                <div
+                                    style="display:inline-block;margin-top:5px;font-size:10px;font-weight:500;background:var(--c-green-l);color:var(--c-green);padding:2px 8px;border-radius:8px">
+                                    병원·보험</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="height:20px"></div>
+                </div>
+                <div class="bottom-nav">
+                    <div class="bnav-item" onclick="navigate('s-home')">
+                        <div class="bnav-icon">⊞</div><span>홈</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-main')">
+                        <div class="bnav-icon">💬</div><span>채팅</span>
+                    </div>
+                    <div class="bnav-item active">
+                        <div class="bnav-icon">📅</div><span>캘린더</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-search')">
+                        <div class="bnav-icon">🔍</div><span>검색</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-profile')">
+                        <div class="bnav-icon">👤</div><span>내정보</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ⑥ CHANNEL MAIN (지식 카드) -->
+            <div class="screen" id="s-channel-main">
+                <div class="slim-header">
+                    <div class="tb-back" onclick="back()"><svg viewBox="0 0 8 14" fill="none">
+                            <path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg></div>
+                    <div class="slim-ch-icon" style="background:var(--c-purple-l)">🛂</div>
+                    <div class="slim-ch-name">비자 & 체류</div>
+                    <div class="slim-rag">RAG 활성</div>
+                </div>
+                <div class="ch-tabs">
+                    <div class="ch-tab" onclick="navigate('s-visa')">💬 채팅</div>
+                    <div class="ch-tab active">📚 지식 카드</div>
+                </div>
+                <div class="search-bar">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <circle cx="7" cy="7" r="5" stroke="var(--c-t3)" stroke-width="1.5" />
+                        <path d="M11 11l3 3" stroke="var(--c-t3)" stroke-width="1.5" stroke-linecap="round" />
+                    </svg>
+                    <span>채널 내 대화 검색...</span>
+                </div>
+                <div class="filter-row">
+                    <button class="filter-chip active" onclick="filterTag(this,'전체')">전체</button>
+                    <button class="filter-chip" onclick="filterTag(this,'#연장')">#연장</button>
+                    <button class="filter-chip" onclick="filterTag(this,'#D-2')">#D-2</button>
+                    <button class="filter-chip" onclick="filterTag(this,'#서류')">#서류</button>
+                    <button class="filter-chip" onclick="filterTag(this,'#출입국')">#출입국</button>
+                </div>
+                <div class="scroll-area" style="display:flex;flex-direction:column;gap:8px;padding:4px 0 12px">
+                    <div class="k-card" onclick="navigate('s-knowledge')">
+                        <div class="k-card-body">
+                            <div class="k-q">비자 연장하려면 뭐가 필요해요?</div>
+                            <div class="k-preview">D-2 비자 연장 서류입니다. ① 여권 원본 ② 외국인등록증 ③ 재학증명서 (영문)...</div>
+                        </div>
+                        <div class="k-card-foot">
+                            <div style="display:flex;gap:5px">
+                                <span class="tag" style="background:var(--c-purple-l);color:var(--c-purple)">#D-2</span>
+                                <span class="tag" style="background:var(--c-purple-l);color:var(--c-purple)">#연장</span>
+                                <span class="tag" style="background:var(--c-purple-l);color:var(--c-purple)">#서류</span>
+                            </div>
+                            <span style="font-size:11px;color:var(--c-t3)">3일 전</span>
+                        </div>
+                    </div>
+                    <div class="k-card" onclick="navigate('s-knowledge')">
+                        <div class="k-card-body">
+                            <div class="k-q">비자 연장 신청 기간이 언제예요?</div>
+                            <div class="k-preview">만료일 4개월 전부터 신청 가능합니다. 늦어도 만료 1개월 전에는...</div>
+                        </div>
+                        <div class="k-card-foot">
+                            <div style="display:flex;gap:5px">
+                                <span class="tag" style="background:var(--c-purple-l);color:var(--c-purple)">#연장</span>
+                                <span class="tag" style="background:var(--c-purple-l);color:var(--c-purple)">#기간</span>
+                            </div>
+                            <span style="font-size:11px;color:var(--c-t3)">1주 전</span>
+                        </div>
+                    </div>
+                    <div class="k-card" onclick="navigate('s-knowledge')">
+                        <div class="k-card-body">
+                            <div class="k-q">Hi Korea에서 온라인 신청이 가능한가요?</div>
+                            <div class="k-preview">네, Hi Korea(www.hikorea.go.kr)에서 온라인으로 비자 연장 신청이 가능합니다...</div>
+                        </div>
+                        <div class="k-card-foot">
+                            <div style="display:flex;gap:5px">
+                                <span class="tag" style="background:var(--c-purple-l);color:var(--c-purple)">#출입국</span>
+                            </div>
+                            <span style="font-size:11px;color:var(--c-t3)">2주 전</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ⑦ KNOWLEDGE DETAIL -->
+            <div class="screen" id="s-knowledge">
+                <div class="topbar">
+                    <div class="tb-back" onclick="back()"><svg viewBox="0 0 8 14" fill="none">
+                            <path d="M7 1L1 7l6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                                stroke-linejoin="round" />
+                        </svg></div>
+                    <div style="display:flex;align-items:center;gap:7px">
+                        <div
+                            style="width:24px;height:24px;border-radius:7px;background:var(--c-purple-l);display:flex;align-items:center;justify-content:center;font-size:13px">
+                            🛂</div>
+                        <span style="font-size:13px;color:var(--c-t2)">비자 & 체류 채널</span>
+                    </div>
+                </div>
+                <div class="scroll-area">
+                    <div class="kd-q-box">
+                        <div class="kd-q-label">Q. 원본 질문</div>
+                        <div class="kd-q-text">비자 연장하려면 뭐가 필요해요?</div>
+                    </div>
+                    <div style="padding:8px 14px 6px;display:flex;gap:5px;flex-wrap:wrap">
+                        <span class="tag" style="background:var(--c-purple-l);color:var(--c-purple)">#D-2</span>
+                        <span class="tag" style="background:var(--c-purple-l);color:var(--c-purple)">#연장</span>
+                        <span class="tag" style="background:var(--c-purple-l);color:var(--c-purple)">#서류</span>
+                        <span
+                            style="font-size:11px;color:var(--c-t3);display:flex;align-items:center;margin-left:4px">3일
+                            전</span>
+                    </div>
+                    <div class="kd-block-text">D-2 비자 연장에 필요한 서류입니다. 출입국관리사무소 방문 신청 또는 Hi Korea 온라인 신청 모두 가능합니다.</div>
+                    <div class="kd-list-block">
+                        <div class="kd-list-title">📋 필요 서류</div>
+                        <div class="kd-list-item">
+                            <div class="kd-num">1</div>여권 원본 + 사본 1부 (유효기간 6개월 이상)
+                        </div>
+                        <div class="kd-list-item">
+                            <div class="kd-num">2</div>외국인등록증 원본
+                        </div>
+                        <div class="kd-list-item">
+                            <div class="kd-num">3</div>재학증명서 (영문)
+                        </div>
+                        <div class="kd-list-item">
+                            <div class="kd-num">4</div>수수료 60,000원
+                        </div>
+                    </div>
+                    <div class="kd-source">📎 출처: 법무부 출입국관리법 시행규칙 (2024) · Hi Korea 외국인 안내</div>
+                    <div class="kd-section-lbl">⚡ Action Guide</div>
+                    <div class="cta-card" onclick="navigate('s-step')" style="margin:0 14px 14px">
+                        <div class="cta-icon">📋</div>
+                        <div class="cta-body">
+                            <div class="cta-title">비자 연장 절차 보기</div>
+                            <div class="cta-sub">6단계 체크리스트 · 진행 현황 추적</div>
+                        </div>
+                        <div class="cta-arrow">›</div>
+                    </div>
+                    <div class="kd-section-lbl">🔗 관련 질문</div>
+                    <div class="related-q" onclick="showToast('관련 질문을 불러옵니다')">
+                        비자 연장 신청 기간이 언제예요?
+                        <span style="color:var(--c-t3);font-size:18px">›</span>
+                    </div>
+                    <div class="related-q" onclick="showToast('관련 질문을 불러옵니다')">
+                        Hi Korea 온라인 신청이 가능한가요?
+                        <span style="color:var(--c-t3);font-size:18px">›</span>
+                    </div>
+                    <div style="height:16px"></div>
+                </div>
+            </div>
+
+            <!-- ⑧ ONBOARDING -->
+            <div class="screen" id="s-onboarding">
+                <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
+                    <div class="ob-hero">
+                        <span class="ob-mark">🎓</span>
+                        <div class="ob-h">UniGuide AI</div>
+                        <div class="ob-p">한국 유학 생활, 더 쉽게<br>비자·학교·생활 모두 안내해드려요</div>
+                    </div>
+                    <button class="social-btn" onclick="showToast('Google 로그인 화면으로 이동합니다')">
+                        <span style="font-size:18px">🌐</span> Google로 시작하기
+                    </button>
+                    <div style="padding:0 16px 12px;text-align:center;font-size:12px;color:var(--c-t3)">카카오 로그인은 추후 지원
+                        예정입니다</div>
+                    <div style="height:1px;background:var(--c-border);margin:0 0 16px"></div>
+                    <div class="ob-steps">
+                        <div class="ob-step-dot done"></div>
+                        <div class="ob-step-dot active"></div>
+                        <div class="ob-step-dot"></div>
+                    </div>
+                    <div class="form-sec">기본 정보 입력</div>
+                    <div class="form-note">국적·학교·비자 유형만 입력하면 바로 시작할 수 있어요</div>
+                    <div class="form-group" style="margin-top:8px">
+                        <div class="f-label">국적</div>
+                        <div class="f-input filled">🇨🇳 중국 <span style="color:var(--c-t3)">▾</span></div>
+                    </div>
+                    <div class="form-group">
+                        <div class="f-label">학교</div>
+                        <div class="f-input filled">부산대학교</div>
+                    </div>
+                    <div class="form-group">
+                        <div class="f-label">비자 유형</div>
+                        <div class="chip-row">
+                            <div class="sel-chip on">D-2 학생</div>
+                            <div class="sel-chip" onclick="selectChip(this,'비자유형')">D-4 어학연수</div>
+                            <div class="sel-chip" onclick="selectChip(this,'비자유형')">F-2 거주</div>
+                            <div class="sel-chip" onclick="selectChip(this,'비자유형')">기타</div>
+                        </div>
+                    </div>
+                    <div class="ob-note">📅 비자 만료일은 비자 채널에서 대화할 때 입력할 수 있어요</div>
+                    <div class="form-sec">사용 언어</div>
+                    <div class="lang-grid">
+                        <div class="lang-card on" onclick="toggleLang(this)">
+                            <div class="lang-flag">🇰🇷</div>
+                            <div class="lang-name">한국어</div>
+                            <div class="lang-sub">Korean</div>
+                        </div>
+                        <div class="lang-card on" onclick="toggleLang(this)">
+                            <div class="lang-flag">🇨🇳</div>
+                            <div class="lang-name">중국어</div>
+                            <div class="lang-sub">Chinese</div>
+                        </div>
+                        <div class="lang-card" onclick="toggleLang(this)">
+                            <div class="lang-flag">🇺🇸</div>
+                            <div class="lang-name">영어</div>
+                            <div class="lang-sub">English</div>
+                        </div>
+                        <div class="lang-card" onclick="toggleLang(this)">
+                            <div class="lang-flag">🇻🇳</div>
+                            <div class="lang-name">베트남어</div>
+                            <div class="lang-sub">Vietnamese</div>
+                        </div>
+                    </div>
+                    <button class="cta-primary" onclick="navigate('s-home')">시작하기 →</button>
+                    <div class="footnote">국적·학교·비자 유형만으로 맞춤 채널이 자동 생성됩니다</div>
+                </div>
+            </div>
+
+            <!-- ⑨ SEARCH -->
+            <div class="screen" id="s-search">
+                <div class="topbar">
+                    <div class="tb-title" style="flex:1">검색</div>
+                    <div class="tb-sub" style="font-size:11px;color:var(--c-t3)">과거 대화 전체 탐색</div>
+                </div>
+                <div class="search-bar" style="margin-top:6px">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <circle cx="7" cy="7" r="5" stroke="var(--c-t3)" stroke-width="1.5" />
+                        <path d="M11 11l3 3" stroke="var(--c-t3)" stroke-width="1.5" stroke-linecap="round" />
+                    </svg>
+                    <span>비자 연장</span>
+                </div>
+                <div class="filter-row">
+                    <button class="filter-chip active" onclick="filterTag(this,'전체')">전체</button>
+                    <button class="filter-chip" onclick="filterTag(this,'🛂 비자')">🛂 비자</button>
+                    <button class="filter-chip" onclick="filterTag(this,'🏫 학교')">🏫 학교</button>
+                    <button class="filter-chip" onclick="filterTag(this,'💼 취업')">💼 취업</button>
+                    <button class="filter-chip" onclick="filterTag(this,'🏠 주거')">🏠 주거</button>
+                </div>
+                <div class="filter-row" style="padding-top:0">
+                    <button class="filter-chip active" onclick="filterTag(this,'#연장')"
+                        style="font-size:11px">#연장</button>
+                    <button class="filter-chip" onclick="filterTag(this,'#D-2')" style="font-size:11px">#D-2</button>
+                    <button class="filter-chip" onclick="filterTag(this,'#서류')" style="font-size:11px">#서류</button>
+                    <button class="filter-chip" onclick="filterTag(this,'#출입국')" style="font-size:11px">#출입국</button>
+                </div>
+                <div style="padding:4px 14px 8px;font-size:12px;font-weight:600;color:var(--c-t3);letter-spacing:.5px">
+                    검색 결과 2건</div>
+                <div class="scroll-area" style="padding-bottom:12px">
+                    <div class="result-card" onclick="navigate('s-knowledge')">
+                        <div class="result-inner">
+                            <div class="result-ch-icon" style="background:var(--c-purple-l)">🛂</div>
+                            <div class="result-body">
+                                <div class="result-q">비자 연장하려면 뭐가 필요해요?</div>
+                                <div class="result-p">D-2 비자 연장 서류입니다. ① 여권 원본 ② 외국인등록증...</div>
+                                <div class="result-foot">
+                                    <span class="tag"
+                                        style="background:var(--c-purple-l);color:var(--c-purple)">#D-2</span>
+                                    <span class="tag"
+                                        style="background:var(--c-purple-l);color:var(--c-purple)">#연장</span>
+                                    <span class="r-time">3일 전</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="result-card" onclick="navigate('s-knowledge')">
+                        <div class="result-inner">
+                            <div class="result-ch-icon" style="background:var(--c-purple-l)">🛂</div>
+                            <div class="result-body">
+                                <div class="result-q">비자 연장 신청 기간이 언제예요?</div>
+                                <div class="result-p">만료일 4개월 전부터 신청 가능합니다. 늦어도 1개월 전에...</div>
+                                <div class="result-foot">
+                                    <span class="tag"
+                                        style="background:var(--c-purple-l);color:var(--c-purple)">#연장</span>
+                                    <span class="r-time">1주 전</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bottom-nav">
+                    <div class="bnav-item" onclick="navigate('s-home')">
+                        <div class="bnav-icon">⊞</div><span>홈</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-main')">
+                        <div class="bnav-icon">💬</div><span>채팅</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-calendar')">
+                        <div class="bnav-icon">📅</div><span>캘린더</span>
+                    </div>
+                    <div class="bnav-item active">
+                        <div class="bnav-icon">🔍</div><span>검색</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-profile')">
+                        <div class="bnav-icon">👤</div><span>내정보</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ⑩ PROFILE -->
+            <div class="screen" id="s-profile">
+                <div class="topbar">
+                    <div class="tb-title">내 정보</div>
+                </div>
+                <div class="scroll-area">
+                    <div class="profile-hero">
+                        <div class="p-av">W</div>
+                        <div class="p-name">Wei Zhang</div>
+                        <div class="p-school">부산대학교 · 컴퓨터공학과 3학년</div>
+                        <div class="p-badges">
+                            <span class="p-badge" style="background:var(--c-purple-l);color:var(--c-purple)">🛂 D-2
+                                비자</span>
+                            <span class="p-badge" style="background:var(--c-accent-l);color:var(--c-accent)">🇨🇳
+                                중국</span>
+                            <span class="p-badge" style="background:var(--c-red-l);color:var(--c-red)">D-87</span>
+                        </div>
+                    </div>
+                    <div class="visa-card">
+                        <div class="vc-hdr">🛂 비자 정보</div>
+                        <div class="vc-row">
+                            <div class="vc-label">비자 유형</div>
+                            <div class="vc-val">D-2 (학생)</div>
+                        </div>
+                        <div class="vc-row">
+                            <div class="vc-label">만료일</div>
+                            <div class="vc-val" style="color:var(--c-red)">2026. 8. 15 (D-87)</div>
+                        </div>
+                        <div class="vc-btn" onclick="showToast('비자 정보 수정 화면으로 이동합니다')">비자 정보 수정</div>
+                    </div>
+                    <div class="setting-sec">알림 설정</div>
+                    <div class="setting-row">
+                        <div class="s-icon" style="background:var(--c-purple-l)">🛂</div>
+                        <div class="s-body">
+                            <div class="s-name">비자 & 체류 알림</div>
+                            <div class="s-val">만료 90일·30일·7일 전</div>
+                        </div>
+                        <div class="toggle-track on" onclick="toggleSwitch(this)">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="s-icon" style="background:var(--c-amber-l)">🏠</div>
+                        <div class="s-body">
+                            <div class="s-name">주거 계약 알림</div>
+                            <div class="s-val">만료 60일 전</div>
+                        </div>
+                        <div class="toggle-track on" onclick="toggleSwitch(this)">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="s-icon" style="background:var(--c-green-l)">🏥</div>
+                        <div class="s-body">
+                            <div class="s-name">보험료 납부 알림</div>
+                            <div class="s-val">납부일 5일 전</div>
+                        </div>
+                        <div class="toggle-track off" onclick="toggleSwitch(this)">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+                    <div class="setting-sec">앱 설정</div>
+                    <div class="setting-row" onclick="showToast('언어 설정 화면으로 이동합니다')">
+                        <div class="s-icon" style="background:var(--c-accent-l)">🌐</div>
+                        <div class="s-body">
+                            <div class="s-name">사용 언어</div>
+                            <div class="s-val">한국어 · 中文</div>
+                        </div>
+                        <div style="font-size:18px;color:var(--c-t3)">›</div>
+                    </div>
+                    <div class="setting-row" onclick="showToast('개인정보 수정 화면으로 이동합니다')">
+                        <div class="s-icon" style="background:var(--c-bg)">👤</div>
+                        <div class="s-body">
+                            <div class="s-name">개인정보 수정</div>
+                            <div class="s-val">이름, 학교, 학과</div>
+                        </div>
+                        <div style="font-size:18px;color:var(--c-t3)">›</div>
+                    </div>
+                    <div class="logout-btn" onclick="navigate('s-onboarding')">로그아웃</div>
+                    <div style="height:20px"></div>
+                </div>
+                <div class="bottom-nav">
+                    <div class="bnav-item" onclick="navigate('s-home')">
+                        <div class="bnav-icon">⊞</div><span>홈</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-main')">
+                        <div class="bnav-icon">💬</div><span>채팅</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-calendar')">
+                        <div class="bnav-icon">📅</div><span>캘린더</span>
+                    </div>
+                    <div class="bnav-item" onclick="navigate('s-search')">
+                        <div class="bnav-icon">🔍</div><span>검색</span>
+                    </div>
+                    <div class="bnav-item active">
+                        <div class="bnav-icon">👤</div><span>내정보</span>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /screens -->
+
+        <!-- Toast -->
+        <div class="toast" id="toast"></div>
+    </div><!-- /iphone -->
+
+    <script src="iphone15.js"></script>
+</body>
+
+</html>
