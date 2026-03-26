@@ -40,6 +40,22 @@ from neo4j import GraphDatabase
 from sklearn.feature_extraction.text import HashingVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+from agent_runtime import (
+    append_latency_log,
+    build_answer_prompt,
+    detect_language,
+    detect_question_type,
+    expand_query,
+    GateThresholds,
+    insufficient_evidence_message,
+    normalize_query,
+    QuestionType,
+    run_deep_path,
+    run_fast_path,
+    status_update_message,
+    WebSearchClient,
+)
+
 try:
     from sentence_transformers import SentenceTransformer
     _ST_ERROR: Optional[Exception] = None
@@ -77,6 +93,8 @@ TOP_SUB         = int(os.environ.get("TOP_SUB",   "5"))
 TOP_K           = int(os.environ.get("TOP_K",     "6"))   # 최종 청크 수
 HISTORY_TURNS   = int(os.environ.get("HISTORY_TURNS", "3"))  # 유지할 대화 턴 수
 MIN_SCORE       = float(os.environ.get("MIN_SCORE", "0.25"))  # 근거 부족 판정 임계값
+ENABLE_EXTERNAL_SEARCH = os.environ.get("ENABLE_EXTERNAL_SEARCH", "1") == "1"
+LATENCY_LOG_PATH = os.environ.get("LATENCY_LOG_PATH", "logs/latency_log.jsonl")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -657,11 +675,17 @@ class StudentAgent:
         self._classifier = IntentClassifier()
         self._parser     = ProfileParser()
         self._prompter   = PromptBuilder()
+        self._web_client = WebSearchClient(timeout=5) if ENABLE_EXTERNAL_SEARCH else None
+        self._gate = GateThresholds.from_env()
+        if self._is_fallback:
+            self._gate.min_top_score = 0.08
 
         # 폴백 임베더 시 점수 임계값 완화
         self._min_score = 0.08 if self._is_fallback else MIN_SCORE
 
     def close(self) -> None:
+        if self._web_client is not None:
+            self._web_client.close()
         self._driver.close()
 
     # ── 초기화 유틸 ────────────────────────────────────────────
@@ -733,14 +757,19 @@ class StudentAgent:
             sources     : list[str]  - 사용된 청크 출처 (page 목록)
             elapsed_sec : float
         """
-        t0     = time.perf_counter()
+        t0 = time.perf_counter()
+        raw_query = query
+        lang = detect_language(raw_query)
+        query = normalize_query(raw_query)
         intent = self._classifier.classify(query)
 
         # ── 상태 갱신 의도: DB 검색 없이 프로필만 업데이트 ──
         if intent == Intent.STATUS_UPDATE:
             profile = self._parser.update(query, profile)
-            answer  = self._prompter.build_status_confirm(profile)
+            answer = status_update_message(lang, profile.to_context_str())
             history = self._append_history(history, query, answer)
+            elapsed = round(time.perf_counter() - t0, 3)
+            self._log_latency("student_agent", "fast", elapsed, 1.0, 1)
             return {
                 "answer":      answer,
                 "intent":      intent.value,
@@ -749,40 +778,80 @@ class StudentAgent:
                 "profile":     profile,
                 "history":     history,
                 "sources":     [],
-                "elapsed_sec": round(time.perf_counter() - t0, 3),
+                "path":        "fast",
+                "elapsed_sec": elapsed,
             }
 
-        # ── 일반 의도: RAG 검색 + 답변 생성 ──
-
-        # 3단계: RAG 검색 (카테고리 라우팅 → 청크 수집 → 하이브리드 Top-K)
+        # 기본 경로: 1-hop fast path
         enriched_query = self._enrich_query(query, profile)
-        chunks, source_labels = self._retriever.retrieve(enriched_query, top_k=TOP_K)
+        fast = run_fast_path(
+            query=enriched_query,
+            retrieve_fn=self._retriever.retrieve,
+            top_k=TOP_K,
+            thresholds=self._gate,
+        )
 
-        # 근거 부족 판정
-        best_score = float(chunks[0][1]) if chunks else 0.0
-        if best_score < self._min_score or len(chunks) < 2:
-            answer = (
-                "죄송해요, 해당 질문에 대한 정확한 정보를 제가 가진 자료에서 찾지 못했어요.\n"
-                "출입국·외국인청(1345) 또는 학교 국제처에 직접 문의해 보시는 걸 추천해요."
+        selected_chunks = fast["chunks"]
+        source_labels = fast["source_labels"]
+        selected_path = "fast"
+        gate_reasons = fast["reasons"]
+
+        if fast["use_deep"]:
+            deep = run_deep_path(
+                query_variants=expand_query(enriched_query, lang),
+                retrieve_fn=self._retriever.retrieve,
+                top_k=TOP_K,
+                thresholds=self._gate,
+                web_client=self._web_client,
+                enable_external=ENABLE_EXTERNAL_SEARCH,
             )
+            selected_chunks = deep["chunks"]
+            source_labels = deep["source_labels"]
+            selected_path = "deep"
+            gate_reasons = deep["reasons"]
+
+        if not selected_chunks:
+            answer = insufficient_evidence_message(lang)
             history = self._append_history(history, query, answer)
+            elapsed = round(time.perf_counter() - t0, 3)
+            self._log_latency("student_agent", selected_path, elapsed, 0.0, 0)
             return {
-                "answer":      answer,
-                "intent":      intent.value,
-                "answered":    False,
-                "best_score":  best_score,
-                "profile":     profile,
-                "history":     history,
-                "sources":     [],
-                "elapsed_sec": round(time.perf_counter() - t0, 3),
+                "answer": answer,
+                "intent": intent.value,
+                "answered": False,
+                "best_score": 0.0,
+                "profile": profile,
+                "history": history,
+                "sources": [],
+                "path": selected_path,
+                "gate_reasons": gate_reasons,
+                "elapsed_sec": elapsed,
             }
 
-        # 4단계: 답변 생성
-        prompt = self._prompter.build(query, intent, profile, history, chunks, source_labels)
+        q_type = self._intent_to_qtype(intent, query)
+        history_lines = [
+            f"{'user' if t.role == 'user' else 'assistant'}: {t.content}"
+            for t in history[-HISTORY_TURNS * 2:]
+        ]
+        context_block = "\n\n".join(
+            f"[{i+1}] (p.{ch.page})\n{ch.text}"
+            for i, (ch, _) in enumerate(selected_chunks)
+        )
+        prompt = build_answer_prompt(
+            language=lang,
+            question_type=q_type,
+            query=query,
+            context_block=context_block,
+            evidence_lines=source_labels,
+            profile_text=profile.to_context_str() if not profile.is_empty() else "",
+            history_block="\n".join(history_lines),
+        )
         answer = self._generate(query, prompt)
 
-        # 5단계: 상태 업데이트
         history = self._append_history(history, query, answer)
+        best_score = float(selected_chunks[0][1]) if selected_chunks else 0.0
+        elapsed = round(time.perf_counter() - t0, 3)
+        self._log_latency("student_agent", selected_path, elapsed, best_score, len(selected_chunks))
 
         return {
             "answer":      answer,
@@ -792,7 +861,9 @@ class StudentAgent:
             "profile":     profile,
             "history":     history,
             "sources":     source_labels,   # "문서명 - 섹션 (p.N)" 형식
-            "elapsed_sec": round(time.perf_counter() - t0, 3),
+            "path":        selected_path,
+            "gate_reasons": gate_reasons,
+            "elapsed_sec": elapsed,
         }
 
     # ── 유틸 ───────────────────────────────────────────────────
@@ -818,6 +889,32 @@ class StudentAgent:
         updated = history + [Turn("user", query), Turn("assistant", answer)]
         max_len = HISTORY_TURNS * 2
         return updated[-max_len:] if len(updated) > max_len else updated
+
+    def _intent_to_qtype(self, intent: Intent, query: str) -> QuestionType:
+        if intent == Intent.DEADLINE:
+            return QuestionType.DEADLINE
+        if intent == Intent.DOCUMENTS:
+            return QuestionType.DOCUMENTS
+        if intent == Intent.APPLICATION:
+            return QuestionType.APPLICATION
+        return detect_question_type(query)
+
+    def _log_latency(
+        self,
+        agent: str,
+        path: str,
+        elapsed: float,
+        best_score: float,
+        evidence_count: int,
+    ) -> None:
+        append_latency_log(
+            log_path=LATENCY_LOG_PATH,
+            agent=agent,
+            path=path,
+            elapsed=elapsed,
+            best_score=best_score,
+            evidence_count=evidence_count,
+        )
 
     def _generate(self, query: str, prompt: str) -> str:
         """Gemini로 답변 생성. LLM 없거나 오류 시 폴백 메시지 반환."""
