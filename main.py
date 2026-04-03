@@ -1,67 +1,64 @@
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from __future__ import annotations
 
+import argparse
+import logging
+import sys
+from pathlib import Path
 
-from langchain_openai import OpenAIEmbeddings
-from langchain_openai import ChatOpenAI
+from agent.ingest_runner import run_embed_update, run_ingest
+from agent.query_runner import run_query_loop
 
-from langchain_community.vectorstores import FAISS
-
-import glob
-
-# 1. PDF 로드
-# PDF 파일 목록 가져오기 (sample 폴더 안 모든 pdf)
-pdf_files = glob.glob("pdf/*.pdf")  # 폴더 경로 수정
-
-all_documents = []
-
-# 1. PDF마다 로드
-for file in pdf_files:
-    loader = PyPDFLoader(file)
-    docs = loader.load()
-    all_documents.extend(docs)
-
-# 2. 텍스트 쪼개기 (chunking)
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,
-    chunk_overlap=100
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
-docs = text_splitter.split_documents(all_documents)
+logger = logging.getLogger(__name__)
 
-# 3. 임베딩 (벡터화)
-embedding = OpenAIEmbeddings()
 
-# 4. 벡터 DB 저장 (FAISS)
-db = FAISS.from_documents(docs, embedding)
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="유학생 지원 AI 에이전트 - 그래프 RAG 시스템"
+    )
+    parser.add_argument("--ingest", action="store_true", help="PDF 파일을 인제스트한다")
+    parser.add_argument("--pdf-dir", type=Path, default=None, help="PDF 디렉토리 경로")
+    parser.add_argument("--query", action="store_true", help="대화형 질의 루프를 시작한다")
+    parser.add_argument("--no-llm", action="store_true", help="LLM 없이 규칙 기반만 사용")
+    parser.add_argument("--embed-update", action="store_true", help="누락된 임베딩을 일괄 생성한다")
+    parser.add_argument("--freshness-check", action="store_true", help="즉시 신선도 확인을 실행한다")
+    parser.add_argument("--with-scheduler", action="store_true", help="신선도 스케줄러를 백그라운드로 시작한다")
 
-# 5. 질문 입력
-query = input("질문 입력: ")
+    args = parser.parse_args()
 
-# 6. 관련 문서 검색
-retriever = db.as_retriever(search_kwargs={"k": 3})
-retrieved_docs = retriever.invoke(query)
+    if not any([args.ingest, args.query, args.embed_update, args.freshness_check]):
+        parser.print_help()
+        sys.exit(0)
 
-print("\n[검색된 문서 일부]")
-for i, doc in enumerate(retrieved_docs):
-    print(f"\n--- 문서 {i+1} ---")
-    print(doc.page_content[:200])
+    scheduler = None
+    if args.with_scheduler or args.freshness_check:
+        from graph_rag.db.graph_store import GraphStore
+        from graph_rag.scheduler.freshness import FreshnessScheduler
 
-# 7. LLM으로 답변 생성
-llm = ChatOpenAI(model="gpt-4o-mini")
+        store = GraphStore()
+        scheduler = FreshnessScheduler(store)
+        if args.freshness_check:
+            scheduler.run_now()
+        if args.with_scheduler:
+            scheduler.start()
 
-context = "\n\n".join([doc.page_content for doc in retrieved_docs])
+    try:
+        if args.ingest:
+            run_ingest(args.pdf_dir, use_llm=not args.no_llm)
 
-prompt = f"""
-다음 문서를 기반으로 질문에 답해라.
+        if args.embed_update:
+            run_embed_update()
 
-문서:
-{context}
+        if args.query:
+            run_query_loop()
 
-질문:
-{query}
-"""
+    finally:
+        if scheduler:
+            scheduler.stop()
 
-response = llm.invoke(prompt)
 
-print("\n[최종 답변]")
-print(response.content)
+if __name__ == "__main__":
+    main()
