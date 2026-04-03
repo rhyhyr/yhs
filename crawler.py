@@ -370,8 +370,8 @@ class Crawler:
         content = "\n".join(lines)
 
         print(f"[STEP 3] 완료: {len(content)}bytes", flush=True)
-        print("\n=== 크롤링 결과 앞 500자 ===")
-        print(content[:500])
+        print("\n=== 크롤링 결과 앞 100자 ===")
+        print(content[:100])
         print("============================\n")
 
         return content

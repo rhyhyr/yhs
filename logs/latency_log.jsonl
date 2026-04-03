@@ -29,3 +29,8 @@
 {"ts": "2026-04-03T10:43:06Z", "agent": "hybrid_query_agent", "path": "deep", "elapsed_sec": 5.417, "best_score": 0.1991, "evidence_count": 36}
 {"ts": "2026-04-03T11:08:34Z", "agent": "hybrid_query_agent", "path": "crawl", "elapsed_sec": 35.297, "best_score": 0.142, "evidence_count": 36}
 {"ts": "2026-04-03T11:10:22Z", "agent": "hybrid_query_agent", "path": "deep", "elapsed_sec": 15.92, "best_score": 0.2078, "evidence_count": 36}
+{"ts": "2026-04-03T11:50:25Z", "agent": "hybrid_query_agent", "path": "deep", "elapsed_sec": 8.448, "best_score": 0.1778, "evidence_count": 36}
+{"ts": "2026-04-03T11:56:54Z", "agent": "hybrid_query_agent", "path": "deep", "elapsed_sec": 8.211, "best_score": 0.1778, "evidence_count": 36}
+{"ts": "2026-04-03T11:58:38Z", "agent": "hybrid_query_agent", "path": "deep", "elapsed_sec": 7.869, "best_score": 0.1676, "evidence_count": 36}
+{"ts": "2026-04-03T12:02:27Z", "agent": "hybrid_query_agent", "path": "deep", "elapsed_sec": 9.874, "best_score": 0.1797, "evidence_count": 36}
+{"ts": "2026-04-03T12:03:11Z", "agent": "hybrid_query_agent", "path": "crawl", "elapsed_sec": 33.071, "best_score": 0.1676, "evidence_count": 36}
