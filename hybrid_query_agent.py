@@ -45,6 +45,7 @@ from agent_runtime import (
     run_deep_path,
     WebSearchClient,
 )
+from crawler import Crawler
 
 # sentence-transformers / torch 가 없어도 동작
 try:
@@ -57,16 +58,24 @@ except Exception as _e:
 
 def load_env(path: str = ".env") -> None:
     # .env 파일의 key=value를 현재 프로세스 환경변수에 주입한다.
-    # 이미 설정된 환경변수는 덮어쓰지 않는다(setdefault).
-    if not os.path.exists(path):
-        return
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            k, v = line.split("=", 1)
-            os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+    # 프로젝트 폴더 기준 .env를 우선 읽고, 같은 키가 이미 있어도 파일 값을 우선 적용한다.
+    candidates = []
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    candidates.append(os.path.join(script_dir, path))
+    cwd_path = os.path.abspath(path)
+    if cwd_path not in candidates:
+        candidates.append(cwd_path)
+
+    for env_path in candidates:
+        if not os.path.exists(env_path):
+            continue
+        with open(env_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                os.environ[k.strip()] = v.strip().strip('"').strip("'")
 
 
 load_env()
@@ -89,14 +98,20 @@ VEC_WEIGHT = float(os.environ.get("VEC_WEIGHT", "0.62"))
 KW_WEIGHT = float(os.environ.get("KW_WEIGHT", "0.38"))
 LEXICAL_CAND_LIMIT = int(os.environ.get("LEXICAL_CAND_LIMIT", "500"))
 
-MIN_CHUNKS_FOR_ANSWER = int(os.environ.get("MIN_CHUNKS_FOR_ANSWER", "2"))
-MIN_BEST_SCORE = float(os.environ.get("MIN_BEST_SCORE", "0.40"))
+CRAWL_MIN_CHUNKS_FOR_ANSWER = int(
+    os.environ.get("CRAWL_MIN_CHUNKS_FOR_ANSWER", os.environ.get("MIN_CHUNKS_FOR_ANSWER", "2"))
+)
+CRAWL_MIN_BEST_SCORE = float(
+    os.environ.get("CRAWL_MIN_BEST_SCORE", os.environ.get("MIN_BEST_SCORE", "0.16"))
+)
+ANSWER_MIN_CHUNKS_FOR_ANSWER = int(os.environ.get("ANSWER_MIN_CHUNKS_FOR_ANSWER", "1"))
+ANSWER_MIN_BEST_SCORE = float(os.environ.get("ANSWER_MIN_BEST_SCORE", "0.08"))
 SEM_DEDUP_THRESHOLD = float(os.environ.get("SEM_DEDUP_THRESHOLD", "0.95"))
 MMR_LAMBDA = float(os.environ.get("MMR_LAMBDA", "0.80"))
 ENABLE_LLM_RERANK = os.environ.get("ENABLE_LLM_RERANK", "0") == "1"
 LLM_RERANK_CAND = int(os.environ.get("LLM_RERANK_CAND", "12"))
 CRAWL_MAX_DOCS = int(os.environ.get("CRAWL_MAX_DOCS", "8"))
-ENABLE_CRAWL = False  # DB 정보 부족 시 외부 크롤링은 사용하지 않음
+ENABLE_CRAWL = os.environ.get("ENABLE_CRAWL", "0") == "1"
 CRAWL_SEARCH_TIMEOUT = int(os.environ.get("CRAWL_SEARCH_TIMEOUT", "5"))
 CRAWL_FETCH_TIMEOUT = int(os.environ.get("CRAWL_FETCH_TIMEOUT", "6"))
 CRAWL_SLEEP_SEC = float(os.environ.get("CRAWL_SLEEP_SEC", "0.15"))
@@ -186,6 +201,14 @@ class HybridQueryAgent:
         "체루": "체류",
     }
 
+    ALLOWED_SITES: list[str] = [
+        "https://www.donga.ac.kr/global/Main.do", 
+        "https://www.donga.ac.kr/",
+        "https://hikorea.go.kr",
+        "https://moj.go.kr",
+        "https://immigration.go.kr",
+    ]
+
     def __init__(self) -> None:
         # 필수 자격 정보가 없으면 즉시 실패시켜 오동작을 방지
         if not NEO4J_PASSWORD:
@@ -202,12 +225,17 @@ class HybridQueryAgent:
         self.embedder = self._build_embedder()
         self.llm = self._build_model() if GEMINI_API_KEY else None
         # fallback 임베더일 때는 점수가 전반적으로 낮아 임계치를 완화
-        self.min_best_score = 0.08 if self.is_fallback_embedder else MIN_BEST_SCORE
+        self.min_best_score = 0.25 if self.is_fallback_embedder else CRAWL_MIN_BEST_SCORE
         self._domain_terms = sorted({t for g in self._SYNONYM_GROUPS for t in g} | set(self._TYPO_MAP.values()))
         self._gate = GateThresholds.from_env()
-        if self.is_fallback_embedder:
-            self._gate.min_top_score = 0.08
         self._web_client = WebSearchClient(timeout=5) if ENABLE_EXTERNAL_SEARCH else None
+        self.crawler = Crawler(
+            http=self.http,
+            embedder=self.embedder,
+            llm=self.llm,
+            allowed_sites=self.ALLOWED_SITES,
+            driver=self.driver,
+        )
 
     def close(self) -> None:
         # 네트워크/DB 세션 정리
@@ -693,17 +721,23 @@ class HybridQueryAgent:
         return cand[:top_n]
 
     def _needs_crawl(self, scored_chunks: list[tuple[ChunkRec, float]]) -> bool:
-        # (현재 기본 비활성) 내부 근거가 약하면 외부 크롤링 필요 여부 판단
         if not scored_chunks:
             return True
         best = scored_chunks[0][1] if scored_chunks else 0.0
-        # 둘 다 부족할 때만 정보 부족으로 간주하여 과도한 답변 거부를 줄입니다.
-        return (len(scored_chunks) < MIN_CHUNKS_FOR_ANSWER) and (best < self.min_best_score)
+        # 하나라도 부족하면 크롤링을 시작해 웹 폴백을 더 쉽게 타도록 한다.
+        return (len(scored_chunks) < CRAWL_MIN_CHUNKS_FOR_ANSWER) or (best < CRAWL_MIN_BEST_SCORE)
+
+    def _can_answer_from_db(self, scored_chunks: list[tuple[ChunkRec, float]]) -> bool:
+        if not scored_chunks:
+            return False
+        best = scored_chunks[0][1] if scored_chunks else 0.0
+        # 답변 허용 임계값은 크롤링 임계값보다 느슨하게 운영한다.
+        return (len(scored_chunks) >= ANSWER_MIN_CHUNKS_FOR_ANSWER) or (best >= ANSWER_MIN_BEST_SCORE)
 
     def _crawl_search(self, query: str) -> list[str]:
         # DuckDuckGo HTML 결과에서 URL 수집
         q = urllib.parse.quote(query)
-        url = f"https://duckduckgo.com/html/?q={q}"
+        url = f"https://google.com/html/?q={q}"
         try:
             r = self.http.get(url, timeout=CRAWL_SEARCH_TIMEOUT)
             r.raise_for_status()
@@ -998,7 +1032,15 @@ class HybridQueryAgent:
             reasons = deep["reasons"]
             path = "deep"
 
-        if not selected_chunks and not external_contexts:
+        if ENABLE_CRAWL and self._needs_crawl(selected_chunks) and not external_contexts:
+            print("[INFO] DB 근거 부족 → run_pipeline 크롤링 시작", flush=True)
+            crawl_answer = self.crawler.run_pipeline(query)
+            if crawl_answer:
+                external_contexts = [f"[WEB][크롤링] {crawl_answer}"]
+                source_lines = [self.ALLOWED_SITES[0]]
+                path = "crawl"
+
+        if not external_contexts and not self._can_answer_from_db(selected_chunks):
             # 근거가 전혀 없으면 안전하게 답변 거절
             elapsed = round(time.perf_counter() - t0, 3)
             self._log_latency(path, elapsed, 0.0, 0)
@@ -1089,7 +1131,10 @@ def main() -> None:
     # CLI 실행 진입점(개발/운영 단독 실행용)
     agent = HybridQueryAgent()
     print("Hybrid Query Agent ready. Enter question (or 'exit').")
-    print("[INFO] DB 검색 전용 모드: DB 근거가 부족하면 답변하지 않습니다.")
+    if ENABLE_CRAWL:
+        print("[INFO] DB 근거 부족 시 ALLOWED_SITES 크롤링 모드 활성화")
+    else:
+        print("[INFO] DB 검색 전용 모드: DB 근거가 부족하면 답변하지 않습니다.")
     try:
         while True:
             try:
@@ -1107,7 +1152,10 @@ def main() -> None:
                 print("\n[상위 카테고리]", result["top_categories"])
                 print("[하위 카테고리]", result["top_subcategories"])
                 print("[답변 가능]", result["answered"])
-                print("[최고 점수]", result.get("best_score", 0.0))
+                print(f"[청크 수] {result.get('context_count', 0)}  (크롤링 임계값: {CRAWL_MIN_CHUNKS_FOR_ANSWER})")
+                print(f"[최고 점수] {result.get('best_score', 0.0):.4f}  (크롤링 임계값: {CRAWL_MIN_BEST_SCORE})")
+                print(f"[답변 허용 임계값] chunks>={ANSWER_MIN_CHUNKS_FOR_ANSWER} 또는 score>={ANSWER_MIN_BEST_SCORE}")
+                print("[검색 경로]", result.get("path", "-"))
                 print("[사용 청크 ID]", result.get("used_chunk_ids", []))
                 print("\n[근거 출처]")
                 for i, p in enumerate(result.get("retrieved_preview", []), start=1):
