@@ -1,4 +1,4 @@
-# YUHAK
+# YUHAK 0403 수정사항
 1. 프로젝트 파일 구조 리팩토링
 pages/ hooks/ store/ api/ data/ styles/ components/ 폴더 구조로 재편
 
