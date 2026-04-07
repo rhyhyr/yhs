@@ -100,7 +100,7 @@ export default function HomeScreen() {
           <div className="notif-bubble">1</div>
         </div>
         <div style={{ flex: 1, marginLeft: '8px' }}>
-          <div className="tb-title">UniGuide</div>
+          <div className="tb-title">YHS</div>
           <div className="tb-sub">안녕하세요, Wei!</div>
         </div>
         <div

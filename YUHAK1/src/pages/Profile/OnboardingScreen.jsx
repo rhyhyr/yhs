@@ -6,7 +6,7 @@ export default function OnboardingScreen() {
     <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <div className="ob-hero">
         <span className="ob-mark">🎓</span>
-        <div className="ob-h">UniGuide AI</div>
+        <div className="ob-h">YHS</div>
         <div className="ob-p">한국 유학 생활, 더 쉽게<br />비자·학교·생활 모두 안내해드려요</div>
       </div>
       <button className="social-btn" onClick={() => showToast('Google 로그인 화면으로 이동합니다')}>

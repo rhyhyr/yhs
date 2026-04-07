@@ -11,7 +11,7 @@ export default function HomeScreen() {
           <div className="notif-bubble">2</div>
         </div>
         <div style={{ flex: 1, marginLeft: '8px' }}>
-          <div className="tb-title">UniGuide</div>
+          <div className="tb-title">YHS</div>
           <div className="tb-sub">안녕하세요, Wei!</div>
         </div>
         <div onClick={() => navigate('s-profile')} style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--c-accent-l)', border: '2px solid var(--c-accent-m)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: 'var(--c-accent)', cursor: 'pointer' }}>W</div>
