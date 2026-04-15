@@ -1,6 +1,10 @@
 # GitHub Actions로 배포 빌드 추적
 name: Track Deployments
 on:
+  push:
+    branches:
+      - '**'
+  workflow_dispatch:
   deployment:
 
 jobs:
@@ -10,4 +14,5 @@ jobs:
       - name: Log Deployment
         run: |
           echo "Deployment at: $(date)"
-          echo "Environment: ${{ github.event.deployment.environment }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Environment: ${{ github.event.deployment.environment || 'N/A (non-deployment event)' }}"
