@@ -1,0 +1,70 @@
+name: Python Matrix Reusable CI
+
+on:
+  workflow_call:
+    inputs:
+      python-versions:
+        description: JSON array of Python versions to test.
+        required: false
+        type: string
+        default: '["3.10", "3.11", "3.12"]'
+      runner-labels:
+        description: JSON array of runner labels to test.
+        required: false
+        type: string
+        default: '["ubuntu-latest", "windows-latest"]'
+      requirements-file:
+        description: Path to the dependency file.
+        required: false
+        type: string
+        default: requirements.txt
+
+jobs:
+  matrix-test:
+    name: Matrix test (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.runner-labels) }}
+        python-version: ${{ fromJSON(inputs.python-versions) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Benchmark pip cache
+        id: benchmark
+        uses: ./.github/actions/pip-cache-benchmark
+        with:
+          python-version: ${{ matrix.python-version }}
+          requirements-file: ${{ inputs.requirements-file }}
+          benchmark-label: cache-benchmark
+
+      - name: Run smoke validation
+        shell: pwsh
+        run: |
+          python -m compileall -q .
+          python -c "import main, regression_test, hierarchical_rag, hybrid_query_agent, student_agent"
+
+      - name: Upload benchmark report
+        id: upload-report
+        uses: actions/upload-artifact@v4
+        with:
+          name: cache-benchmark-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: ${{ steps.benchmark.outputs.report-path }}
+
+      - name: Publish run summary
+        shell: pwsh
+        run: |
+          @"
+          ## Optimization comparison report
+
+          - OS: ${{ matrix.os }}
+          - Python: ${{ matrix.python-version }}
+          - Cold install: ${{ steps.benchmark.outputs.cold-seconds }} seconds
+          - Cached install: ${{ steps.benchmark.outputs.warm-seconds }} seconds
+          - Improvement: ${{ steps.benchmark.outputs.improvement-rate }}%
+          - Artifact: ${{ steps.upload-report.outputs.artifact-url }}
+          - GitHub run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
