@@ -1,0 +1,148 @@
+name: Matrix CI and Selective Deploy
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  matrix-tests:
+    uses: ./.github/workflows/python-matrix-reusable.yml
+    with:
+      python-versions: '["3.10", "3.11", "3.12"]'
+      runner-labels: '["ubuntu-latest", "windows-latest"]'
+      requirements-file: requirements.txt
+
+  detect-changes:
+    name: Detect deployable changes
+    runs-on: ubuntu-latest
+    outputs:
+      app-changed: ${{ steps.filter.outputs.app }}
+      docs-changed: ${{ steps.filter.outputs.docs }}
+      workflow-changed: ${{ steps.filter.outputs.workflow }}
+      deployable-change: ${{ steps.decide.outputs.deployable-change }}
+      decision-reason: ${{ steps.decide.outputs.decision-reason }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed files
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          list-files: shell
+          filters: |
+            app:
+              - 'main.py'
+              - 'agent_runtime.py'
+              - 'crawler.py'
+              - 'hierarchical_rag.py'
+              - 'hybrid_query_agent.py'
+              - 'student_agent.py'
+              - 'indexing/**'
+              - 'requirements.txt'
+            docs:
+              - 'README.md'
+              - 'wiki-drafts/**'
+              - '.github/**/*.md'
+            workflow:
+              - '.github/workflows/**'
+              - '.github/actions/**'
+
+      - name: Decide deployment eligibility
+        id: decide
+        shell: pwsh
+        run: |
+          $appChanged = '${{ steps.filter.outputs.app }}' -eq 'true'
+          $workflowChanged = '${{ steps.filter.outputs.workflow }}' -eq 'true'
+          $docsChanged = '${{ steps.filter.outputs.docs }}' -eq 'true'
+          $deployableChange = $appChanged -or $workflowChanged
+
+          $reason = if ($deployableChange) {
+            'deployable files changed'
+          } elseif ($docsChanged) {
+            'docs only change; deployment skipped'
+          } else {
+            'no deployable changes detected'
+          }
+
+          $normalizedDeployable = $deployableChange.ToString().ToLowerInvariant()
+
+          "deployable-change=$normalizedDeployable" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "decision-reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+  preview-deploy:
+    name: Preview deployment decision
+    needs: detect-changes
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write preview summary
+        shell: pwsh
+        run: |
+          @"
+          ## Pull request deployment preview
+
+          - Deployable files changed: ${{ needs.detect-changes.outputs.deployable-change }}
+          - App changed: ${{ needs.detect-changes.outputs.app-changed }}
+          - Workflow changed: ${{ needs.detect-changes.outputs.workflow-changed }}
+          - Docs changed: ${{ needs.detect-changes.outputs.docs-changed }}
+          - Decision: ${{ needs.detect-changes.outputs.decision-reason }}
+          - GitHub run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+
+  deploy:
+    name: Selective deploy
+    needs:
+      - matrix-tests
+      - detect-changes
+    if: |
+      needs.detect-changes.outputs.deployable-change == 'true' &&
+      (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build deployment manifest
+        shell: pwsh
+        run: |
+          $manifest = [ordered]@{
+            repository = '${{ github.repository }}'
+            ref = '${{ github.ref_name }}'
+            sha = '${{ github.sha }}'
+            reason = '${{ needs.detect-changes.outputs.decision-reason }}'
+            deployable_change = '${{ needs.detect-changes.outputs.deployable-change }}'
+            run_url = '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+          } | ConvertTo-Json -Depth 4
+
+          $manifest | Out-File -FilePath deployment-manifest.json -Encoding utf8
+
+      - name: Upload deployment manifest
+        id: upload-manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-manifest
+          path: deployment-manifest.json
+
+      - name: Publish deployment summary
+        shell: pwsh
+        run: |
+          @"
+          ## Selective deployment result
+
+          - Decision: deployed
+          - Reason: ${{ needs.detect-changes.outputs.decision-reason }}
+          - Artifact: ${{ steps.upload-manifest.outputs.artifact-url }}
+          - GitHub run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8

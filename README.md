@@ -142,5 +142,15 @@ RETURN count(ch) AS orphan_chunks;
 
 `orphan_chunks = 0`이면 연결 무결성은 정상입니다.
 
+## 10) GitHub Actions 최적화
+
+이 저장소에는 Matrix CI, Reusable Workflow, Composite Action, 선택적 배포 파이프라인이 포함되어 있습니다.
+
+- 메인 워크플로: [.github/workflows/ci-and-selective-deploy.yml](.github/workflows/ci-and-selective-deploy.yml)
+- 재사용 워크플로: [.github/workflows/python-matrix-reusable.yml](.github/workflows/python-matrix-reusable.yml)
+- composite action: [.github/actions/pip-cache-benchmark/action.yml](.github/actions/pip-cache-benchmark/action.yml)
+
+실행 시 각 매트릭스 조합마다 캐시 전후 설치 시간이 측정되며, GitHub Actions run 링크와 함께 Markdown 리포트가 아티팩트로 업로드됩니다.
+
 
 ![alt text](image-1.png)
