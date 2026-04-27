@@ -125,6 +125,7 @@ class ChunkNode:
     section: str = ""
     language: str = "ko"
     doc_version: str = ""
+    score: float = 0.0
     embedding: Optional[List[float]] = None  # numpy 변환 후 저장
     needs_review: bool = False
     created_at: str = field(default_factory=_now)

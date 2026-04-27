@@ -370,12 +370,12 @@ class GraphStore:
             return []
 
     def get_chunks_for_nodes(self, node_ids: list[str]) -> list[dict]:
-        """구조 노드 ID 목록에 FOUND_IN / MENTIONED_IN으로 연결된 Chunk 반환."""
+        """구조 노드 ID 목록에 FOUND_IN으로 연결된 Chunk 반환."""
         if not node_ids:
             return []
         rows = self._run(
             """
-            MATCH (n)-[:FOUND_IN|MENTIONED_IN]->(c:Chunk)
+            MATCH (n)-[:FOUND_IN]->(c:Chunk)
             WHERE n.id IN $ids
             RETURN DISTINCT
                 c.id          AS id,
