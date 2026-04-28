@@ -22,9 +22,13 @@ extend-exclude = [
 ]
 
 [tool.ruff.lint]
-# E: pycodestyle errors, F: pyflakes, I: isort, W: warnings
-select = ["E", "F", "I", "W"]
-ignore = ["E501"]
+# E: pycodestyle errors, F: pyflakes, I: isort
+select = ["E", "F", "I"]
+ignore = [
+  "E501",   # line too long
+  "W292",   # missing newline at end of file
+  "W293",   # whitespace on blank line
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["F401"]
