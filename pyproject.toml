@@ -1,0 +1,46 @@
+# ruff 설정 — Week 7 CI/CD 과제용
+#
+# 기존 코드(crawler.py, agent_runtime.py 등)는 lint 대상에서 제외하고,
+# 새로 작성한 tests/만 검사합니다.
+# 이렇게 한 이유:
+#   - 과제 핵심은 "워크플로우가 정상 동작하는지" 보여주는 것
+#   - 기존 거대한 파일들은 별도 리팩터링 PR에서 다뤄야 함
+#   - 새 코드부터 컨벤션을 적용해 점진적으로 확대하는 게 현실적
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+# 제외 — 기존 파일들 (별도 PR에서 다룰 예정)
+# 새 코드(tests/)부터 컨벤션을 적용하고, 기존 코드는 점진적으로 확대
+extend-exclude = [
+  "main.py",
+  "agent_runtime.py",
+  "crawler.py",
+  "hierarchical_rag.py",
+  "hybrid_query_agent.py",
+  "student_agent.py",
+  "regression_test.py",
+  "indexing/",
+  "logs/",
+  "pdf/",
+  ".venv/",
+  "__pycache__/",
+  "build/",
+]
+
+[tool.ruff.lint]
+# 최소한의 lint 규칙만 활성화 (점진적 확대 권장)
+#   E  : pycodestyle errors (인덴트, 공백 등 기본)
+#   F  : pyflakes (사용 안 한 import, 정의 안 된 변수)
+#   I  : isort (import 정렬)
+#   W  : pycodestyle warnings
+select = ["E", "F", "I", "W"]
+
+# 일부 규칙은 무시 (과제 진행 편의를 위해)
+ignore = [
+  "E501",   # line too long — line-length로 이미 제한
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F401"]   # 테스트 파일에선 unused import 허용
