@@ -110,7 +110,7 @@ git push origin feat/my-feature
 
 - **최소 1명의 Approve** 후 머지 가능.
 - `[MUST]`로 표시된 코멘트는 **반드시 반영**하거나 합의된 후에 머지.
-- 자세한 리뷰 규칙은 [`docs/REVIEW_GUIDE.md`](docs/REVIEW_GUIDE.md) 참고.
+- 자세한 리뷰 규칙은 [`.github/REVIEW_GUIDE.md`](docs/REVIEW_GUIDE.md) 참고.
 
 ### 머지 방식
 
