@@ -2,14 +2,25 @@
 name: Track Deployment Result
 on:
   deployment_status:
+  workflow_dispatch:
+    inputs:
+      status:
+        description: "Manual deployment status for testing (success/failure)"
+        required: false
+        default: "success"
 
 jobs:
   track-result:
     runs-on: ubuntu-latest
     steps:
       - name: Log Result
+        env:
+          EVENT_STATUS: ${{ github.event.deployment_status.state }}
+          INPUT_STATUS: ${{ github.event.inputs.status }}
         run: |
-          STATUS="${{ github.event.deployment_status.state }}"
+          # deployment_status 이벤트가 없으면 workflow_dispatch 입력값을 사용
+          STATUS="${EVENT_STATUS:-$INPUT_STATUS}"
+          STATUS="${STATUS:-success}"
           # 상태에 따른 로그 분기 처리
           if [ "$STATUS" = "success" ]; then
             echo "✅ Deployment succeeded"
