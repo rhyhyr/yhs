@@ -18,6 +18,23 @@ on:
         required: false
         type: string
         default: requirements.txt
+  workflow_dispatch:
+    inputs:
+      python-versions:
+        description: JSON array of Python versions to test.
+        required: false
+        type: string
+        default: '["3.10", "3.11", "3.12"]'
+      runner-labels:
+        description: JSON array of runner labels to test.
+        required: false
+        type: string
+        default: '["ubuntu-latest", "windows-latest"]'
+      requirements-file:
+        description: Path to the dependency file.
+        required: false
+        type: string
+        default: requirements.txt
 
 jobs:
   matrix-test:
