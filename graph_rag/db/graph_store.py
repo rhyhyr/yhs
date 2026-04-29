@@ -11,7 +11,7 @@ graph_rag/db/graph_store.py
 Neo4j 장점 (Kuzu 대비):
   - 관계 타입에 FROM/TO 노드 타입 제약 없음 → FOUND_IN·BLOCKS 등 다형 관계 자유롭게 사용
   - 네이티브 벡터 인덱스(5.11+)로 임베딩을 DB 내부에서 바로 검색
-  - 기존 프로젝트(hybrid_query_agent.py)와 동일한 인프라 재사용 가능
+    - 현재 질의 에이전트와 인제스트 파이프라인이 같은 저장소/스키마를 재사용
 """
 
 from __future__ import annotations
