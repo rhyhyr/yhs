@@ -33,6 +33,3 @@
 - Email: your_email@example.com
 - Blog: https://your-blog.example.com
 
----
-
-원하면 위 템플릿을 더 간단한 한국어 버전으로 바꿔도 된다.
