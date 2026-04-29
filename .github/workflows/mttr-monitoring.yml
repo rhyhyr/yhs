@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  issues: write
+  issues: read
 
 jobs:
   track-mttr:
@@ -16,12 +16,99 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5 # v5로 업데이트
+      - name: Generate MTTR metrics
+        uses: actions/github-script@v7
         with:
-          python-version: '3.11'
+          script: |
+            const fs = require('fs');
 
-      # ... 중략 ...
+            const { owner, repo } = context.repo;
+            const lookbackDays = 30;
+            const since = new Date();
+            since.setDate(since.getDate() - lookbackDays);
+
+            function getSeverity(labels) {
+              const labelNames = labels.map((label) => label.name.toLowerCase());
+              if (labelNames.includes('critical')) return 'Critical';
+              if (labelNames.includes('high')) return 'High';
+              if (labelNames.includes('medium')) return 'Medium';
+              if (labelNames.includes('low')) return 'Low';
+              return 'Unspecified';
+            }
+
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'closed',
+              labels: 'incident',
+              since: since.toISOString(),
+              per_page: 100,
+            });
+
+            const incidents = issues
+              .filter((issue) => !issue.pull_request)
+              .map((issue) => {
+                const openedAt = new Date(issue.created_at);
+                const closedAt = new Date(issue.closed_at || issue.updated_at);
+                const mttrMinutes = Math.max(0, (closedAt.getTime() - openedAt.getTime()) / 60000);
+
+                return {
+                  number: issue.number,
+                  title: issue.title,
+                  severity: getSeverity(issue.labels || []),
+                  opened_at: issue.created_at,
+                  closed_at: issue.closed_at,
+                  mttr_minutes: Number(mttrMinutes.toFixed(2)),
+                };
+              });
+
+            const mttrValues = incidents.map((incident) => incident.mttr_minutes);
+            const sum = mttrValues.reduce((total, value) => total + value, 0);
+            const sorted = [...mttrValues].sort((left, right) => left - right);
+
+            function percentile(values, percentileValue) {
+              if (!values.length) return 0;
+              const index = (values.length - 1) * percentileValue;
+              const lower = Math.floor(index);
+              const upper = Math.ceil(index);
+              if (lower === upper) return values[lower];
+              return values[lower] + (values[upper] - values[lower]) * (index - lower);
+            }
+
+            const bySeverity = incidents.reduce((accumulator, incident) => {
+              if (!accumulator[incident.severity]) {
+                accumulator[incident.severity] = [];
+              }
+              accumulator[incident.severity].push(incident.mttr_minutes);
+              return accumulator;
+            }, {});
+
+            const metrics = {
+              generated_at: new Date().toISOString(),
+              lookback_days: lookbackDays,
+              total_incidents: incidents.length,
+              average_mttr: incidents.length ? Number((sum / incidents.length).toFixed(2)) : 0,
+              median_mttr: incidents.length ? Number(percentile(sorted, 0.5).toFixed(2)) : 0,
+              min_mttr: incidents.length ? Number(Math.min(...mttrValues).toFixed(2)) : 0,
+              max_mttr: incidents.length ? Number(Math.max(...mttrValues).toFixed(2)) : 0,
+              p95_mttr: incidents.length ? Number(percentile(sorted, 0.95).toFixed(2)) : 0,
+              p99_mttr: incidents.length ? Number(percentile(sorted, 0.99).toFixed(2)) : 0,
+              by_severity: Object.fromEntries(
+                Object.entries(bySeverity).map(([severity, values]) => [
+                  severity,
+                  {
+                    count: values.length,
+                    average: Number((values.reduce((total, value) => total + value, 0) / values.length).toFixed(2)),
+                    min: Number(Math.min(...values).toFixed(2)),
+                    max: Number(Math.max(...values).toFixed(2)),
+                  },
+                ])
+              ),
+              incidents,
+            };
+
+            fs.writeFileSync('mttr-metrics.json', JSON.stringify(metrics, null, 2));
+            console.log(`Wrote mttr-metrics.json with ${incidents.length} incident(s).`);
 
       - name: Upload MTTR metrics
         uses: actions/upload-artifact@v4 # v4로 업데이트
