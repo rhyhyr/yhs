@@ -1,0 +1,93 @@
+# ───────────────────────────────────────────────────────────────
+# Week 7 — CI Workflow
+# 트리거: PR 생성/업데이트, main push
+# 목적:
+#   1) Lint (ruff)
+#   2) Matrix 전략으로 버전/OS 조합 테스트
+#   3) Secrets로 민감정보 안전 주입
+# ───────────────────────────────────────────────────────────────
+
+name: Week7 CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, "week#7"]
+  workflow_dispatch:    # 수동 실행 버튼 (Actions 탭에서 누를 수 있음)
+
+jobs:
+  # ─── Job 1: Lint ────────────────────────────────────────────
+  lint:
+    name: Lint with ruff
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Run ruff
+        run: ruff check .
+
+  # ─── Job 2: Test (Matrix) ───────────────────────────────────
+  test:
+    name: Test (py${{ matrix.python-version }} on ${{ matrix.os }})
+    needs: lint                              # lint 통과해야 test 시작
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false                       # 한 조합이 실패해도 다른 조합은 계속
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"                       # pip 캐시로 속도 향상
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+
+      - name: Run pytest
+        # Secrets 사용 예시: 환경변수로 안전하게 주입
+        # 실제 키가 등록되어 있지 않으면 비어 있는 상태로 전달됨
+        env:
+          DEMO_API_KEY: ${{ secrets.DEMO_API_KEY }}
+          ENVIRONMENT: ci
+        run: |
+          pytest tests/ -v
+
+  # ─── Job 3: Secrets 주입 데모 ────────────────────────────────
+  secrets-demo:
+    name: Secrets Injection Demo
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Print masked secret presence
+        # 실제 secret 값은 절대 echo하지 않습니다.
+        # GitHub Actions는 secret 출력을 자동으로 *** 처리하지만,
+        # 좋은 습관은 'set' 또는 'unset' 정도만 확인하는 것입니다.
+        env:
+          DEMO_API_KEY: ${{ secrets.DEMO_API_KEY }}
+        run: |
+          if [ -n "$DEMO_API_KEY" ]; then
+            echo "DEMO_API_KEY: set (length=${#DEMO_API_KEY})"
+          else
+            echo "DEMO_API_KEY: not set (using fallback in app)"
+          fi
