@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/python insert_haksa_entities.py)",
+      "Bash(.venv/Scripts/python batch_eval.py)",
+      "Bash(.venv/Scripts/python -X utf8 batch_eval.py)",
+      "Bash(.venv/Scripts/python -X utf8 -c ' *)"
+    ]
+  }
+}
