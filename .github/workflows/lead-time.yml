@@ -1,18 +1,58 @@
-# .github/workflows/metrics.yml
 name: Track Lead Time
+
 on:
   pull_request:
     types: [closed]
+
 jobs:
   track-lead-time:
-    # PR이 병합되었을 때만 실행
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
-    - name: Calculate Lead Time
-      run: |
-        FIRST_COMMIT_TIME="${{ github.event.pull_request.created_at }}"
-        MERGE_TIME="${{ github.event.pull_request.merged_at }}"
-        # 시간 차이 계산 (초 단위)
-        LEAD_TIME=$(( $(date -d "$MERGE_TIME" +%s) - $(date -d "$FIRST_COMMIT_TIME" +%s) ))
-        echo "Lead Time: $LEAD_TIME seconds"
+      - name: Calculate Lead Time
+        id: calc
+        run: |
+          FIRST_COMMIT_TIME="${{ github.event.pull_request.created_at }}"
+          MERGE_TIME="${{ github.event.pull_request.merged_at }}"
+          LEAD_TIME=$(( $(date -d "$MERGE_TIME" +%s) - $(date -d "$FIRST_COMMIT_TIME" +%s) ))
+          LEAD_TIME_MIN=$(( LEAD_TIME / 60 ))
+          echo "lead_time=$LEAD_TIME" >> $GITHUB_OUTPUT
+          echo "lead_time_min=$LEAD_TIME_MIN" >> $GITHUB_OUTPUT
+          echo "Lead Time: ${LEAD_TIME}초 (${LEAD_TIME_MIN}분)"
+
+      - name: Save JSON artifact
+        run: |
+          cat > lead-time-result.json << EOF
+          {
+            "metric": "lead_time",
+            "pr_number": ${{ github.event.pull_request.number }},
+            "pr_title": "${{ github.event.pull_request.title }}",
+            "created_at": "${{ github.event.pull_request.created_at }}",
+            "merged_at": "${{ github.event.pull_request.merged_at }}",
+            "lead_time_seconds": ${{ steps.calc.outputs.lead_time }},
+            "lead_time_minutes": ${{ steps.calc.outputs.lead_time_min }},
+            "run_id": "${{ github.run_id }}"
+          }
+          EOF
+          cat lead-time-result.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lead-time-pr${{ github.event.pull_request.number }}
+          path: lead-time-result.json
+          retention-days: 30
+
+      - name: Write Job Summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## DORA: Lead Time
+
+          | 항목 | 값 |
+          |---|---|
+          | PR | #${{ github.event.pull_request.number }} |
+          | 제목 | ${{ github.event.pull_request.title }} |
+          | 생성 시각 | ${{ github.event.pull_request.created_at }} |
+          | 병합 시각 | ${{ github.event.pull_request.merged_at }} |
+          | **Lead Time** | **${{ steps.calc.outputs.lead_time_min }}분** |
+          EOF

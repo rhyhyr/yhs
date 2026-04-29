@@ -1,9 +1,9 @@
-# GitHub Actions로 배포 빌드 추적
-name: Track Deployments
+name: Track Deployment Frequency
+
 on:
   push:
     branches:
-      - '**'
+      - main
   workflow_dispatch:
   deployment:
 
@@ -12,7 +12,50 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Log Deployment
+        id: log
         run: |
-          echo "Deployment at: $(date)"
+          DEPLOY_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          DEPLOY_DATE=$(date -u +"%Y-%m-%d")
+          echo "deploy_time=$DEPLOY_TIME" >> $GITHUB_OUTPUT
+          echo "deploy_date=$DEPLOY_DATE" >> $GITHUB_OUTPUT
+          echo "Deployment recorded at: $DEPLOY_TIME"
           echo "Event: ${{ github.event_name }}"
-          echo "Environment: ${{ github.event.deployment.environment || 'N/A (non-deployment event)' }}"
+          echo "Branch: ${{ github.ref_name }}"
+
+      - name: Save JSON artifact
+        run: |
+          cat > deployment-frequency-result.json << EOF
+          {
+            "metric": "deployment_frequency",
+            "event": "${{ github.event_name }}",
+            "branch": "${{ github.ref_name }}",
+            "commit_sha": "${{ github.sha }}",
+            "actor": "${{ github.actor }}",
+            "deploy_time": "${{ steps.log.outputs.deploy_time }}",
+            "deploy_date": "${{ steps.log.outputs.deploy_date }}",
+            "environment": "${{ github.event.deployment.environment || 'N/A' }}",
+            "run_id": "${{ github.run_id }}"
+          }
+          EOF
+          cat deployment-frequency-result.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-freq-${{ github.run_id }}
+          path: deployment-frequency-result.json
+          retention-days: 30
+
+      - name: Write Job Summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## DORA: Deployment Frequency
+
+          | 항목 | 값 |
+          |---|---|
+          | 이벤트 | ${{ github.event_name }} |
+          | 브랜치 | ${{ github.ref_name }} |
+          | 커밋 | \`${{ github.sha }}\` |
+          | 배포자 | @${{ github.actor }} |
+          | **배포 시각** | **${{ steps.log.outputs.deploy_time }}** |
+          EOF

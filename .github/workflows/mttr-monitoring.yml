@@ -3,7 +3,7 @@ name: MTTR Monitoring
 on:
   issues:
     types: [opened, closed, labeled]
-  workflow_dispatch: # 수동 실행 추가
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,14 +17,72 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5 # v5로 업데이트
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # ... 중략 ...
+      - name: Calculate MTTR
+        id: calc
+        run: |
+          EVENT="${{ github.event.action }}"
+          ISSUE_NUM="${{ github.event.issue.number }}"
+          CREATED_AT="${{ github.event.issue.created_at }}"
+          CLOSED_AT="${{ github.event.issue.closed_at }}"
 
-      - name: Upload MTTR metrics
-        uses: actions/upload-artifact@v4 # v4로 업데이트
+          if [ "$EVENT" = "closed" ] && [ -n "$CLOSED_AT" ]; then
+            MTTR=$(( $(date -d "$CLOSED_AT" +%s) - $(date -d "$CREATED_AT" +%s) ))
+            MTTR_MIN=$(( MTTR / 60 ))
+            MTTR_HR=$(( MTTR / 3600 ))
+            echo "mttr_seconds=$MTTR" >> $GITHUB_OUTPUT
+            echo "mttr_minutes=$MTTR_MIN" >> $GITHUB_OUTPUT
+            echo "mttr_hours=$MTTR_HR" >> $GITHUB_OUTPUT
+            echo "resolved=true" >> $GITHUB_OUTPUT
+            echo "MTTR: ${MTTR}초 (${MTTR_HR}시간 ${MTTR_MIN}분)"
+          else
+            echo "mttr_seconds=0" >> $GITHUB_OUTPUT
+            echo "mttr_minutes=0" >> $GITHUB_OUTPUT
+            echo "mttr_hours=0" >> $GITHUB_OUTPUT
+            echo "resolved=false" >> $GITHUB_OUTPUT
+            echo "Issue not yet closed — MTTR not calculated"
+          fi
+
+      - name: Save JSON artifact
+        run: |
+          cat > mttr-metrics.json << EOF
+          {
+            "metric": "mttr",
+            "issue_number": ${{ github.event.issue.number }},
+            "issue_title": "${{ github.event.issue.title }}",
+            "event_action": "${{ github.event.action }}",
+            "created_at": "${{ github.event.issue.created_at }}",
+            "closed_at": "${{ github.event.issue.closed_at }}",
+            "resolved": ${{ steps.calc.outputs.resolved }},
+            "mttr_seconds": ${{ steps.calc.outputs.mttr_seconds }},
+            "mttr_minutes": ${{ steps.calc.outputs.mttr_minutes }},
+            "mttr_hours": ${{ steps.calc.outputs.mttr_hours }},
+            "run_id": "${{ github.run_id }}"
+          }
+          EOF
+          cat mttr-metrics.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: mttr-metrics
+          name: mttr-issue${{ github.event.issue.number }}
           path: mttr-metrics.json
+          retention-days: 30
+
+      - name: Write Job Summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## DORA: MTTR (Mean Time To Restore)
+
+          | 항목 | 값 |
+          |---|---|
+          | 이슈 | #${{ github.event.issue.number }} |
+          | 제목 | ${{ github.event.issue.title }} |
+          | 이벤트 | ${{ github.event.action }} |
+          | 생성 시각 | ${{ github.event.issue.created_at }} |
+          | 종료 시각 | ${{ github.event.issue.closed_at || 'N/A (미종료)' }} |
+          | **MTTR** | **${{ steps.calc.outputs.mttr_hours }}시간 ${{ steps.calc.outputs.mttr_minutes }}분** |
+          EOF

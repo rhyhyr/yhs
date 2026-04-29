@@ -1,18 +1,64 @@
-# 배포 성공/실패 결과 추적
-name: Track Deployment Result
+name: Track Change Failure Rate
+
 on:
   deployment_status:
+  workflow_dispatch:
 
 jobs:
   track-result:
     runs-on: ubuntu-latest
     steps:
-      - name: Log Result
+      - name: Evaluate deployment result
+        id: eval
         run: |
           STATUS="${{ github.event.deployment_status.state }}"
-          # 상태에 따른 로그 분기 처리
           if [ "$STATUS" = "success" ]; then
             echo "✅ Deployment succeeded"
+            echo "is_failure=false" >> $GITHUB_OUTPUT
           else
-            echo "❌ Deployment failed"
+            echo "❌ Deployment failed (status: $STATUS)"
+            echo "is_failure=true" >> $GITHUB_OUTPUT
           fi
+
+      - name: Save JSON artifact
+        run: |
+          cat > change-failure-result.json << EOF
+          {
+            "metric": "change_failure_rate",
+            "deployment_id": "${{ github.event.deployment.id }}",
+            "environment": "${{ github.event.deployment.environment }}",
+            "status": "${{ github.event.deployment_status.state }}",
+            "is_failure": ${{ steps.eval.outputs.is_failure }},
+            "created_at": "${{ github.event.deployment_status.created_at }}",
+            "ref": "${{ github.event.deployment.ref }}",
+            "run_id": "${{ github.run_id }}"
+          }
+          EOF
+          cat change-failure-result.json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: change-failure-${{ github.run_id }}
+          path: change-failure-result.json
+          retention-days: 30
+
+      - name: Write Job Summary
+        run: |
+          STATUS="${{ github.event.deployment_status.state }}"
+          if [ "$STATUS" = "success" ]; then
+            ICON="✅"
+          else
+            ICON="❌"
+          fi
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## DORA: Change Failure Rate
+
+          | 항목 | 값 |
+          |---|---|
+          | 배포 환경 | ${{ github.event.deployment.environment }} |
+          | 배포 ref | ${{ github.event.deployment.ref }} |
+          | 결과 | ${ICON} ${STATUS} |
+          | 실패 여부 | ${{ steps.eval.outputs.is_failure }} |
+          | 시각 | ${{ github.event.deployment_status.created_at }} |
+          EOF
