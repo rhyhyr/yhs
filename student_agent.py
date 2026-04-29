@@ -791,8 +791,12 @@ class StudentAgent:
         # ── 일반 의도: RAG 검색 + 답변 생성 ──
 
         # 3단계: RAG 검색 (카테고리 라우팅 → 청크 수집 → 하이브리드 Top-K)
+        t_rag = time.perf_counter()
         enriched_query = self._enrich_query(query, profile)
         chunks, source_labels = self._retriever.retrieve(enriched_query, top_k=TOP_K)
+        # embedding 타임스탬프
+        print(f"[시간] RAG 검색: {time.perf_counter()-t_rag:.3f}s")
+
 
         # 근거 부족 판정
         best_score = float(chunks[0][1]) if chunks else 0.0
@@ -816,6 +820,7 @@ class StudentAgent:
             }
 
         # 4단계: 답변 생성
+        t_llm = time.perf_counter()
         prompt = self._prompter.build(query, intent, profile, history, chunks, source_labels)
         answer = self._generate(query, prompt)
         #카테고리 검색 타임스탬프

@@ -33,20 +33,6 @@ from neo4j import GraphDatabase
 from sklearn.feature_extraction.text import HashingVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-from agent_runtime import (
-    append_latency_log,
-    build_answer_prompt,
-    detect_language,
-    detect_question_type,
-    expand_query,
-    GateThresholds,
-    insufficient_evidence_message,
-    normalize_query,
-    run_deep_path,
-    WebSearchClient,
-)
-from crawler import Crawler
-
 # sentence-transformers / torch 가 없어도 동작
 try:
     from sentence_transformers import SentenceTransformer
@@ -70,7 +56,6 @@ def load_env(path: str = ".env") -> None:
 
 load_env()
 
-# 모델/DB/검색 하이퍼파라미터는 모두 환경변수로 오버라이드 가능.
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.0-flash")
 
@@ -88,30 +73,21 @@ VEC_WEIGHT = float(os.environ.get("VEC_WEIGHT", "0.62"))
 KW_WEIGHT = float(os.environ.get("KW_WEIGHT", "0.38"))
 LEXICAL_CAND_LIMIT = int(os.environ.get("LEXICAL_CAND_LIMIT", "500"))
 
-CRAWL_MIN_CHUNKS_FOR_ANSWER = int(
-    os.environ.get("CRAWL_MIN_CHUNKS_FOR_ANSWER", os.environ.get("MIN_CHUNKS_FOR_ANSWER", "2"))
-)
-CRAWL_MIN_BEST_SCORE = float(
-    os.environ.get("CRAWL_MIN_BEST_SCORE", os.environ.get("MIN_BEST_SCORE", "0.16"))
-)
-ANSWER_MIN_CHUNKS_FOR_ANSWER = int(os.environ.get("ANSWER_MIN_CHUNKS_FOR_ANSWER", "1"))
-ANSWER_MIN_BEST_SCORE = float(os.environ.get("ANSWER_MIN_BEST_SCORE", "0.08"))
+MIN_CHUNKS_FOR_ANSWER = int(os.environ.get("MIN_CHUNKS_FOR_ANSWER", "2"))
+MIN_BEST_SCORE = float(os.environ.get("MIN_BEST_SCORE", "0.40"))
 SEM_DEDUP_THRESHOLD = float(os.environ.get("SEM_DEDUP_THRESHOLD", "0.95"))
 MMR_LAMBDA = float(os.environ.get("MMR_LAMBDA", "0.80"))
 ENABLE_LLM_RERANK = os.environ.get("ENABLE_LLM_RERANK", "0") == "1"
 LLM_RERANK_CAND = int(os.environ.get("LLM_RERANK_CAND", "12"))
 CRAWL_MAX_DOCS = int(os.environ.get("CRAWL_MAX_DOCS", "8"))
-ENABLE_CRAWL = os.environ.get("ENABLE_CRAWL", "0") == "1"
+ENABLE_CRAWL = True  # DB 정보 부족 시 외부 크롤링은 사용하지 않음
 CRAWL_SEARCH_TIMEOUT = int(os.environ.get("CRAWL_SEARCH_TIMEOUT", "5"))
 CRAWL_FETCH_TIMEOUT = int(os.environ.get("CRAWL_FETCH_TIMEOUT", "6"))
 CRAWL_SLEEP_SEC = float(os.environ.get("CRAWL_SLEEP_SEC", "0.15"))
-ENABLE_EXTERNAL_SEARCH = os.environ.get("ENABLE_EXTERNAL_SEARCH", "1") == "1"
-LATENCY_LOG_PATH = os.environ.get("LATENCY_LOG_PATH", "logs/latency_log.jsonl")
 
 
 @dataclass
 class CatRec:
-    # Category 노드의 검색/스코어 계산용 메모리 표현
     node_id: str
     name: str
     level: int
@@ -121,7 +97,6 @@ class CatRec:
 
 @dataclass
 class ChunkRec:
-    # Chunk 노드(본문 조각)의 검색/스코어 계산용 메모리 표현
     chunk_id: str
     text: str
     page: int
@@ -131,7 +106,6 @@ class ChunkRec:
 
 @dataclass
 class SourceRef:
-    # 최종 응답에 노출할 출처 레이블용 구조체
     chunk_id: str
     pdf_title: str
     section: str
@@ -141,7 +115,6 @@ class SourceRef:
 
 @dataclass
 class QueryPlan:
-    # 질의를 검색 친화적으로 변환한 결과(정규화/확장/법조문 추출)
     raw_query: str
     normalized_query: str
     embedding_query: str
@@ -151,7 +124,6 @@ class QueryPlan:
 
 
 class FallbackEmbedder:
-    # sentence-transformers가 없을 때 사용하는 경량 임베더(HashingVectorizer 기반)
     def __init__(self, n_features: int = 768):
         self._vec = HashingVectorizer(
             n_features=n_features,
@@ -169,9 +141,6 @@ class FallbackEmbedder:
 
 
 class HybridQueryAgent:
-    # 질의 처리의 메인 오케스트레이터
-    # - DB 검색 중심(멀티턴 문맥 기억 최소화)
-    # - 근거가 약하면 답변 거절 또는 로컬 가이드로 폴백
     _SYNONYM_GROUPS: list[set[str]] = [
         {"신청", "신고", "접수", "청구"},
         {"기한", "기간", "기일", "마감"},
@@ -192,11 +161,9 @@ class HybridQueryAgent:
     }
 
     def __init__(self) -> None:
-        # 필수 자격 정보가 없으면 즉시 실패시켜 오동작을 방지
         if not NEO4J_PASSWORD:
             raise ValueError("NEO4J_PASSWORD is required in .env")
 
-        # 외부 리소스(Neo4j/HTTP/임베더/LLM) 초기화
         self.driver = GraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USER, NEO4J_PASSWORD))
         self.driver.verify_connectivity()
         self.http = requests.Session()
@@ -207,18 +174,14 @@ class HybridQueryAgent:
         self.embedder = self._build_embedder()
         self.llm = self._build_model() if GEMINI_API_KEY else None
         # fallback 임베더일 때는 점수가 전반적으로 낮아 임계치를 완화
-        self.min_best_score = 0.25 if self.is_fallback_embedder else CRAWL_MIN_BEST_SCORE
+        self.min_best_score = 0.08 if self.is_fallback_embedder else MIN_BEST_SCORE
         self._domain_terms = sorted({t for g in self._SYNONYM_GROUPS for t in g} | set(self._TYPO_MAP.values()))
 
     def close(self) -> None:
-        # 네트워크/DB 세션 정리
-        if self._web_client is not None:
-            self._web_client.close()
         self.http.close()
         self.driver.close()
 
     def _build_embedder(self) -> Any:
-        # 우선순위: SentenceTransformer -> 실패 시 FallbackEmbedder
         if SentenceTransformer is None:
             print(f"[WARN] sentence-transformers unavailable, fallback embedder used: {_ST_ERROR}")
             self.is_fallback_embedder = True
@@ -231,7 +194,6 @@ class HybridQueryAgent:
             return FallbackEmbedder()
 
     def _build_model(self) -> Optional[genai.GenerativeModel]:
-        # 환경변수 모델명을 우선 시도하고, 사용 가능한 Gemini 모델로 자동 폴백
         try:
             genai.configure(api_key=GEMINI_API_KEY)
 
@@ -270,11 +232,9 @@ class HybridQueryAgent:
             return None
 
     def _format_context(self, contexts: list[str]) -> str:
-        # LLM 프롬프트에 넣을 컨텍스트 블록 생성
         return "\n\n".join(contexts)
 
     def _title_from_meta(self, file_path: str, doc_key: str) -> str:
-        # 문서 표시용 제목 생성(file_path 우선, 없으면 doc_key 기반)
         if file_path:
             base = os.path.splitext(os.path.basename(file_path))[0].strip()
             if base:
@@ -282,7 +242,6 @@ class HybridQueryAgent:
         return f"document-{doc_key[:8]}"
 
     def _build_source_refs(self, ranked_chunks: list[tuple[ChunkRec, float]], top_n: int) -> list[SourceRef]:
-        # 상위 청크에 대해 Document/Category 메타를 조인해 출처 레코드 생성
         selected = ranked_chunks[:top_n]
         if not selected:
             return []
@@ -324,7 +283,6 @@ class HybridQueryAgent:
         return out
 
     def _format_source_lines(self, refs: list[SourceRef], limit: int = 6) -> list[str]:
-        # 중복 제거된 사람이 읽기 쉬운 출처 라인으로 변환
         seen: set[str] = set()
         lines: list[str] = []
         for r in refs:
@@ -338,11 +296,9 @@ class HybridQueryAgent:
         return lines
 
     def _tokens(self, text: str) -> list[str]:
-        # 한글/영문/숫자 토큰 추출(2글자 이상)
         return [t.lower() for t in re.findall(r"[가-힣A-Za-z0-9]{2,}", text)]
 
     def _extract_legal_refs(self, query: str) -> list[str]:
-        # 예: 제10조, 제3조의2 제1항 형태의 법조문 패턴 추출
         pattern = re.compile(r"제\s*\d+\s*(?:장|절|조)(?:\s*의\s*\d+)?(?:\s*제?\d+\s*(?:항|호))?")
         refs = [re.sub(r"\s+", "", m.group(0)) for m in pattern.finditer(query)]
         seen: set[str] = set()
@@ -354,7 +310,6 @@ class HybridQueryAgent:
         return out
 
     def _correct_token(self, token: str) -> str:
-        # 수동 오타 사전 우선, 없으면 유사어 매칭으로 보정
         if token in self._TYPO_MAP:
             return self._TYPO_MAP[token]
         close = difflib.get_close_matches(token, self._domain_terms, n=1, cutoff=0.82)
@@ -363,7 +318,6 @@ class HybridQueryAgent:
         return token
 
     def _expand_synonyms(self, token: str) -> list[str]:
-        # 동의어 그룹에 속하면 같은 그룹 단어를 함께 검색어로 확장
         expanded = {token}
         for g in self._SYNONYM_GROUPS:
             if token in g:
@@ -372,8 +326,6 @@ class HybridQueryAgent:
         return sorted(expanded)
 
     def _build_query_plan(self, query: str) -> QueryPlan:
-        # 질의 전처리 파이프라인:
-        # 정규화 -> 토큰화 -> 오타보정 -> 동의어확장 -> 법조문추출
         normalized = re.sub(r"\s+", " ", query).strip()
         raw_tokens = [t for t in self._tokens(normalized) if len(t) >= 2]
         corrected = [self._correct_token(t) for t in raw_tokens]
@@ -403,7 +355,6 @@ class HybridQueryAgent:
         )
 
     def _kw_score_terms(self, query_terms: list[str], target: str | list[str]) -> float:
-        # query_terms 기준 포함 비율(정확 매칭) 스코어
         q = {t.lower() for t in query_terms if t}
         if not q:
             return 0.0
@@ -418,7 +369,6 @@ class HybridQueryAgent:
         return len(q & t) / max(1, len(q))
 
     def _kw_score(self, query: str, target: str | list[str]) -> float:
-        # raw query 토큰 기준 포함 비율 스코어
         q = set(self._tokens(query))
         if not q:
             return 0.0
@@ -431,7 +381,6 @@ class HybridQueryAgent:
         return len(q & t) / max(1, len(q))
 
     def _row_to_cat(self, row: Any) -> CatRec:
-        # Neo4j row -> CatRec 변환(embedding_json 역직렬화 포함)
         c = row["c"]
         emb_raw = json.loads(c.get("embedding_json", "[]") or "[]")
         return CatRec(
@@ -443,7 +392,6 @@ class HybridQueryAgent:
         )
 
     def _row_to_chunk(self, row: Any) -> ChunkRec:
-        # Neo4j row -> ChunkRec 변환(embedding_json 역직렬화 포함)
         ch = row["ch"]
         emb_raw = json.loads(ch.get("embedding_json", "[]") or "[]")
         return ChunkRec(
@@ -455,13 +403,11 @@ class HybridQueryAgent:
         )
 
     def _get_top_categories(self) -> list[CatRec]:
-        # 루트 카테고리(level=0) 조회
         with self.driver.session() as s:
             recs = s.run("MATCH (c:Category {level: 0}) RETURN c")
             return [self._row_to_cat(r) for r in recs]
 
     def _get_subcategories(self, top_ids: list[str]) -> list[CatRec]:
-        # 상위 카테고리 하위 노드 조회
         if not top_ids:
             return []
         with self.driver.session() as s:
@@ -476,7 +422,6 @@ class HybridQueryAgent:
             return [self._row_to_cat(r) for r in recs]
 
     def _get_chunks_by_subcats(self, sub_ids: list[str]) -> list[ChunkRec]:
-        # 선택된 하위 카테고리에 속한 청크 조회
         if not sub_ids:
             return []
         with self.driver.session() as s:
@@ -491,13 +436,11 @@ class HybridQueryAgent:
             return [self._row_to_chunk(r) for r in recs]
 
     def _get_all_chunks(self) -> list[ChunkRec]:
-        # 라우팅 실패 시 전체 청크 폴백 조회
         with self.driver.session() as s:
             recs = s.run("MATCH (ch:Chunk) RETURN ch")
             return [self._row_to_chunk(r) for r in recs]
 
     def _get_lexical_chunks(self, query_terms: list[str], limit: int = LEXICAL_CAND_LIMIT) -> list[ChunkRec]:
-        # 키워드 포함 검색으로 후보군 보강(벡터 라우팅 보완)
         tokens = [t.lower() for t in query_terms if len(t) >= 2][:12]
         if not tokens:
             return []
@@ -515,7 +458,6 @@ class HybridQueryAgent:
             return [self._row_to_chunk(r) for r in recs]
 
     def _merge_chunks(self, *groups: list[ChunkRec]) -> list[ChunkRec]:
-        # 여러 후보군을 chunk_id 기준으로 중복 제거하며 병합
         merged: list[ChunkRec] = []
         seen: set[str] = set()
         for g in groups:
@@ -526,7 +468,6 @@ class HybridQueryAgent:
         return merged
 
     def _select_top_by_hybrid(self, query_terms: list[str], query_emb: np.ndarray, cats: list[CatRec], top_n: int) -> list[tuple[CatRec, float]]:
-        # 카테고리 하이브리드 스코어 = 벡터 유사도 + 키워드 커버리지
         if not cats:
             return []
 
@@ -553,8 +494,6 @@ class HybridQueryAgent:
         chunks: list[ChunkRec],
         legal_refs: Optional[list[str]] = None,
     ) -> list[tuple[ChunkRec, float]]:
-        # 청크 하이브리드 스코어 계산.
-        # 법조문 직접 매칭 시 가산점(legal_boost) 부여.
         if not chunks:
             return []
 
@@ -582,38 +521,31 @@ class HybridQueryAgent:
         return scored
 
     def _dedup_semantic(self, scored_chunks: list[tuple[ChunkRec, float]], threshold: float) -> list[tuple[ChunkRec, float]]:
-        # 의미적으로 거의 동일한 청크를 제거해 다양성 확보
         if not scored_chunks:
             return []
 
-        # 배치 인코딩: embedding 없는 청크를 한 번에 처리
-        no_emb_idx = [i for i, (ch, _) in enumerate(scored_chunks) if ch.embedding is None]
-        if no_emb_idx:
-            texts = [scored_chunks[i][0].text for i in no_emb_idx]
-            raw = self.embedder.encode(texts, show_progress_bar=False)
-            embs = [raw] if len(no_emb_idx) == 1 else raw
-            for i, emb in zip(no_emb_idx, embs):
-                scored_chunks[i][0].embedding = np.asarray(emb, dtype=np.float32)
-
-        # 전체 유사도 행렬을 미리 계산
-        emb_mat = np.array([ch.embedding for ch, _ in scored_chunks], dtype=np.float32)
-        norms = np.linalg.norm(emb_mat, axis=1, keepdims=True)
-        norms[norms == 0] = 1e-9
-        emb_mat = emb_mat / norms
-        sim_mat = emb_mat @ emb_mat.T  # cosine similarity (정규화 후 내적)
-
         selected: list[tuple[ChunkRec, float]] = []
-        selected_indices: list[int] = []
+        selected_vecs: list[np.ndarray] = []
 
-        for i, (ch, score) in enumerate(scored_chunks):
-            if not selected_indices or float(np.max(sim_mat[i, selected_indices])) < threshold:
+        for ch, score in scored_chunks:
+            vec = ch.embedding
+            if vec is None:
+                vec = self.embedder.encode(ch.text)
+                ch.embedding = vec
+
+            is_dup = False
+            if selected_vecs:
+                sims = cosine_similarity([vec], selected_vecs)[0]
+                if float(np.max(sims)) >= threshold:
+                    is_dup = True
+
+            if not is_dup:
                 selected.append((ch, score))
-                selected_indices.append(i)
+                selected_vecs.append(vec)
 
         return selected
 
     def _mmr_rerank(self, scored_chunks: list[tuple[ChunkRec, float]], top_n: int, lambda_mult: float) -> list[tuple[ChunkRec, float]]:
-        # MMR(Maximal Marginal Relevance)로 관련성/다양성 균형 재정렬
         if not scored_chunks:
             return []
         if len(scored_chunks) <= top_n:
@@ -621,40 +553,36 @@ class HybridQueryAgent:
 
         chunks = [c for c, _ in scored_chunks]
         relevance = np.array([float(s) for _, s in scored_chunks], dtype=np.float32)
-
-        # 배치 인코딩: embedding 없는 청크를 한 번에 처리
-        no_emb_idx = [i for i, ch in enumerate(chunks) if ch.embedding is None]
-        if no_emb_idx:
-            texts = [chunks[i].text for i in no_emb_idx]
-            raw = self.embedder.encode(texts, show_progress_bar=False)
-            embs = [raw] if len(no_emb_idx) == 1 else raw
-            for i, emb in zip(no_emb_idx, embs):
-                chunks[i].embedding = np.asarray(emb, dtype=np.float32)
-
-        emb_mat = np.array([ch.embedding for ch in chunks], dtype=np.float32)
-        norms = np.linalg.norm(emb_mat, axis=1, keepdims=True)
-        norms[norms == 0] = 1e-9
-        emb_mat = emb_mat / norms
-        sim_mat = emb_mat @ emb_mat.T  # cosine similarity (정규화 후 내적)
+        embeddings: list[np.ndarray] = []
+        for ch in chunks:
+            vec = ch.embedding
+            if vec is None:
+                vec = self.embedder.encode(ch.text)
+                ch.embedding = vec
+            embeddings.append(vec)
+        emb_mat = np.array(embeddings, dtype=np.float32)
+        sim_mat = cosine_similarity(emb_mat, emb_mat)
 
         selected_idx: list[int] = [int(np.argmax(relevance))]
-        candidates = list(set(range(len(chunks))) - {selected_idx[0]})
+        candidates = set(range(len(chunks))) - set(selected_idx)
 
         while candidates and len(selected_idx) < top_n:
-            cand_arr = np.array(candidates)
-            sel_arr = np.array(selected_idx)
-            # 벡터화: 각 후보의 선택된 항목들과의 최대 유사도
-            max_sims = np.max(sim_mat[np.ix_(cand_arr, sel_arr)], axis=1)
-            mmr_scores = lambda_mult * relevance[cand_arr] - (1.0 - lambda_mult) * max_sims
-            best_local = int(np.argmax(mmr_scores))
-            best_idx = candidates[best_local]
+            best_idx = -1
+            best_mmr = -1e9
+            for idx in candidates:
+                max_sim = max(float(sim_mat[idx][j]) for j in selected_idx)
+                mmr = lambda_mult * float(relevance[idx]) - (1.0 - lambda_mult) * max_sim
+                if mmr > best_mmr:
+                    best_mmr = mmr
+                    best_idx = idx
+            if best_idx < 0:
+                break
             selected_idx.append(best_idx)
-            candidates.pop(best_local)
+            candidates.remove(best_idx)
 
         return [(chunks[i], float(relevance[i])) for i in selected_idx]
 
     def _llm_rerank(self, query: str, candidates: list[tuple[ChunkRec, float]], top_n: int) -> list[tuple[ChunkRec, float]]:
-        # 옵션: LLM에게 최종 청크 우선순위 재판단 위임
         if not ENABLE_LLM_RERANK or self.llm is None or not candidates:
             return candidates[:top_n]
 
@@ -694,22 +622,19 @@ class HybridQueryAgent:
         return cand[:top_n]
 
     def _needs_crawl(self, scored_chunks: list[tuple[ChunkRec, float]]) -> bool:
-        # (현재 기본 비활성) 내부 근거가 약하면 외부 크롤링 필요 여부 판단
         if not scored_chunks:
             return True
         best = scored_chunks[0][1] if scored_chunks else 0.0
-        # 하나라도 부족하면 크롤링을 시작해 웹 폴백을 더 쉽게 타도록 한다.
-        return (len(scored_chunks) < CRAWL_MIN_CHUNKS_FOR_ANSWER) or (best < CRAWL_MIN_BEST_SCORE)
+        # 둘 다 부족할 때만 정보 부족으로 간주하여 과도한 답변 거부를 줄입니다.
+        return (len(scored_chunks) < MIN_CHUNKS_FOR_ANSWER) and (best < self.min_best_score)
 
-    def _can_answer_from_db(self, scored_chunks: list[tuple[ChunkRec, float]]) -> bool:
-        if not scored_chunks:
-            return False
-        best = scored_chunks[0][1] if scored_chunks else 0.0
-        # 답변 허용 임계값은 크롤링 임계값보다 느슨하게 운영한다.
-        return (len(scored_chunks) >= ANSWER_MIN_CHUNKS_FOR_ANSWER) or (best >= ANSWER_MIN_BEST_SCORE)
-
+    ALLOWED_SITES = [
+    "https://www.donga.ac.kr/",       # 동아대학교
+    "https://hikorea.go.kr",           # 하이코리아
+    "https://moj.go.kr",               # 법무부
+    "https://immigration.go.kr"        # 출입국·외국인정책본부
+    ]
     def _crawl_search(self, query: str) -> list[str]:
-        # DuckDuckGo HTML 결과에서 URL 수집
         q = urllib.parse.quote(query)
         url = f"https://google.com/html/?q={q}"
         try:
@@ -729,7 +654,6 @@ class HybridQueryAgent:
         return urls
 
     def _fetch_page_text(self, url: str) -> str:
-        # 웹 문서를 정제된 평문으로 변환
         try:
             r = self.http.get(url, timeout=CRAWL_FETCH_TIMEOUT)
             r.raise_for_status()
@@ -742,7 +666,6 @@ class HybridQueryAgent:
         return txt[:6000]
 
     def _chunk_text(self, text: str, chunk_size: int = 500, overlap: int = 100) -> list[str]:
-        # 긴 문서를 문장 경계 기반 청크로 분할(오버랩 유지)
         if not text:
             return []
         sents = re.split(r"(?<=[.!?。])\s+", text)
@@ -759,7 +682,6 @@ class HybridQueryAgent:
         return out
 
     def _crawl_fallback_chunks(self, query: str) -> list[tuple[str, str]]:
-        # 검색 -> 본문 수집 -> 청크화의 외부 수집 파이프라인
         urls = self._crawl_search(query)
         chunks: list[tuple[str, str]] = []
         for u in urls:
@@ -770,7 +692,6 @@ class HybridQueryAgent:
         return chunks
 
     def _save_external_chunks(self, url_chunks: list[tuple[str, str]]) -> None:
-        # 외부 청크를 Neo4j에 캐시 저장(재사용 목적)
         if not url_chunks:
             return
         emb = self.embedder.encode([c for _, c in url_chunks], show_progress_bar=False)
@@ -793,7 +714,6 @@ class HybridQueryAgent:
                 )
 
     def _score_external_chunks(self, query: str, query_emb: np.ndarray, url_chunks: list[tuple[str, str]]) -> list[tuple[str, str, float]]:
-        # 외부 청크도 내부와 유사하게 하이브리드 스코어 계산
         if not url_chunks:
             return []
         embs = self.embedder.encode([c for _, c in url_chunks], show_progress_bar=False)
@@ -806,39 +726,7 @@ class HybridQueryAgent:
         out.sort(key=lambda x: x[2], reverse=True)
         return out
 
-    def _local_action_guide(self, query: str, source_lines: list[str], reason: str, language: str) -> str:
-        # LLM 사용 불가 시 언어별 최소 가이드 텍스트 생성
-        if language == "zh":
-            lines = [
-                "当前无法调用LLM，以下是本地引导模式。",
-                f"- 原因: {reason}",
-                f"- 问题: {query}",
-                "",
-                "建议行动:",
-                "1. 先核对与问题直接相关的适用对象、时限、提交材料。",
-                "2. 如果条款冲突，优先采用更新版本和官方来源。",
-                "3. 提交前请再次确认主管机关或学校官网公告。",
-                "",
-                "证据来源:",
-                *[f"- {p}" for p in source_lines[:6]],
-            ]
-            return "\n".join(lines)
-        if language == "en":
-            lines = [
-                "LLM is unavailable, so this is a local guidance fallback.",
-                f"- Reason: {reason}",
-                f"- Question: {query}",
-                "",
-                "Recommended actions:",
-                "1. Verify eligibility, deadlines, and required materials from the listed sources.",
-                "2. If conditions conflict, prioritize newer and official statements.",
-                "3. Before submission, confirm with the competent authority or university office.",
-                "",
-                "Evidence sources:",
-                *[f"- {p}" for p in source_lines[:6]],
-            ]
-            return "\n".join(lines)
-
+    def _local_action_guide(self, query: str, source_lines: list[str], reason: str) -> str:
         lines = [
             "LLM 응답이 불가하여 로컬 가이드 모드로 안내합니다.",
             f"- 사유: {reason}",
@@ -847,26 +735,37 @@ class HybridQueryAgent:
             "권장 행동 가이드:",
             "1. 아래 출처 목록에서 질문과 직접 관련된 요건(대상/기한/제출물)을 먼저 확인하세요.",
             "2. 같은 조건이 여러 문장에 있으면, 더 최신 조문/공식 출처를 우선 적용하세요.",
-            "3. 실제 신청 전에 관할 기관 또는 학교 공식 안내를 최종 확인하세요.",
+            "3. 실제 신청/신고 전에 관할 기관 공식 안내(출입국·민원 포털)를 최종 확인하세요.",
             "",
             "근거 출처:",
             *[f"- {p}" for p in source_lines[:6]],
         ]
         return "\n".join(lines)
 
-    def _generate_answer(self, query: str, contexts: list[str], source_lines: list[str], language: str) -> str:
-        # 컨텍스트 기반 답변 생성 + 모델 장애 대응(자동 재시도/가이드 폴백)
+    def _generate_answer(self, query: str, contexts: list[str], source_lines: list[str]) -> str:
         if not contexts:
-            return insufficient_evidence_message(language)
+            return "관련 정보를 찾지 못했습니다."
         if self.llm is None:
-            return self._local_action_guide(query, source_lines, "LLM unavailable", language)
+            return self._local_action_guide(query, source_lines, "LLM 미사용")
 
-        prompt = build_answer_prompt(
-            language=language,
-            question_type=detect_question_type(query),
-            query=query,
-            context_block=self._format_context(contexts),
-            evidence_lines=source_lines,
+        # test.py의 템플릿형 구성을 반영해 프롬프트를 명확히 분리합니다.
+        prompt_template = (
+            "당신은 실무 가이드 전문가입니다. 아래 컨텍스트만 근거로 답변하세요.\n"
+            "절대 컨텍스트에 없는 사실을 추정하지 마세요.\n"
+            "출력은 반드시 한국어로, 아래 형식을 지키세요:\n"
+            "1) 핵심 답변: 질문에 대한 결론 2~4문장\n"
+            "2) 사용자가 지금 해야 할 행동: 번호 목록 3~6개\n"
+            "3) 준비할 것/확인할 것: 체크리스트\n"
+            "4) 근거 출처: 아래 [출처목록]에서만 선택해 '문서명 - 항목명 (p.페이지)' 형식으로 2~6개\n"
+            "중요: 근거에 본문 문장을 인용/복붙하지 마세요. 출처 라인만 적으세요.\n"
+            "근거가 약하면 그 사실과 추가 확인 방법을 명시하세요.\n\n"
+            "[출처목록]\n{sources}\n\n"
+            "[질문]\n{question}\n\n[컨텍스트]\n{context}"
+        )
+        prompt = prompt_template.format(
+            question=query,
+            context=self._format_context(contexts),
+            sources="\n".join(f"- {s}" for s in source_lines),
         )
 
         def _run_generate() -> str:
@@ -886,48 +785,50 @@ class HybridQueryAgent:
                 try:
                     return _run_generate()
                 except Exception as e:
-                    return self._local_action_guide(query, source_lines, f"LLM retry failed({self.model_name}): {e}", language)
-            return self._local_action_guide(query, source_lines, "No Gemini model available", language)
+                    return self._local_action_guide(query, source_lines, f"LLM 재시도 실패({self.model_name}): {e}")
+            return self._local_action_guide(query, source_lines, "사용 가능한 Gemini 모델을 찾지 못함")
         except gapi_exceptions.ResourceExhausted:
-            return self._local_action_guide(query, source_lines, "Gemini quota exceeded", language)
+            return self._local_action_guide(query, source_lines, "Gemini 쿼터 초과")
         except Exception as e:
-            return self._local_action_guide(query, source_lines, f"LLM error: {e}", language)
+            return self._local_action_guide(query, source_lines, f"LLM 오류: {e}")
 
-    def _retrieve_once(self, query: str) -> dict[str, Any]:
-        # 단일 검색 라운드(빠른 경로) 수행:
-        # 쿼리계획 -> 카테고리 라우팅 -> 후보수집 -> 스코어링 -> 정제/재랭킹
-        t_retrieve_start = time.perf_counter()
-
-        t_plan_start = time.perf_counter()
+    def ask(self, query: str) -> dict[str, Any]:
+        t0 = time.perf_counter()
         query_plan = self._build_query_plan(query)
         query_emb = self.embedder.encode(query_plan.embedding_query)
-        plan_sec = time.perf_counter() - t_plan_start
 
-        t_collect_start = time.perf_counter()
+        # 1) 상위 카테고리 Top 3
         tops = self._select_top_by_hybrid(query_plan.keyword_terms, query_emb, self._get_top_categories(), TOP_CAT)
         top_ids = [c.node_id for c, _ in tops]
+
+        # 2) 하위 카테고리 Top K
         subs = self._select_top_by_hybrid(query_plan.keyword_terms, query_emb, self._get_subcategories(top_ids), TOP_SUB)
         sub_ids = [c.node_id for c, _ in subs]
 
+        # 3) 하위 소속 청크 수집 + 하이브리드 점수
         routed_chunks = self._get_chunks_by_subcats(sub_ids)
         lexical_chunks = self._get_lexical_chunks(query_plan.keyword_terms)
+
+        # 계층 라우팅 + 키워드 후보를 합쳐 누락을 줄입니다.
         candidates = self._merge_chunks(routed_chunks, lexical_chunks)
 
+        # 계층 라우팅 점수가 전부 0 근처면 전체 청크에서 직접 검색 (폴백 경로)
         top_best = tops[0][1] if tops else 0.0
         sub_best = subs[0][1] if subs else 0.0
         if not candidates or (top_best <= 1e-9 and sub_best <= 1e-9):
             candidates = self._get_all_chunks()
-        collect_sec = time.perf_counter() - t_collect_start
 
-        t_rank_start = time.perf_counter()
         chunk_scored = self._score_chunks(
             query_plan.keyword_terms,
             query_emb,
             candidates,
             legal_refs=query_plan.legal_refs,
         )
-        chunk_scored = chunk_scored[: TOP_CHUNK * 3]
+
+        # 8) 의미적 중복 제거
         deduped = self._dedup_semantic(chunk_scored, threshold=SEM_DEDUP_THRESHOLD)
+
+        # 7) 재랭킹: MMR 기본 + 선택적 LLM 재랭킹
         mmr_ranked = self._mmr_rerank(deduped, top_n=TOP_CHUNK, lambda_mult=MMR_LAMBDA)
         final_internal = self._llm_rerank(query_plan.normalized_query, mmr_ranked, TOP_CHUNK)
 
@@ -938,86 +839,59 @@ class HybridQueryAgent:
             return {
                 "query": query,
                 "answered": False,
-                "reason": "insufficient_context",
-                "top_categories": [(c.name, float(s)) for c, s in fast_result["tops"]],
-                "top_subcategories": [(c.name, float(s)) for c, s in fast_result["subs"]],
-                "best_score": 0.0,
-                "context_count": 0,
-                "elapsed_sec": elapsed,
-                "path": path,
-                "gate_reasons": reasons,
-                "answer": insufficient_evidence_message(language),
+                "reason": "insufficient_db_context",
+                "top_categories": [(c.name, float(s)) for c, s in tops],
+                "top_subcategories": [(c.name, float(s)) for c, s in subs],
+                "best_score": float(final_internal[0][1]) if final_internal else 0.0,
+                "context_count": len(final_internal),
+                "elapsed_sec": round(time.perf_counter() - t0, 3),
+                "answer": "DB에 충분한 근거 정보가 없어 답변을 생성하지 않습니다.",
                 "used_chunk_ids": [],
-                "sources": [],
+                "query_forms": {
+                    "embedding_query": query_plan.embedding_query,
+                    "bm25_query": query_plan.bm25_query,
+                    "legal_refs": query_plan.legal_refs,
+                },
                 "contexts": [],
-                "timings_sec": timings_sec,
             }
 
-        used_chunk_ids = [ch.chunk_id for ch, _ in selected_chunks[:FINAL_TOP]]
-        contexts: list[str] = [f"[DB][p.{ch.page}] {ch.text}" for ch, _ in selected_chunks[:FINAL_TOP]]
-        contexts.extend(external_contexts)
+        # 5) 재랭킹(간단): 내부/외부 후보를 합치고 점수순
+        contexts: list[tuple[str, float]] = []
+        for ch, s in final_internal:
+            contexts.append((f"[DB][p.{ch.page}] {ch.text}", s))
+        source_refs = self._build_source_refs(final_internal, FINAL_TOP)
+        source_lines = self._format_source_lines(source_refs, limit=FINAL_TOP)
+        final_contexts = [c for c, _ in contexts[:FINAL_TOP]]
         preview = source_lines[:3]
 
-        t_answer_start = time.perf_counter()
-        answer = self._generate_answer(query, contexts, source_lines, language)
-        answer_sec = time.perf_counter() - t_answer_start
-        elapsed = round(time.perf_counter() - t0, 3)
-        top_score = float(selected_chunks[0][1]) if selected_chunks else 0.0
-        self._log_latency(path, elapsed, top_score, len(selected_chunks))
-
-        timings_sec = {
-            "intent_understanding": round(intent_sec, 3),
-            "category_chunk_collection": round(collect_sec, 3),
-            "scoring_reranking": round(rerank_sec, 3),
-            "answerability_check": round(gate_sec, 3),
-            "answer_generation": round(answer_sec, 3),
-            "total": elapsed,
-        }
+        answer = self._generate_answer(query, final_contexts, source_lines)
 
         return {
             "query": query,
             "answered": True,
             "reason": "ok",
-            "top_categories": [(c.name, float(s)) for c, s in fast_result["tops"]],
-            "top_subcategories": [(c.name, float(s)) for c, s in fast_result["subs"]],
-            "best_score": top_score,
-            "context_count": len(contexts),
+            "top_categories": [(c.name, float(s)) for c, s in tops],
+            "top_subcategories": [(c.name, float(s)) for c, s in subs],
+            "best_score": float(final_contexts and contexts[0][1] or 0.0),
+            "context_count": len(final_contexts),
             "retrieved_preview": preview,
             "sources": source_lines,
             "used_chunk_ids": used_chunk_ids,
-            "path": path,
-            "gate_reasons": reasons,
             "query_forms": {
-                "embedding_query": fast_result["query_plan"].embedding_query,
-                "bm25_query": fast_result["query_plan"].bm25_query,
-                "legal_refs": fast_result["query_plan"].legal_refs,
+                "embedding_query": query_plan.embedding_query,
+                "bm25_query": query_plan.bm25_query,
+                "legal_refs": query_plan.legal_refs,
             },
-            "elapsed_sec": elapsed,
-            "timings_sec": timings_sec,
+            "elapsed_sec": round(time.perf_counter() - t0, 3),
             "answer": answer,
-            "contexts": contexts,
+            "contexts": source_lines,
         }
-
-    def _log_latency(self, path: str, elapsed: float, best_score: float, evidence_count: int) -> None:
-        # 운영 관측용 지연시간/품질 메트릭 로깅
-        append_latency_log(
-            log_path=LATENCY_LOG_PATH,
-            agent="hybrid_query_agent",
-            path=path,
-            elapsed=elapsed,
-            best_score=best_score,
-            evidence_count=evidence_count,
-        )
 
 
 def main() -> None:
-    # CLI 실행 진입점(개발/운영 단독 실행용)
     agent = HybridQueryAgent()
     print("Hybrid Query Agent ready. Enter question (or 'exit').")
-    if ENABLE_CRAWL:
-        print("[INFO] DB 근거 부족 시 ALLOWED_SITES 크롤링 모드 활성화")
-    else:
-        print("[INFO] DB 검색 전용 모드: DB 근거가 부족하면 답변하지 않습니다.")
+    print("[INFO] DB 검색 전용 모드: DB 근거가 부족하면 답변하지 않습니다.")
     try:
         while True:
             try:
@@ -1035,17 +909,11 @@ def main() -> None:
                 print("\n[상위 카테고리]", result["top_categories"])
                 print("[하위 카테고리]", result["top_subcategories"])
                 print("[답변 가능]", result["answered"])
-                print(f"[청크 수] {result.get('context_count', 0)}  (크롤링 임계값: {CRAWL_MIN_CHUNKS_FOR_ANSWER})")
-                print(f"[최고 점수] {result.get('best_score', 0.0):.4f}  (크롤링 임계값: {CRAWL_MIN_BEST_SCORE})")
-                print(f"[답변 허용 임계값] chunks>={ANSWER_MIN_CHUNKS_FOR_ANSWER} 또는 score>={ANSWER_MIN_BEST_SCORE}")
-                print("[검색 경로]", result.get("path", "-"))
+                print("[최고 점수]", result.get("best_score", 0.0))
                 print("[사용 청크 ID]", result.get("used_chunk_ids", []))
                 print("\n[근거 출처]")
                 for i, p in enumerate(result.get("retrieved_preview", []), start=1):
                     print(f"- 문서 {i}: {p}")
-                print("[단계별 시간(sec)]")
-                for stage, sec in result.get("timings_sec", {}).items():
-                    print(f"- {stage}: {sec}")
                 print("[응답시간]", result["elapsed_sec"], "sec")
                 print("\n[답변]\n" + result["answer"])
             except Exception as e:
