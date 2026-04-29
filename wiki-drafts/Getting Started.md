@@ -28,11 +28,11 @@
 
 ## 다음 단계
 
-- 구조와 개발 흐름은 [[Development Guide]]를 참고하세요.
-- 설치나 실행 중 문제가 생기면 [[Troubleshooting]]를 확인하세요.
+- 구조와 개발 흐름은 [[Development Guide]] / [Development Guide](Development%20Guide.md)를 참고하세요.
+- 설치나 실행 중 문제가 생기면 [[Troubleshooting]] / [Troubleshooting](Troubleshooting.md)를 확인하세요.
 
 ## 관련 문서
 
-- [[Home]]
-- [[Development Guide]]
-- [[Troubleshooting]]
+- [[Home]] / [Home](Home.md)
+- [[Development Guide]] / [Development Guide](Development%20Guide.md)
+- [[Troubleshooting]] / [Troubleshooting](Troubleshooting.md)

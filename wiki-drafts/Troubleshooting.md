@@ -42,12 +42,12 @@ pip install -r requirements.txt
 
 ## 점검 순서
 
-1. [[Getting Started]]로 설치 상태를 먼저 확인합니다.
-2. [[Development Guide]]의 작업 흐름과 검증 단계를 다시 봅니다.
+1. [[Getting Started]] / [Getting Started](Getting%20Started.md)로 설치 상태를 먼저 확인합니다.
+2. [[Development Guide]] / [Development Guide](Development%20Guide.md)의 작업 흐름과 검증 단계를 다시 봅니다.
 3. 최소 입력으로 재현해 보고 로그를 비교합니다.
 
 ## 관련 문서
 
-- [[Home]]
-- [[Getting Started]]
-- [[Development Guide]]
+- [[Home]] / [Home](Home.md)
+- [[Getting Started]] / [Getting Started](Getting%20Started.md)
+- [[Development Guide]] / [Development Guide](Development%20Guide.md)

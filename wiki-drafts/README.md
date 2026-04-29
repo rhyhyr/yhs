@@ -31,3 +31,8 @@ Wiki 탭을 열고 각 페이지 링크가 맞는지 확인합니다.
 - Getting Started -> Development Guide / Troubleshooting
 - Development Guide -> Getting Started / Troubleshooting
 - Troubleshooting -> Getting Started / Development Guide
+
+## 참고
+
+이 초안은 Wiki 문법과 일반 마크다운 링크를 같이 넣어 두었습니다.
+저장소 미리보기와 GitHub Wiki 둘 다에서 문서 연결이 보이도록 하기 위한 구성입니다.

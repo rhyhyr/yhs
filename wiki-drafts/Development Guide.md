@@ -29,11 +29,11 @@
 
 ## 개발 중 문제 해결
 
-- 실행 오류나 의존성 문제: [[Troubleshooting]]
-- 처음 환경을 구성할 때: [[Getting Started]]
+- 실행 오류나 의존성 문제: [[Troubleshooting]] / [Troubleshooting](Troubleshooting.md)
+- 처음 환경을 구성할 때: [[Getting Started]] / [Getting Started](Getting%20Started.md)
 
 ## 관련 문서
 
-- [[Home]]
-- [[Getting Started]]
-- [[Troubleshooting]]
+- [[Home]] / [Home](Home.md)
+- [[Getting Started]] / [Getting Started](Getting%20Started.md)
+- [[Troubleshooting]] / [Troubleshooting](Troubleshooting.md)

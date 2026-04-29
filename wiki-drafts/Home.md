@@ -8,12 +8,12 @@
 
 ## 문서 안내
 
-- 새로 참여하는 분: [[Getting Started]]
-- 코드를 수정하는 분: [[Development Guide]]
-- 오류로 막힌 분: [[Troubleshooting]]
+- 새로 참여하는 분: [[Getting Started]] / [Getting Started](Getting%20Started.md)
+- 코드를 수정하는 분: [[Development Guide]] / [Development Guide](Development%20Guide.md)
+- 오류로 막힌 분: [[Troubleshooting]] / [Troubleshooting](Troubleshooting.md)
 
 ## 관련 문서
 
-- [[Getting Started]]
-- [[Development Guide]]
-- [[Troubleshooting]]
+- [[Getting Started]] / [Getting Started](Getting%20Started.md)
+- [[Development Guide]] / [Development Guide](Development%20Guide.md)
+- [[Troubleshooting]] / [Troubleshooting](Troubleshooting.md)
