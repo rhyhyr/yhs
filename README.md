@@ -8,6 +8,10 @@
 ## 1) 폴더 구조
 
 - `hierarchical_rag.py`: 실행 엔트리포인트
+- `student_agent.py`: 사용자 프로필/대화맥락 기반 QA 에이전트 (Fast/Deep 경로 적용)
+- `hybrid_query_agent.py`: 하이브리드 검색 기반 QA 에이전트 (Fast/Deep 경로 적용)
+- `agent_runtime.py`: 답변용 공통 구조 통합 파일 (fast/deep/policy/template/web/log)
+- `regression_test.py`: 샘플 질문 회귀 테스트 및 SLA 점검
 - `indexing/config.py`: .env 로딩, 설정값, 환경 검증
 - `indexing/parser.py`: PDF 텍스트 추출/청킹
 - `indexing/categorizer.py`: Gemini 기반 카테고리 생성 + 폴백
@@ -57,7 +61,39 @@ python hierarchical_rag.py
 2. `doc_key` 기준으로 이미 저장된 파일은 스킵
 3. 신규 파일만 Document/Category/Chunk 및 관계 저장
 
-## 5) 저장 스키마 요약
+## 5) QA Fast/Deep 운영 기준
+
+- 기본 경로: 1-hop Fast Path (RAG 1회 검색)
+- Deep 진입 조건: 상위 점수 미달, 근거 수 부족, 비교/원인/예외형 질문
+- SLA 목표: Fast 5초 이내, Deep 10초 이내
+- 답변 정책: 사고 과정 비공개, 근거 요약만 노출
+- 외부 검색: 근거 부족 시에만 사용, 정부/대학 공식 도메인 화이트리스트만 허용
+- 지연 로그: `logs/latency_log.jsonl`
+
+권장 환경변수:
+
+```env
+GATE_MIN_TOP_SCORE=0.25
+GATE_MIN_EVIDENCE=2
+ENABLE_EXTERNAL_SEARCH=1
+ALLOWED_EXTERNAL_SUFFIXES=go.kr,ac.kr,gov,edu,gov.cn,edu.cn,ac.uk,gov.uk
+LATENCY_LOG_PATH=logs/latency_log.jsonl
+```
+
+## 6) 회귀 테스트
+
+```powershell
+python regression_test.py --agent both
+```
+
+출력 항목:
+
+1. `path` (fast/deep)
+2. `elapsed_sec`
+3. `best_score`
+4. `sla_ok`
+
+## 7) 저장 스키마 요약
 
 - `(:Document {doc_key, file_path, indexed_at})`
 - `(:Category {node_id, name, level, keywords_json, embedding_json, doc_key})`
@@ -66,7 +102,7 @@ python hierarchical_rag.py
 - `(:Category)-[:HAS_SUBCATEGORY]->(:Category {level:1})`
 - `(:Chunk)-[:BELONGS_TO]->(:Category {level:1})`
 
-## 6) 자주 발생하는 이슈
+## 8) 자주 발생하는 이슈
 
 ### A. torch DLL 오류(WinError 1114/126)
 
@@ -89,7 +125,7 @@ python -m pip install --upgrade torch==2.6.0 --index-url https://download.pytorc
 $env:HF_HUB_DISABLE_SYMLINKS_WARNING="1"
 ```
 
-## 7) 결과 검증 Cypher
+## 9) 결과 검증 Cypher
 
 ```cypher
 MATCH (ch:Chunk)-[:BELONGS_TO]->(c:Category)
@@ -105,6 +141,16 @@ RETURN count(ch) AS orphan_chunks;
 ```
 
 `orphan_chunks = 0`이면 연결 무결성은 정상입니다.
+
+## 10) GitHub Actions 최적화
+
+이 저장소에는 Matrix CI, Reusable Workflow, Composite Action, 선택적 배포 파이프라인이 포함되어 있습니다.
+
+- 메인 워크플로: [.github/workflows/ci-and-selective-deploy.yml](.github/workflows/ci-and-selective-deploy.yml)
+- 재사용 워크플로: [.github/workflows/python-matrix-reusable.yml](.github/workflows/python-matrix-reusable.yml)
+- composite action: [.github/actions/pip-cache-benchmark/action.yml](.github/actions/pip-cache-benchmark/action.yml)
+
+실행 시 각 매트릭스 조합마다 캐시 전후 설치 시간이 측정되며, GitHub Actions run 링크와 함께 Markdown 리포트가 아티팩트로 업로드됩니다.
 
 
 ![alt text](image-1.png)

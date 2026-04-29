@@ -1,8 +1,14 @@
 neo4j==5.20.0
 google-generativeai
 pdfplumber
+pypdf
 numpy
 scikit-learn
 sentence-transformers==3.0.1
 requests
 beautifulsoup4
+langchain-community
+langchain-openai
+langchain-text-splitters
+faiss-cpu
+openai

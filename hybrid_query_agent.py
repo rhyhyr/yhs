@@ -57,8 +57,6 @@ except Exception as _e:
 
 
 def load_env(path: str = ".env") -> None:
-    # .env 파일의 key=value를 현재 프로세스 환경변수에 주입한다.
-    # 이미 설정된 환경변수는 덮어쓰지 않는다(setdefault).
     if not os.path.exists(path):
         return
     with open(path, encoding="utf-8") as f:
@@ -90,8 +88,14 @@ VEC_WEIGHT = float(os.environ.get("VEC_WEIGHT", "0.62"))
 KW_WEIGHT = float(os.environ.get("KW_WEIGHT", "0.38"))
 LEXICAL_CAND_LIMIT = int(os.environ.get("LEXICAL_CAND_LIMIT", "500"))
 
-MIN_CHUNKS_FOR_ANSWER = int(os.environ.get("MIN_CHUNKS_FOR_ANSWER", "2"))
-MIN_BEST_SCORE = float(os.environ.get("MIN_BEST_SCORE", "0.40"))
+CRAWL_MIN_CHUNKS_FOR_ANSWER = int(
+    os.environ.get("CRAWL_MIN_CHUNKS_FOR_ANSWER", os.environ.get("MIN_CHUNKS_FOR_ANSWER", "2"))
+)
+CRAWL_MIN_BEST_SCORE = float(
+    os.environ.get("CRAWL_MIN_BEST_SCORE", os.environ.get("MIN_BEST_SCORE", "0.16"))
+)
+ANSWER_MIN_CHUNKS_FOR_ANSWER = int(os.environ.get("ANSWER_MIN_CHUNKS_FOR_ANSWER", "1"))
+ANSWER_MIN_BEST_SCORE = float(os.environ.get("ANSWER_MIN_BEST_SCORE", "0.08"))
 SEM_DEDUP_THRESHOLD = float(os.environ.get("SEM_DEDUP_THRESHOLD", "0.95"))
 MMR_LAMBDA = float(os.environ.get("MMR_LAMBDA", "0.80"))
 ENABLE_LLM_RERANK = os.environ.get("ENABLE_LLM_RERANK", "0") == "1"
@@ -187,13 +191,6 @@ class HybridQueryAgent:
         "체루": "체류",
     }
 
-    ALLOWED_SITES: list[str] = [
-        "https://www.donga.ac.kr/",
-        "https://hikorea.go.kr",
-        "https://moj.go.kr",
-        "https://immigration.go.kr",
-    ]
-
     def __init__(self) -> None:
         # 필수 자격 정보가 없으면 즉시 실패시켜 오동작을 방지
         if not NEO4J_PASSWORD:
@@ -210,19 +207,8 @@ class HybridQueryAgent:
         self.embedder = self._build_embedder()
         self.llm = self._build_model() if GEMINI_API_KEY else None
         # fallback 임베더일 때는 점수가 전반적으로 낮아 임계치를 완화
-        self.min_best_score = 0.08 if self.is_fallback_embedder else MIN_BEST_SCORE
+        self.min_best_score = 0.25 if self.is_fallback_embedder else CRAWL_MIN_BEST_SCORE
         self._domain_terms = sorted({t for g in self._SYNONYM_GROUPS for t in g} | set(self._TYPO_MAP.values()))
-        self._gate = GateThresholds.from_env()
-        if self.is_fallback_embedder:
-            self._gate.min_top_score = 0.08
-        self._web_client = WebSearchClient(timeout=5) if ENABLE_EXTERNAL_SEARCH else None
-        self.crawler = Crawler(
-            http=self.http,
-            embedder=self.embedder,
-            llm=self.llm,
-            allowed_sites=self.ALLOWED_SITES,
-            driver=self.driver,
-        )
 
     def close(self) -> None:
         # 네트워크/DB 세션 정리
@@ -712,13 +698,20 @@ class HybridQueryAgent:
         if not scored_chunks:
             return True
         best = scored_chunks[0][1] if scored_chunks else 0.0
-        # 둘 다 부족할 때만 정보 부족으로 간주하여 과도한 답변 거부를 줄입니다.
-        return (len(scored_chunks) < MIN_CHUNKS_FOR_ANSWER) and (best < self.min_best_score)
+        # 하나라도 부족하면 크롤링을 시작해 웹 폴백을 더 쉽게 타도록 한다.
+        return (len(scored_chunks) < CRAWL_MIN_CHUNKS_FOR_ANSWER) or (best < CRAWL_MIN_BEST_SCORE)
+
+    def _can_answer_from_db(self, scored_chunks: list[tuple[ChunkRec, float]]) -> bool:
+        if not scored_chunks:
+            return False
+        best = scored_chunks[0][1] if scored_chunks else 0.0
+        # 답변 허용 임계값은 크롤링 임계값보다 느슨하게 운영한다.
+        return (len(scored_chunks) >= ANSWER_MIN_CHUNKS_FOR_ANSWER) or (best >= ANSWER_MIN_BEST_SCORE)
 
     def _crawl_search(self, query: str) -> list[str]:
         # DuckDuckGo HTML 결과에서 URL 수집
         q = urllib.parse.quote(query)
-        url = f"https://duckduckgo.com/html/?q={q}"
+        url = f"https://google.com/html/?q={q}"
         try:
             r = self.http.get(url, timeout=CRAWL_SEARCH_TIMEOUT)
             r.raise_for_status()
@@ -937,105 +930,11 @@ class HybridQueryAgent:
         deduped = self._dedup_semantic(chunk_scored, threshold=SEM_DEDUP_THRESHOLD)
         mmr_ranked = self._mmr_rerank(deduped, top_n=TOP_CHUNK, lambda_mult=MMR_LAMBDA)
         final_internal = self._llm_rerank(query_plan.normalized_query, mmr_ranked, TOP_CHUNK)
-        rank_sec = time.perf_counter() - t_rank_start
 
-        t_source_start = time.perf_counter()
-        source_refs = self._build_source_refs(final_internal, FINAL_TOP)
-        source_lines = self._format_source_lines(source_refs, limit=FINAL_TOP)
-        source_sec = time.perf_counter() - t_source_start
-        retrieve_total_sec = time.perf_counter() - t_retrieve_start
+        used_chunk_ids = [ch.chunk_id for ch, _ in final_internal[:FINAL_TOP]]
 
-        return {
-            "query_plan": query_plan,
-            "tops": tops,
-            "subs": subs,
-            "final_internal": final_internal,
-            "source_lines": source_lines,
-            "timings": {
-                "query_plan_and_embed": round(plan_sec, 3),
-                "category_and_chunk_collect": round(collect_sec, 3),
-                "score_and_rerank": round(rank_sec, 3),
-                "source_build": round(source_sec, 3),
-                "retrieve_total": round(retrieve_total_sec, 3),
-            },
-        }
-
-    def _retrieve_adapter(self, query: str, top_k: int) -> tuple[list[tuple[ChunkRec, float]], list[str]]:
-        # deep path에서 요구하는 retrieve_fn 시그니처로 변환하는 어댑터
-        r = self._retrieve_once(query)
-        return r["final_internal"][:top_k], r["source_lines"]
-
-    def ask(self, query: str) -> dict[str, Any]:
-        # 외부 호출용 메인 엔트리:
-        # fast 검색 후 품질이 낮으면 deep path 확장 검색으로 승격
-        t0 = time.perf_counter()
-
-        t_intent_start = time.perf_counter()
-        language = detect_language(query)
-        query = normalize_query(query)
-        question_type = detect_question_type(query)
-        intent_sec = time.perf_counter() - t_intent_start
-
-        fast_result = self._retrieve_once(query)
-        fast_chunks = fast_result["final_internal"]
-        best_score = float(fast_chunks[0][1]) if fast_chunks else 0.0
-        evidence_count = len(fast_chunks)
-
-        collect_sec = float(fast_result.get("timings", {}).get("category_and_chunk_collect", 0.0))
-        rerank_sec = float(fast_result.get("timings", {}).get("score_and_rerank", 0.0))
-
-        t_gate_start = time.perf_counter()
-        use_deep, reasons = (
-            best_score < self._gate.min_top_score
-            or evidence_count < self._gate.min_evidence_chunks
-            or question_type.value in {"comparison", "cause", "exception"},
-            [],
-        )
-        # run_deep_path 내부에서 동일 기준을 다시 점검하고 사유를 생성한다.
-        gate_sec = time.perf_counter() - t_gate_start
-
-        selected_chunks = fast_chunks
-        source_lines = fast_result["source_lines"]
-        external_contexts: list[str] = []
-        path = "fast"
-        if use_deep:
-            deep = run_deep_path(
-                query_variants=expand_query(query, language),
-                retrieve_fn=self._retrieve_adapter,
-                top_k=TOP_CHUNK,
-                thresholds=self._gate,
-                web_client=self._web_client,
-                enable_external=ENABLE_EXTERNAL_SEARCH,
-            )
-            selected_chunks = deep["chunks"]
-            source_lines = deep["source_labels"]
-            external_contexts = deep["external_contexts"]
-            reasons = deep["reasons"]
-            path = "deep"
-
-        if ENABLE_CRAWL and self._needs_crawl(selected_chunks) and not external_contexts:
-            print("[INFO] DB 근거 부족 → ALLOWED_SITES LLM 가이드 크롤링 시작", flush=True)
-            query_emb = self.embedder.encode(fast_result["query_plan"].embedding_query)
-            url_chunks = self.crawler.crawl_fallback_chunks(query)
-            if url_chunks:
-                external_scored = self.crawler.score_external_chunks(query, query_emb, url_chunks)
-                top_external = external_scored[:FINAL_TOP]
-                external_contexts = [f"[WEB][{u}] {c}" for u, c, _ in top_external]
-                source_lines = list(dict.fromkeys(u for u, _, _ in top_external))
-                path = "crawl"
-
-        if not selected_chunks and not external_contexts:
-            # 근거가 전혀 없으면 안전하게 답변 거절
-            elapsed = round(time.perf_counter() - t0, 3)
-            self._log_latency(path, elapsed, 0.0, 0)
-            timings_sec = {
-                "intent_understanding": round(intent_sec, 3),
-                "category_chunk_collection": round(collect_sec, 3),
-                "scoring_reranking": round(rerank_sec, 3),
-                "answerability_check": round(gate_sec, 3),
-                "answer_generation": 0.0,
-                "total": elapsed,
-            }
+        # 4) DB 정보 부족이면 답변 생성을 중단
+        if self._needs_crawl(final_internal):
             return {
                 "query": query,
                 "answered": False,
@@ -1136,7 +1035,10 @@ def main() -> None:
                 print("\n[상위 카테고리]", result["top_categories"])
                 print("[하위 카테고리]", result["top_subcategories"])
                 print("[답변 가능]", result["answered"])
-                print("[최고 점수]", result.get("best_score", 0.0))
+                print(f"[청크 수] {result.get('context_count', 0)}  (크롤링 임계값: {CRAWL_MIN_CHUNKS_FOR_ANSWER})")
+                print(f"[최고 점수] {result.get('best_score', 0.0):.4f}  (크롤링 임계값: {CRAWL_MIN_BEST_SCORE})")
+                print(f"[답변 허용 임계값] chunks>={ANSWER_MIN_CHUNKS_FOR_ANSWER} 또는 score>={ANSWER_MIN_BEST_SCORE}")
+                print("[검색 경로]", result.get("path", "-"))
                 print("[사용 청크 ID]", result.get("used_chunk_ids", []))
                 print("\n[근거 출처]")
                 for i, p in enumerate(result.get("retrieved_preview", []), start=1):
