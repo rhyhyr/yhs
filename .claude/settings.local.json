@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/c/Users/DSL/OneDrive/문서/GitHub/yhs/**)",
+      "Bash(python -m py_compile agent/faq.py agent/retrieval/linker.py agent/retrieval_engine.py agent/retrieval/vector_retriever.py)"
+    ]
+  }
+}

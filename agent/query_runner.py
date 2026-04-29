@@ -17,24 +17,25 @@ def run_query_loop() -> None:
     from graph_rag.db.graph_store import GraphStore
     from graph_rag.embedding.embedder import Embedder
     from agent.faq import FastPathHandler
-    from agent.ollama_client import OllamaRuntimeClient
+    from agent.gemini_runtime_client import GeminiRuntimeClient
     from agent.retrieval_engine import RetrievalEngine
 
     embedder = Embedder()
     faq_handler = FastPathHandler()
+    llm = GeminiRuntimeClient()
+
+    if not llm.is_available():
+        logger.warning("Gemini를 사용할 수 없습니다. FAQ 모드로만 동작합니다.")
+        llm = None
 
     print("\n" + "=" * 60)
     print("  동아대학교 유학생 지원 AI 에이전트")
     print("  종료: 'quit' 또는 'exit' 입력")
     print("=" * 60 + "\n")
+    qid = 0
 
     with GraphStore() as store:
-        engine = RetrievalEngine(store, embedder)
-
-        llm = OllamaRuntimeClient()
-        if not llm.is_available():
-            logger.warning("Ollama 서버를 찾을 수 없습니다. FAQ 모드로만 동작합니다.")
-            llm = None
+        engine = RetrievalEngine(store, embedder, ollama_client=llm)
 
         while True:
             try:
@@ -50,6 +51,7 @@ def run_query_loop() -> None:
                 break
 
             question_start = perf_counter()
+            qid += 1
             print(f"\n[{_ts()}] 질문 입력: {question}")
 
             faq_start = perf_counter()
@@ -90,6 +92,16 @@ def run_query_loop() -> None:
                 )
             print(f"[{_ts()}] 답변 생성 완료 ({perf_counter() - answer_start:.2f}s)")
 
+            # 요청 디버그 로그: "정보 없음" 응답이면 검색된 청크 4개를 그대로 출력
+            if "제공된 자료에서는 확인할 수 없습니다" in answer:
+                print(f"[Q{qid}] retrieved chunks:")
+                for i, c in enumerate(result.chunks[:4]):
+                    preview = (c.text or "").replace("\n", " ")[:200]
+                    print(f"  [{i}] score={c.score:.3f} | {preview}...")
+
             print(f"[{_ts()}] [{result.retrieval_method.upper()} 검색 결과]")
             print(answer)
             print(f"[{_ts()}] 처리 완료 ({perf_counter() - question_start:.2f}s)\n")
+
+    if llm is not None:
+        llm.close()
