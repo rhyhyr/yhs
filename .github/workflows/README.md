@@ -1,4 +1,6 @@
-# DORA 지표 결과
+#ai로 생성한 문서입니다
+
+# DORA 지표 결과 및 7,8 주차 과제
 
 이 문서는 DORA 지표 결과 이미지를 넣기 위한 자리표시자 구조입니다.
 아래 이미지 경로를 생성한 차트나 스크린샷 경로로 바꿔서 사용하세요.
@@ -37,4 +39,12 @@
 ### Mean Time to Restore!
 
 ![Mean Time to Restore] ![alt text](mttr_monitoring.png)
+
+
+🚀 GitHub Actions Optimization Project본 프로젝트는 GitHub Actions의 고급 기능을 활용하여 CI/CD 파이프라인의 중복을 제거하고, 캐싱 전략을 통해 실행 속도를 혁신적으로 개선한 사례를 다룹니다.🛠️ Key Implementation1. 효율적인 자동화 구조 설계Matrix Strategy: 다중 환경(Ubuntu Latest) 및 다양한 언어 버전(Python 3.10, 3.11, 3.12)에 대한 확장 테스트를 자동화했습니다.Modularization: Reusable Workflow 및 Composite Action을 설계하여 워크플로우 간 중복 코드를 제거하고 유지보수성을 극대화했습니다.2. 지능형 파이프라인 제어Selective Deployment: 브랜치/PR 조건부 실행 및 변경 파일 감지(Path Filtering)를 적용하여 불필요한 빌드를 방지하고 리소스를 절약합니다.Execution Monitoring: 작업 실행 시간을 실시간으로 측정하여 최적화 성과를 데이터로 기록합니다.📈 Performance Optimization Report패키지 설치 단계에서 Dependency Caching을 적용하기 전(Cold)과 후(Cached)의 성능을 비교 분석한 결과입니다.OSEnvironmentCold InstallCached InstallImprovementubuntu-latestPython 3.1092.174s76.21s17.32%ubuntu-latestPython 3.1182.655s67.083s18.84%ubuntu-latestPython 3.12146.87s89.56s39.02%Analysis Summary: Python 3.12 환경에서 최대 **39.02%**의 성능 향상을 기록했으며, 전반적으로 캐싱 도입 후 빌드 시간이 유의미하게 단축되었습니다.🔗 Action Resources상세한 실행 로그와 결과 리포트는 아래 링크에서 확인하실 수 있습니다.GitHub Run History: View Workflow RunOptimization Artifacts:Python 3.10 ReportPython 3.11 ReportPython 3.12 Report📂 Project StructurePlaintext.github/
+├── workflows/
+│   ├── main.yml           # 메인 파이프라인 (Selective Deployment 적용)
+│   └── reusable-test.yml  # Reusable Workflow
+└── actions/
+    └── setup-env/         # Composite Action
 
