@@ -14,7 +14,34 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ── 1단계: BUILD ─────────────────────────────────────────────
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact-${{ matrix.os }}
+          path: .
+
+  # ── 2단계: TEST (build 완료 후 실행) ─────────────────────────
   matrix-tests:
+    needs: build
     uses: ./.github/workflows/python-matrix-reusable.yml
     with:
       python-versions: '["3.10", "3.11", "3.12"]'
@@ -101,6 +128,7 @@ jobs:
           - GitHub run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
 
+  # ── 3단계: DEPLOY (test + detect-changes 완료 후 실행) ────────
   deploy:
     name: Selective deploy
     needs:
@@ -113,6 +141,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifact-ubuntu-latest
+          path: ./downloaded-artifact
 
       - name: Build deployment manifest
         shell: pwsh
@@ -134,6 +168,14 @@ jobs:
         with:
           name: deployment-manifest
           path: deployment-manifest.json
+
+      - name: Deploy
+        env:
+          DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          API_KEY: ${{ secrets.API_KEY }}
+        run: |
+          echo "Deploying with token..."
+          echo "Repository: ${{ github.repository }}"
 
       - name: Publish deployment summary
         shell: pwsh
