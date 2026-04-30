@@ -1,57 +1,95 @@
 # 워크플로우 최적화 전후 비교 리포트
 
-## 개요
+> 측정일: 2026-04-30 | 커밋: `70a1ab7` | 실행자: @taeing25
 
-GitHub Actions 워크플로우 최적화 작업 결과를 기록합니다.
+---
 
-## 1. 최적화 항목
+## 1. 구조 변경 요약
 
-### Before — 최적화 전
+### Before
 
 | 항목 | 내용 |
 |---|---|
 | 구조 | 단일 `ci.yml`에 모든 단계 직접 작성 |
 | 중복 | Python 환경 설정 코드가 CI/CD 각각 중복 존재 |
-| 캐싱 | pip 캐시 적용, 히트 여부만 확인 |
 | 배포 | 모든 push에 대해 전체 배포 실행 |
-| Matrix | Python 3.10/3.11 × ubuntu/windows (4조합) |
+| 캐시 | 히트 여부만 확인, 시간 측정 없음 |
 
-### After — 최적화 후
+### After
 
 | 항목 | 내용 |
 |---|---|
 | 구조 | Reusable Workflow + Composite Action으로 분리 |
 | 중복 제거 | `setup-python-env` Composite Action으로 환경 설정 일원화 |
-| 캐싱 | 캐시 조회 시간(ms) 측정 및 Job Summary에 리포트 |
-| 배포 | 변경된 파일 경로 기준 선택적 배포 (`dorny/paths-filter`) |
-| Matrix | 동일 4조합, Reusable Workflow 호출로 중복 제거 |
+| 배포 | 변경 파일 경로 기준 선택적 배포 (`dorny/paths-filter`) |
+| 캐시 | 캐시 조회 시간(ms) 실측 및 Job Summary 자동 리포트 |
 
 ---
 
-## 2. 캐싱 성능 비교
+## 2. 캐싱 성능 실측 결과
 
-| 구분 | 캐시 미스 (첫 실행) | 캐시 히트 (재실행) |
+> 측정 방법: Composite Action 내 `date +%s%3N` 기준 캐시 단계 전후 측정
+
+| 환경 | 캐시 히트 | 캐시 조회/복원 시간 |
 |---|---|---|
-| pip install 소요 시간 | 약 80~90초 | 약 5~10초 |
-| 개선율 | — | 약 **88% 단축** |
+| Python 3.10 / ubuntu-latest | ✅ true | 35,191ms |
+| Python 3.10 / windows-latest | ❌ false | 779ms |
+| Python 3.11 / ubuntu-latest | ✅ true | 20,271ms |
+
+### 개선율 분석
+
+| 구분 | 소요 시간 |
+|---|---|
+| 캐시 미스 시 pip install (전체 설치) | 약 80~90초 |
+| 캐시 히트 시 복원 후 설치 | 약 20~35초 |
+| **개선율** | **약 55~75% 단축** |
 
 > 캐시 키: `runner.os + python-version + requirements.txt 해시`
-> 측정 방법: Composite Action 내 `date +%s%3N` 기준 전후 측정
+> 캐시 미스(windows 779ms)는 복원 없이 체크만 수행, 이후 전체 pip install 진행
 
 ---
 
-## 3. 선택적 배포 효과
+## 3. CD Pipeline 실행 결과
 
-| 변경 경로 | 이전 (전체 배포) | 이후 (선택적 배포) |
+| 단계 | 상태 |
+|---|---|
+| Build | ✅ 완료 |
+| Test | ✅ 완료 |
+| Deploy | ✅ 완료 |
+
+- 브랜치: `main`
+- 커밋: `70a1ab72049ab2b58693eaea56b7c44ec3afc6ac`
+- 실행자: @taeing25
+- 시각: Thu Apr 30 08:12:35 UTC 2026
+
+---
+
+## 4. 선택적 배포 파이프라인 실행 결과
+
+| 모듈 | 변경 감지 | 배포 실행 |
 |---|---|---|
-| `docs/` 만 변경 | 전체 파이프라인 실행 | 배포 스킵 ⏭️ |
-| `agent/` 변경 | 전체 파이프라인 실행 | agent 모듈만 배포 ✅ |
-| `graph_rag/` 변경 | 전체 파이프라인 실행 | graph_rag 모듈만 배포 ✅ |
-| `requirements.txt` 변경 | 전체 파이프라인 실행 | 의존성 검증만 실행 ✅ |
+| agent/ | false | ⏭️ 스킵 |
+| graph_rag/ | false | ⏭️ 스킵 |
+| requirements.txt | false | ⏭️ 스킵 |
+| docs/ | true | ⏭️ 배포 불필요 |
+
+> docs/ 변경만 감지되어 코드 모듈 배포는 전부 스킵됨 → 불필요한 배포 실행 방지 확인
 
 ---
 
-## 4. 파일 구조 변경
+## 5. Deployment Frequency (DORA)
+
+| 항목 | 값 |
+|---|---|
+| 이벤트 | push |
+| 브랜치 | main |
+| 커밋 | `70a1ab7` |
+| 배포자 | @taeing25 |
+| 배포 시각 | 2026-04-30T08:09:29Z |
+
+---
+
+## 6. 파일 구조
 
 ```
 .github/
