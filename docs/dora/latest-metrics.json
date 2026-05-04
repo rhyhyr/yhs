@@ -1,0 +1,8 @@
+{
+  "report_date": "2026-05-04",
+  "generated_at": "2026-05-04T11:02:16Z",
+  "lead_time_minutes": "45",
+  "deployment_frequency_weekly": 1,
+  "mttr_hours": "N/A (이슈 기반 추적)",
+  "change_failure_rate": "N/A (배포 환경 연동 필요)"
+}

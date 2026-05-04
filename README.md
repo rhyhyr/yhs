@@ -98,3 +98,20 @@ python -m pip install --upgrade torch==2.6.0 --index-url https://download.pytorc
 ---
 
 > 📝 이 문서는 작성 과정에서 생성형 AI(Claude)의 도움을 받아 작성되었습니다.
+
+## DORA 메트릭
+
+> 자동 수집 보고서 — 마지막 업데이트: 2026-05-04
+
+GitHub Actions 워크플로우로 DORA 4대 지표를 자동 수집합니다.
+
+| 지표 | 값 | 수집 방식 |
+|---|---|---|
+| Lead Time | 45분 | PR 병합 시 자동 측정 |
+| Deployment Frequency | 주 1회 | main 브랜치 push 기준 |
+| MTTR | 이슈 기반 추적 중 | 이슈 open/close 시 자동 측정 |
+| Change Failure Rate | 배포 환경 연동 시 측정 | deployment_status 기반 |
+
+상세 결과: [](docs/dora/latest-metrics.json)
+
+워크플로우:  내 , , , 
