@@ -2,9 +2,21 @@
 
 > 외국인 유학생 비자·학사 안내 근거중심 도우미
 
+## 프로젝트 개요
+
+| 항목 | 내용 |
+|---|---|
+| **프로젝트명** | Global Campus Visa Navigator RAG |
+| **문제 정의** | 유학생 비자·학사 정보가 여러 문서에 분산되어 있어 정확한 조항을 빠르게 찾기 어려움 |
+| **핵심 기능** | ① 하이브리드 질의응답 ② 정책 문서 인덱싱 파이프라인 ③ 리스크 최소화 응답 정책 |
+| **기술 스택** | Python, Gemini/OpenAI, Neo4j, SentenceTransformers, pdfplumber |
+| **마일스톤** | 16주 (W1~W16), 아래 표 참고 |
+
 ## 문제 정의
 
-외국인 유학생은 대학 안내, 체류자격(비자), 출입국 신고 의무를 서로 다른 문서에서 확인해야 한다. 문서마다 표현 방식이 달라 단순 검색으로는 맞는 조항을 빠르게 찾기 어렵고, 잘못된 이해는 행정 불이익으로 이어질 수 있다. 이 프로젝트는 답변보다 **"근거 문서와 조항을 정확히 찾아 제시"** 하는 것을 핵심으로 한다.
+외국인 유학생은 대학 안내, 체류자격(비자), 출입국 신고 의무를 서로 다른 문서에서 확인해야 한다. 문서마다 표현 방식이 달라 단순 검색으로는 맞는 조항을 빠르게 찾기 어렵고, 잘못된 이해는 행정 불이익으로 이어질 수 있다.
+
+이 프로젝트는 답변 자체보다 **"근거 문서와 조항을 정확히 찾아 제시"** 하는 것을 핵심으로 한다.
 
 ## 핵심 기능
 
@@ -26,7 +38,7 @@ PDF 로딩, 청킹, 임베딩, 조항 단위 메타데이터 추출을 자동화
 | Retrieval | SentenceTransformers, Hybrid (Vector + Graph) |
 | Graph DB | Neo4j |
 | Data Processing | pdfplumber, custom chunker/extractor |
-| DevOps | Git, GitHub |
+| DevOps | Git, GitHub Actions |
 
 ## 16주 마일스톤
 
@@ -41,74 +53,23 @@ PDF 로딩, 청킹, 임베딩, 조항 단위 메타데이터 추출을 자동화
 | W13-14 | 운영 안정화, 발표 시연 시나리오 |
 | W15 | 성능 튜닝, 문서화 |
 | W16 | 최종 발표 및 데모 |
- ## 폴더 구조
+
+## 폴더 구조
 
 - [main.py](main.py): 공용 진입점
 - [agent/](agent): 질의, 인제스트, 검색, LLM 연동
 - [graph_rag/](graph_rag): Neo4j 저장소, 임베딩, 파이프라인
 - [docs/](docs): 설명 문서와 결과 기록
 - [pdf/](pdf): 입력 PDF 자료
-
- ## 실행
-
- ```powershell
- python main.py --ingest
- python main.py --query
- python main.py --embed-update
- python main.py --freshness-check
- ```
-
- 패키지 진입점도 사용할 수 있습니다.
-
- ```powershell
- python -m agent --ingest
- python -m agent --query
- python -m agent --embed-update
- python -m agent --freshness-check
- ```
-
- ## 환경변수
-
- ```env
- NEO4J_URI=bolt://localhost:7687
- NEO4J_USER=neo4j
- NEO4J_PASSWORD=YOUR_PASSWORD
- PDF_DIR=C:\path\to\pdf
- GEMINI_API_KEY=YOUR_GEMINI_API_KEY
- GEMINI_MODEL=gemini-3.0-flash
- GATE_MIN_TOP_SCORE=0.25
- GATE_MIN_EVIDENCE=2
- ENABLE_EXTERNAL_SEARCH=1
- ALLOWED_EXTERNAL_SUFFIXES=go.kr,ac.kr,gov,edu,gov.cn,edu.cn,ac.uk,gov.uk
- LATENCY_LOG_PATH=logs/latency_log.jsonl
- ```
-
- ## 설치
-
- ```powershell
- python -m pip install neo4j google-generativeai pdfplumber numpy scikit-learn sentence-transformers==3.0.1
- python -m pip install --upgrade torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
- ```
-
-- [main.py](main.py): 유지되는 공용 진입점
-- [agent/](agent): 질의, 인제스트, 검색, LLM 연동
-- [graph_rag/](graph_rag): 공통 설정, Neo4j 저장소, 임베딩, 파이프라인, 스키마
-- [README.md](README.md): 현재 남아 있는 구조 설명
+- [requirements.txt](requirements.txt): 의존성 목록
 
 ## 실행
-
-엔트리포인트는 `main.py`이며, 패키지 실행도 함께 지원합니다.
 
 ```powershell
 python main.py --ingest
 python main.py --query
 python main.py --embed-update
 python main.py --freshness-check
-
-python -m agent --ingest
-python -m agent --query
-python -m agent --embed-update
-python -m agent --freshness-check
 ```
 
 ## 환경변수
@@ -127,53 +88,13 @@ ALLOWED_EXTERNAL_SUFFIXES=go.kr,ac.kr,gov,edu,gov.cn,edu.cn,ac.uk,gov.uk
 LATENCY_LOG_PATH=logs/latency_log.jsonl
 ```
 
-## 의존성
+## 설치
 
 ```powershell
 python -m pip install neo4j google-generativeai pdfplumber numpy scikit-learn sentence-transformers==3.0.1
 python -m pip install --upgrade torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
 ```
 
-### B. SentenceTransformer 초기화 실패(보안 정책)
+---
 
-- 원인: torch 2.6 미만
-- 해결: torch를 `2.6.0+cpu` 이상으로 업그레이드
-
-### C. huggingface symlink 경고
-
-- 기능 문제는 아님(캐시 효율 경고)
-- 필요 시 Windows 개발자 모드 활성화 또는 아래 환경변수 사용:
-
-```powershell
-$env:HF_HUB_DISABLE_SYMLINKS_WARNING="1"
-```
-
-## 9) 결과 검증 Cypher
-
-```cypher
-MATCH (ch:Chunk)-[:BELONGS_TO]->(c:Category)
-WHERE c.level = 1
-RETURN c.name AS subcategory, count(ch) AS chunks
-ORDER BY chunks DESC;
-```
-
-```cypher
-MATCH (ch:Chunk)
-WHERE NOT (ch)-[:BELONGS_TO]->(:Category)
-RETURN count(ch) AS orphan_chunks;
-```
-
-`orphan_chunks = 0`이면 연결 무결성은 정상입니다.
-
-## 10) GitHub Actions 최적화
-
-이 저장소에는 Matrix CI, Reusable Workflow, Composite Action, 선택적 배포 파이프라인이 포함되어 있습니다.
-
-- 메인 워크플로: [.github/workflows/ci-and-selective-deploy.yml](.github/workflows/ci-and-selective-deploy.yml)
-- 재사용 워크플로: [.github/workflows/python-matrix-reusable.yml](.github/workflows/python-matrix-reusable.yml)
-- composite action: [.github/actions/pip-cache-benchmark/action.yml](.github/actions/pip-cache-benchmark/action.yml)
-
-실행 시 각 매트릭스 조합마다 캐시 전후 설치 시간이 측정되며, GitHub Actions run 링크와 함께 Markdown 리포트가 아티팩트로 업로드됩니다.
-
-
-![alt text](image-1.png)
+> 📝 이 문서는 작성 과정에서 생성형 AI(Claude)의 도움을 받아 작성되었습니다.
