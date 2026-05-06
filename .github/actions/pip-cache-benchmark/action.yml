@@ -1,0 +1,137 @@
+name: Python cache benchmark
+description: Measure cold and cached pip install time for a Python workflow run.
+
+inputs:
+  python-version:
+    description: Python version to benchmark.
+    required: true
+  requirements-file:
+    description: Path to the dependency file.
+    required: false
+    default: requirements.txt
+  benchmark-label:
+    description: Label used in the generated report file name.
+    required: false
+    default: cache-benchmark
+
+outputs:
+  cold-seconds:
+    description: Time spent on the cold install benchmark.
+    value: ${{ steps.benchmark.outputs.cold-seconds }}
+  warm-seconds:
+    description: Time spent on the cached install benchmark.
+    value: ${{ steps.benchmark.outputs.warm-seconds }}
+  improvement-rate:
+    description: Percent improvement from cold to cached install.
+    value: ${{ steps.benchmark.outputs.improvement-rate }}
+  report-path:
+    description: Markdown report generated during the benchmark.
+    value: ${{ steps.benchmark.outputs.report-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: pip
+        cache-dependency-path: ${{ inputs.requirements-file }}
+
+    - name: Benchmark pip cache
+      id: benchmark
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+
+        $requirementsFile = (Resolve-Path '${{ inputs.requirements-file }}').Path
+        if (-not (Test-Path $requirementsFile)) {
+          throw "Requirements file not found: $requirementsFile"
+        }
+
+        function Get-VenvTools {
+          param([string]$VenvPath)
+
+          $binDir = if ($IsWindows) { 'Scripts' } else { 'bin' }
+          $pythonName = if ($IsWindows) { 'python.exe' } else { 'python' }
+          $pipName = if ($IsWindows) { 'pip.exe' } else { 'pip' }
+
+          [pscustomobject]@{
+            Python = Join-Path (Join-Path $VenvPath $binDir) $pythonName
+            Pip = Join-Path (Join-Path $VenvPath $binDir) $pipName
+          }
+        }
+
+        function Invoke-InstallBenchmark {
+          param(
+            [string]$CacheDir
+          )
+
+          $venvPath = Join-Path $env:RUNNER_TEMP ("${{ inputs.benchmark-label }}-" + [guid]::NewGuid().ToString('N'))
+          python -m venv $venvPath
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to create a virtual environment.'
+          }
+
+          try {
+            $tools = Get-VenvTools -VenvPath $venvPath
+            & $tools.Python -m pip install --upgrade pip | Out-Host
+            if ($LASTEXITCODE -ne 0) {
+              throw 'Failed to upgrade pip inside the benchmark virtual environment.'
+            }
+
+            if ($CacheDir) {
+              $env:PIP_CACHE_DIR = $CacheDir
+            } else {
+              Remove-Item Env:PIP_CACHE_DIR -ErrorAction SilentlyContinue
+            }
+
+            $timer = [System.Diagnostics.Stopwatch]::StartNew()
+            & $tools.Pip install -r $requirementsFile | Out-Host
+            $timer.Stop()
+
+            if ($LASTEXITCODE -ne 0) {
+              throw 'pip install failed during the benchmark.'
+            }
+
+            [Math]::Round($timer.Elapsed.TotalSeconds, 3)
+          }
+          finally {
+            Remove-Item Env:PIP_CACHE_DIR -ErrorAction SilentlyContinue
+            Remove-Item $venvPath -Recurse -Force -ErrorAction SilentlyContinue
+          }
+        }
+
+        $coldCacheDir = Join-Path $env:RUNNER_TEMP 'pip-cache-cold'
+        New-Item -ItemType Directory -Path $coldCacheDir -Force | Out-Null
+
+        $coldSeconds = Invoke-InstallBenchmark -CacheDir $coldCacheDir
+        $warmSeconds = Invoke-InstallBenchmark -CacheDir $null
+
+        if ($coldSeconds -gt 0) {
+          $improvementRate = [Math]::Round((($coldSeconds - $warmSeconds) / $coldSeconds) * 100, 2)
+        } else {
+          $improvementRate = 0
+        }
+
+        $reportPath = Join-Path $env:RUNNER_TEMP ("${{ inputs.benchmark-label }}-${{ runner.os }}-${{ inputs.python-version }}.md")
+        $runUrl = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+        $reportLines = @(
+          '# Cache Benchmark Report',
+          '',
+          "- Repository: ${{ github.repository }}",
+          "- Run URL: $runUrl",
+          "- Runner OS: ${{ runner.os }}",
+          "- Python version: ${{ inputs.python-version }}",
+          "- Requirements file: $requirementsFile",
+          "- Cold install: $coldSeconds seconds",
+          "- Cached install: $warmSeconds seconds",
+          "- Improvement: $improvementRate%"
+        )
+        $reportLines | Set-Content -Path $reportPath -Encoding utf8
+
+        "cold-seconds=$coldSeconds" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "warm-seconds=$warmSeconds" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "improvement-rate=$improvementRate" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        "report-path=$reportPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
