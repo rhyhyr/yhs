@@ -1,0 +1,132 @@
+name: Selective Deploy (조건부 배포)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # 변경된 파일 감지
+  detect-changes:
+    name: Detect Changed Files
+    runs-on: ubuntu-latest
+    outputs:
+      agent: ${{ steps.filter.outputs.agent }}
+      graph_rag: ${{ steps.filter.outputs.graph_rag }}
+      docs: ${{ steps.filter.outputs.docs }}
+      requirements: ${{ steps.filter.outputs.requirements }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            agent:
+              - 'agent/**'
+              - 'main.py'
+            graph_rag:
+              - 'graph_rag/**'
+            docs:
+              - 'docs/**'
+              - '*.md'
+            requirements:
+              - 'requirements.txt'
+
+  # agent/ 변경 시에만 실행
+  deploy-agent:
+    name: Deploy Agent Module
+    needs: detect-changes
+    if: needs.detect-changes.outputs.agent == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Run agent module check
+        run: |
+          echo "agent/ 변경 감지 → agent 모듈 검증 실행"
+          python -c "import sys; sys.path.insert(0, '.'); print('agent 모듈 경로 확인 완료')"
+
+      - name: Write summary
+        run: |
+          echo "## Deploy: Agent Module ✅" >> $GITHUB_STEP_SUMMARY
+          echo "agent/ 또는 main.py 변경이 감지되어 배포 실행" >> $GITHUB_STEP_SUMMARY
+
+  # graph_rag/ 변경 시에만 실행
+  deploy-graph-rag:
+    name: Deploy Graph RAG Module
+    needs: detect-changes
+    if: needs.detect-changes.outputs.graph_rag == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Run graph_rag module check
+        run: |
+          echo "graph_rag/ 변경 감지 → graph_rag 모듈 검증 실행"
+          python -c "import sys; sys.path.insert(0, '.'); print('graph_rag 모듈 경로 확인 완료')"
+
+      - name: Write summary
+        run: |
+          echo "## Deploy: Graph RAG Module ✅" >> $GITHUB_STEP_SUMMARY
+          echo "graph_rag/ 변경이 감지되어 배포 실행" >> $GITHUB_STEP_SUMMARY
+
+  # requirements.txt 변경 시에만 실행
+  deploy-dependencies:
+    name: Validate Dependencies
+    needs: detect-changes
+    if: needs.detect-changes.outputs.requirements == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Validate requirements
+        run: |
+          echo "requirements.txt 변경 감지 → 의존성 검증"
+          pip check && echo "의존성 충돌 없음 ✅"
+
+      - name: Write summary
+        run: |
+          echo "## Deploy: Dependencies Validated ✅" >> $GITHUB_STEP_SUMMARY
+          echo "requirements.txt 변경이 감지되어 의존성 검증 실행" >> $GITHUB_STEP_SUMMARY
+
+  # 최종 배포 요약
+  deploy-summary:
+    name: Deploy Summary
+    needs: [detect-changes, deploy-agent, deploy-graph-rag, deploy-dependencies]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Write final summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 선택적 배포 파이프라인 완료
+
+          | 모듈 | 변경 감지 | 배포 실행 |
+          |---|---|---|
+          | agent/ | ${{ needs.detect-changes.outputs.agent }} | ${{ needs.detect-changes.outputs.agent == 'true' && '✅' || '⏭️ 스킵' }} |
+          | graph_rag/ | ${{ needs.detect-changes.outputs.graph_rag }} | ${{ needs.detect-changes.outputs.graph_rag == 'true' && '✅' || '⏭️ 스킵' }} |
+          | requirements.txt | ${{ needs.detect-changes.outputs.requirements }} | ${{ needs.detect-changes.outputs.requirements == 'true' && '✅' || '⏭️ 스킵' }} |
+          | docs/ | ${{ needs.detect-changes.outputs.docs }} | ⏭️ 배포 불필요 |
+          EOF

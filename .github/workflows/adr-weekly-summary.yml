@@ -1,0 +1,69 @@
+name: ADR Weekly Summary
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # 매주 월요일 오전 9시
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  adr-summary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Collect ADR status
+        id: adr
+        run: |
+          REPORT_DATE=$(date -u +"%Y-%m-%d")
+          echo "report_date=$REPORT_DATE" >> $GITHUB_OUTPUT
+
+          # ADR 파일 목록 수집
+          ADR_COUNT=$(find docs/adr -name "*.md" ! -name "README.md" ! -name "template.md" | wc -l)
+          ACCEPTED=$(grep -rl "^Accepted" docs/adr/ 2>/dev/null | wc -l)
+          PROPOSED=$(grep -rl "^Proposed" docs/adr/ 2>/dev/null | wc -l)
+
+          echo "adr_count=$ADR_COUNT" >> $GITHUB_OUTPUT
+          echo "accepted=$ACCEPTED" >> $GITHUB_OUTPUT
+          echo "proposed=$PROPOSED" >> $GITHUB_OUTPUT
+
+      - name: Write Job Summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## ADR Weekly Summary — ${{ steps.adr.outputs.report_date }}
+
+          | 항목 | 값 |
+          |---|---|
+          | 전체 ADR 수 | ${{ steps.adr.outputs.adr_count }}개 |
+          | Accepted | ${{ steps.adr.outputs.accepted }}개 |
+          | Proposed (검토 중) | ${{ steps.adr.outputs.proposed }}개 |
+
+          ### ADR 목록
+
+          $(find docs/adr -name "*.md" ! -name "README.md" ! -name "template.md" -exec basename {} \; | sort)
+
+          > 상세 내용: \`docs/adr/\` 폴더 참고
+          EOF
+
+      - name: Save summary JSON
+        run: |
+          mkdir -p docs/adr
+          cat > docs/adr/latest-summary.json << EOF
+          {
+            "report_date": "${{ steps.adr.outputs.report_date }}",
+            "total_adrs": ${{ steps.adr.outputs.adr_count }},
+            "accepted": ${{ steps.adr.outputs.accepted }},
+            "proposed": ${{ steps.adr.outputs.proposed }}
+          }
+          EOF
+
+      - name: Commit summary
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/adr/latest-summary.json
+          git diff --staged --quiet || git commit -m "docs: ADR 주간 요약 자동 업데이트 (${{ steps.adr.outputs.report_date }})"
+          git push

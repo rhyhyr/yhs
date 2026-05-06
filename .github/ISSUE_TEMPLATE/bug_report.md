@@ -1,38 +1,35 @@
 ---
-name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: ''
+name: 🐛 Bug Report
+about: 버그를 발견했을 때 사용하는 템플릿
+title: '[BUG] '
+labels: bug
 assignees: ''
-
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+## 버그 설명
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+<!-- 어떤 버그인지 간단히 설명해주세요 -->
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+## 재현 방법
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+1. 
+2. 
+3. 
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+## 예상 동작
 
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
+<!-- 어떻게 동작해야 하는지 설명해주세요 -->
 
-**Additional context**
-Add any other context about the problem here.
+## 실제 동작
+
+<!-- 실제로 어떻게 동작했는지 설명해주세요 -->
+
+## 환경
+
+- OS: 
+- Python 버전: 
+- 브랜치: 
+
+## 추가 정보
+
+<!-- 스크린샷, 로그 등 추가 정보를 첨부해주세요 -->

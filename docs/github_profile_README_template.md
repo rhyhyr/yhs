@@ -33,3 +33,6 @@
 - Email: your_email@example.com
 - Blog: https://your-blog.example.com
 
+---
+
+생성형 AI를 이용해 만들어진 문서입니다.

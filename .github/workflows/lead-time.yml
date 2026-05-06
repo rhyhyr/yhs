@@ -3,19 +3,31 @@ name: Track Lead Time
 on:
   pull_request:
     types: [closed]
+  workflow_dispatch:
+    inputs:
+      simulate_minutes:
+        description: '시뮬레이션 Lead Time (분)'
+        required: false
+        default: '45'
 
 jobs:
   track-lead-time:
-    if: github.event.pull_request.merged == true
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Calculate Lead Time
         id: calc
         run: |
-          FIRST_COMMIT_TIME="${{ github.event.pull_request.created_at }}"
-          MERGE_TIME="${{ github.event.pull_request.merged_at }}"
-          LEAD_TIME=$(( $(date -d "$MERGE_TIME" +%s) - $(date -d "$FIRST_COMMIT_TIME" +%s) ))
-          LEAD_TIME_MIN=$(( LEAD_TIME / 60 ))
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            LEAD_TIME_MIN="${{ github.event.inputs.simulate_minutes }}"
+            LEAD_TIME=$(( LEAD_TIME_MIN * 60 ))
+            echo "시뮬레이션 모드: Lead Time = ${LEAD_TIME_MIN}분"
+          else
+            FIRST_COMMIT_TIME="${{ github.event.pull_request.created_at }}"
+            MERGE_TIME="${{ github.event.pull_request.merged_at }}"
+            LEAD_TIME=$(( $(date -d "$MERGE_TIME" +%s) - $(date -d "$FIRST_COMMIT_TIME" +%s) ))
+            LEAD_TIME_MIN=$(( LEAD_TIME / 60 ))
+          fi
           echo "lead_time=$LEAD_TIME" >> $GITHUB_OUTPUT
           echo "lead_time_min=$LEAD_TIME_MIN" >> $GITHUB_OUTPUT
           echo "Lead Time: ${LEAD_TIME}초 (${LEAD_TIME_MIN}분)"
@@ -25,10 +37,7 @@ jobs:
           cat > lead-time-result.json << EOF
           {
             "metric": "lead_time",
-            "pr_number": ${{ github.event.pull_request.number }},
-            "pr_title": "${{ github.event.pull_request.title }}",
-            "created_at": "${{ github.event.pull_request.created_at }}",
-            "merged_at": "${{ github.event.pull_request.merged_at }}",
+            "event": "${{ github.event_name }}",
             "lead_time_seconds": ${{ steps.calc.outputs.lead_time }},
             "lead_time_minutes": ${{ steps.calc.outputs.lead_time_min }},
             "run_id": "${{ github.run_id }}"
@@ -39,7 +48,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: lead-time-pr${{ github.event.pull_request.number }}
+          name: lead-time-${{ github.run_id }}
           path: lead-time-result.json
           retention-days: 30
 
@@ -50,9 +59,6 @@ jobs:
 
           | 항목 | 값 |
           |---|---|
-          | PR | #${{ github.event.pull_request.number }} |
-          | 제목 | ${{ github.event.pull_request.title }} |
-          | 생성 시각 | ${{ github.event.pull_request.created_at }} |
-          | 병합 시각 | ${{ github.event.pull_request.merged_at }} |
+          | 실행 방식 | ${{ github.event_name }} |
           | **Lead Time** | **${{ steps.calc.outputs.lead_time_min }}분** |
           EOF

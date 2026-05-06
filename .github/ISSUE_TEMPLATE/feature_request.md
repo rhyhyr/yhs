@@ -1,20 +1,27 @@
 ---
-name: Feature request
-about: Suggest an idea for this project
-title: ''
-labels: ''
+name: ✨ Feature Request
+about: 새로운 기능을 제안할 때 사용하는 템플릿
+title: '[FEAT] '
+labels: enhancement
 assignees: ''
-
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+## 기능 요약
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+<!-- 어떤 기능을 원하는지 한 줄로 설명해주세요 -->
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+## 배경 및 이유
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+<!-- 왜 이 기능이 필요한지 설명해주세요 -->
+
+## 제안하는 해결 방법
+
+<!-- 어떻게 구현하면 좋을지 아이디어가 있다면 작성해주세요 -->
+
+## 기대 효과
+
+<!-- 이 기능이 추가되면 어떤 점이 좋아지나요? -->
+
+## 참고 자료
+
+<!-- 관련 링크, 레퍼런스 등이 있으면 첨부해주세요 -->

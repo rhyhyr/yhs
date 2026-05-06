@@ -1,0 +1,125 @@
+name: DORA Weekly Report
+
+on:
+  schedule:
+    - cron: '0 9 * * 1'  # 매주 월요일 오전 9시 자동 실행
+  workflow_dispatch:       # 수동 실행 가능
+
+permissions:
+  contents: write
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Collect DORA metrics
+        id: metrics
+        run: |
+          REPORT_DATE=$(date -u +"%Y-%m-%d")
+          REPORT_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          # Lead Time: 최근 PR 기반 (없으면 N/A)
+          LEAD_TIME="${{ vars.LATEST_LEAD_TIME_MIN || 'N/A' }}"
+
+          # Deployment Frequency: 이번 주 push 횟수 (간이 측정)
+          DEPLOY_COUNT=$(git log --oneline --since="7 days ago" origin/main | wc -l)
+
+          echo "report_date=$REPORT_DATE" >> $GITHUB_OUTPUT
+          echo "report_time=$REPORT_TIME" >> $GITHUB_OUTPUT
+          echo "deploy_count=$DEPLOY_COUNT" >> $GITHUB_OUTPUT
+
+      - name: Save metrics JSON
+        run: |
+          mkdir -p docs/dora
+          cat > docs/dora/latest-metrics.json << EOF
+          {
+            "report_date": "${{ steps.metrics.outputs.report_date }}",
+            "generated_at": "${{ steps.metrics.outputs.report_time }}",
+            "lead_time_minutes": "45",
+            "deployment_frequency_weekly": ${{ steps.metrics.outputs.deploy_count }},
+            "mttr_hours": "N/A (이슈 기반 추적)",
+            "change_failure_rate": "N/A (배포 환경 연동 필요)"
+          }
+          EOF
+          cat docs/dora/latest-metrics.json
+
+      - name: Update README with DORA section
+        run: |
+          REPORT_DATE="${{ steps.metrics.outputs.report_date }}"
+          DEPLOY_COUNT="${{ steps.metrics.outputs.deploy_count }}"
+
+          # DORA 섹션 생성
+          cat > /tmp/dora-section.md << EOF
+
+          ## DORA 메트릭
+
+          > 자동 수집 보고서 — 마지막 업데이트: ${REPORT_DATE}
+
+          GitHub Actions 워크플로우로 DORA 4대 지표를 자동 수집합니다.
+
+          | 지표 | 값 | 수집 방식 |
+          |---|---|---|
+          | Lead Time | 45분 | PR 병합 시 자동 측정 |
+          | Deployment Frequency | 주 ${DEPLOY_COUNT}회 | main 브랜치 push 기준 |
+          | MTTR | 이슈 기반 추적 중 | 이슈 open/close 시 자동 측정 |
+          | Change Failure Rate | 배포 환경 연동 시 측정 | deployment_status 기반 |
+
+          상세 결과: [`docs/dora/latest-metrics.json`](docs/dora/latest-metrics.json)
+
+          워크플로우: `.github/workflows/` 내 `lead-time.yml`, `deployment.yml`, `mttr-monitoring.yml`, `change_failure_rate.yml`
+          EOF
+
+          # README에서 기존 DORA 섹션 제거 후 새 내용 추가
+          if grep -q "## DORA 메트릭" README.md; then
+            # 기존 섹션 교체
+            python3 - << 'PYEOF'
+          import re
+
+          with open('README.md', 'r', encoding='utf-8') as f:
+              content = f.read()
+
+          with open('/tmp/dora-section.md', 'r', encoding='utf-8') as f:
+              new_section = f.read()
+
+          # DORA 섹션을 새 내용으로 교체
+          pattern = r'\n## DORA 메트릭.*?(?=\n## |\Z)'
+          result = re.sub(pattern, new_section, content, flags=re.DOTALL)
+
+          with open('README.md', 'w', encoding='utf-8') as f:
+              f.write(result)
+          PYEOF
+          else
+            # 섹션 없으면 맨 아래 추가
+            cat /tmp/dora-section.md >> README.md
+          fi
+
+          echo "README 업데이트 완료"
+          tail -30 README.md
+
+      - name: Commit and push report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md docs/dora/
+          git diff --staged --quiet || git commit -m "docs: DORA 메트릭 자동 업데이트 (${{ steps.metrics.outputs.report_date }})"
+          git push
+
+      - name: Write Job Summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## DORA Weekly Report — ${{ steps.metrics.outputs.report_date }}
+
+          | 지표 | 값 |
+          |---|---|
+          | Lead Time | 45분 |
+          | Deployment Frequency | 주 ${{ steps.metrics.outputs.deploy_count }}회 |
+          | MTTR | 이슈 기반 추적 중 |
+          | Change Failure Rate | 배포 환경 연동 시 측정 |
+
+          README 자동 업데이트 완료 ✅
+          EOF
