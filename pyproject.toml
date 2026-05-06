@@ -1,0 +1,34 @@
+# Ruff configuration for Week 7 CI/CD assignment.
+# Excludes legacy code; lints only new files (tests/) for now.
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+extend-exclude = [
+  "main.py",
+  "agent_runtime.py",
+  "crawler.py",
+  "hierarchical_rag.py",
+  "hybrid_query_agent.py",
+  "student_agent.py",
+  "regression_test.py",
+  "indexing/",
+  "logs/",
+  "pdf/",
+  ".venv/",
+  "__pycache__/",
+  "build/",
+]
+
+[tool.ruff.lint]
+# E: pycodestyle errors, F: pyflakes, I: isort
+select = ["E", "F", "I"]
+ignore = [
+  "E501",   # line too long
+  "W292",   # missing newline at end of file
+  "W293",   # whitespace on blank line
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F401"]
