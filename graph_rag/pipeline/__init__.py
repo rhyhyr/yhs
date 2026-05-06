@@ -1,8 +1,8 @@
-from .loader import PDFLoader, WebLoader
-from .cleaner import clean_text
 from .chunker import chunk_document
+from .cleaner import clean_text
 from .extractor import HybridExtractor
 from .ingestor import GraphIngestor
+from .loader import PDFLoader, WebLoader
 
 __all__ = [
     "PDFLoader", "WebLoader",

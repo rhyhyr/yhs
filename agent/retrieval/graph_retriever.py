@@ -17,11 +17,12 @@ from collections import deque
 from typing import Dict, List, Set, Tuple
 
 from graph_rag.config import (
-    ALWAYS_INCLUDE_EDGE_TYPES, DDE_SCORE_BY_HOP,
-    DEFAULT_HOP_DEPTH, TOP_K_GRAPH_DEFAULT,
+    ALWAYS_INCLUDE_EDGE_TYPES,
+    DDE_SCORE_BY_HOP,
+    DEFAULT_HOP_DEPTH,
+    TOP_K_GRAPH_DEFAULT,
 )
 from graph_rag.db.graph_store import GraphStore
-from graph_rag.schema.types import ChunkNode, Triple
 
 logger = logging.getLogger(__name__)
 

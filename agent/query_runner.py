@@ -13,12 +13,12 @@ def _ts() -> str:
 
 def run_query_loop() -> None:
     """대화형 질의 루프를 실행한다."""
-    from graph_rag.config import NO_ANSWER_RESPONSE
-    from graph_rag.db.graph_store import GraphStore
-    from graph_rag.embedding.embedder import Embedder
     from agent.faq import FastPathHandler
     from agent.gemini_runtime_client import GeminiRuntimeClient
     from agent.retrieval_engine import RetrievalEngine
+    from graph_rag.config import NO_ANSWER_RESPONSE
+    from graph_rag.db.graph_store import GraphStore
+    from graph_rag.embedding.embedder import Embedder
 
     embedder = Embedder()
     faq_handler = FastPathHandler()

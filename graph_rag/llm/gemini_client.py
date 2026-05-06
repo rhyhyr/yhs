@@ -137,7 +137,7 @@ class GeminiKBClient:
         )
 
         try:
-            image_file = genai.upload_file(image_path)
+            genai.upload_file(image_path)
             response = self._model.generate_content(
                 [
                     genai.Part.from_text(flowchart_prompt),

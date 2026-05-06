@@ -18,7 +18,10 @@ from typing import List, Optional
 import numpy as np
 
 from graph_rag.config import (
-    EMBEDDING_BATCH_SIZE, EMBEDDING_DIM, EMBEDDING_MODEL, EMBED_CACHE_PATH,
+    EMBED_CACHE_PATH,
+    EMBEDDING_BATCH_SIZE,
+    EMBEDDING_DIM,
+    EMBEDDING_MODEL,
 )
 
 logger = logging.getLogger(__name__)

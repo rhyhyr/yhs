@@ -1,8 +1,17 @@
 from .types import (
-    NodeType, EdgeType,
-    DomainNode, TopicNode, EntityNode, ProcedureNode,
-    DocumentNode, InstitutionNode, ChunkNode,
-    Triple, ChunkLink, RawDocument, RetrievalResult,
+    ChunkLink,
+    ChunkNode,
+    DocumentNode,
+    DomainNode,
+    EdgeType,
+    EntityNode,
+    InstitutionNode,
+    NodeType,
+    ProcedureNode,
+    RawDocument,
+    RetrievalResult,
+    TopicNode,
+    Triple,
 )
 
 __all__ = [

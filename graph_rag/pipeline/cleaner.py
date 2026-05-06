@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import re
 
-
 # 제거 대상 특수문자 (의미 있는 기호 ·、。 는 보존)
 _STRIP_RE = re.compile(r"[^\w\s가-힣ㄱ-ㅎㅏ-ㅣ\-·,.()%/&@#:\[\]\{\}\"\'?!~]")
 _MULTI_SPACE = re.compile(r"[ \t]{2,}")

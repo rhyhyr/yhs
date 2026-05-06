@@ -20,19 +20,18 @@ import logging
 from datetime import datetime, timedelta
 from typing import List
 
+from agent.retrieval.graph_retriever import DDEGraphRetriever
+from agent.retrieval.linker import EntityLinker
+from agent.retrieval.vector_retriever import VectorRetriever
 from graph_rag.config import (
     DEFAULT_HOP_DEPTH,
     DISCLAIMER_TEMPLATE,
     DOC_STALENESS_MONTHS,
     MIN_CHUNKS_FROM_GRAPH,
-    NO_ANSWER_RESPONSE,
     TOP_K_GRAPH_DEFAULT,
 )
 from graph_rag.db.graph_store import GraphStore
 from graph_rag.embedding.embedder import Embedder
-from agent.retrieval.graph_retriever import DDEGraphRetriever
-from agent.retrieval.linker import EntityLinker
-from agent.retrieval.vector_retriever import VectorRetriever
 from graph_rag.schema.types import RetrievalResult
 
 logger = logging.getLogger(__name__)

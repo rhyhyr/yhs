@@ -19,24 +19,31 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any
 
 from neo4j import GraphDatabase
 from neo4j.exceptions import ClientError, ServiceUnavailable
 
 from graph_rag.config import (
     CONFIDENCE_THRESHOLD,
+    EMBEDDING_DIM,
     NEO4J_DATABASE,
     NEO4J_PASSWORD,
     NEO4J_URI,
     NEO4J_USER,
     REVIEW_QUEUE_PATH,
     USE_NEO4J_VECTOR_INDEX,
-    EMBEDDING_DIM,
 )
 from graph_rag.schema.types import (
-    ChunkLink, ChunkNode, DocumentNode, DomainNode,
-    EntityNode, InstitutionNode, ProcedureNode, TopicNode, Triple,
+    ChunkLink,
+    ChunkNode,
+    DocumentNode,
+    DomainNode,
+    EntityNode,
+    InstitutionNode,
+    ProcedureNode,
+    TopicNode,
+    Triple,
 )
 
 logger = logging.getLogger(__name__)

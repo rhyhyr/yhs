@@ -17,7 +17,10 @@ from typing import List, Tuple
 from graph_rag.config import ALIASES_MAP, CONFIDENCE_THRESHOLD
 from graph_rag.db.graph_store import GraphStore
 from graph_rag.schema.types import (
-    ChunkLink, ChunkNode, EntityNode, Triple,
+    ChunkLink,
+    ChunkNode,
+    EntityNode,
+    Triple,
 )
 
 logger = logging.getLogger(__name__)
