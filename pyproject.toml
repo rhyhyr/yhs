@@ -6,14 +6,6 @@ line-length = 100
 target-version = "py310"
 
 extend-exclude = [
-  "main.py",
-  "agent_runtime.py",
-  "crawler.py",
-  "hierarchical_rag.py",
-  "hybrid_query_agent.py",
-  "student_agent.py",
-  "regression_test.py",
-  "indexing/",
   "logs/",
   "pdf/",
   ".venv/",

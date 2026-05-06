@@ -56,7 +56,6 @@ PDF 로딩, 청킹, 임베딩, 조항 단위 메타데이터 추출을 자동화
 
 ## 폴더 구조
 
-- [main.py](main.py): 공용 진입점
 - [agent/](agent): 질의, 인제스트, 검색, LLM 연동
 - [graph_rag/](graph_rag): Neo4j 저장소, 임베딩, 파이프라인
 - [docs/](docs): 설명 문서와 결과 기록
@@ -65,12 +64,7 @@ PDF 로딩, 청킹, 임베딩, 조항 단위 메타데이터 추출을 자동화
 
 ## 실행
 
-```powershell
-python main.py --ingest
-python main.py --query
-python main.py --embed-update
-python main.py --freshness-check
-```
+기존 단일 `main.py` 진입점은 제거되었습니다. 실제 실행은 `agent/`와 `graph_rag/` 패키지 기반 진입점에서 구성합니다.
 
 ## 환경변수
 
