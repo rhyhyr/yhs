@@ -23,7 +23,7 @@ class QuestionType(str, Enum):
 
 @dataclass
 class GateThresholds:
-    min_top_score: float = 0.25
+    min_top_score: float = 0.17
     min_evidence_chunks: int = 2
 
     @classmethod
