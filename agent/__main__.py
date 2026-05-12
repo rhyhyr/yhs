@@ -22,40 +22,21 @@ def main() -> None:
     parser.add_argument("--query", action="store_true", help="대화형 질의 루프를 시작한다")
     parser.add_argument("--no-llm", action="store_true", help="LLM 없이 규칙 기반만 사용")
     parser.add_argument("--embed-update", action="store_true", help="누락된 임베딩을 일괄 생성한다")
-    parser.add_argument("--freshness-check", action="store_true", help="즉시 신선도 확인을 실행한다")
-    parser.add_argument("--with-scheduler", action="store_true", help="신선도 스케줄러를 백그라운드로 시작한다")
 
     args = parser.parse_args()
 
-    if not any([args.ingest, args.query, args.embed_update, args.freshness_check]):
+    if not any([args.ingest, args.query, args.embed_update]):
         parser.print_help()
         sys.exit(0)
 
-    scheduler = None
-    if args.with_scheduler or args.freshness_check:
-        from graph_rag.db.graph_store import GraphStore
-        from graph_rag.scheduler.freshness import FreshnessScheduler
+    if args.ingest:
+        run_ingest(args.pdf_dir, use_llm=not args.no_llm)
 
-        store = GraphStore()
-        scheduler = FreshnessScheduler(store)
-        if args.freshness_check:
-            scheduler.run_now()
-        if args.with_scheduler:
-            scheduler.start()
+    if args.embed_update:
+        run_embed_update()
 
-    try:
-        if args.ingest:
-            run_ingest(args.pdf_dir, use_llm=not args.no_llm)
-
-        if args.embed_update:
-            run_embed_update()
-
-        if args.query:
-            run_query_loop()
-
-    finally:
-        if scheduler:
-            scheduler.stop()
+    if args.query:
+        run_query_loop()
 
 
 if __name__ == "__main__":

@@ -2,10 +2,10 @@ from .chunker import chunk_document
 from .cleaner import clean_text
 from .extractor import HybridExtractor
 from .ingestor import GraphIngestor
-from .loader import PDFLoader, WebLoader
+from .loader import PDFLoader
 
 __all__ = [
-    "PDFLoader", "WebLoader",
+    "PDFLoader",
     "clean_text",
     "chunk_document",
     "HybridExtractor",

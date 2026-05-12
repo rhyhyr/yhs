@@ -88,13 +88,3 @@ python main.py --ingest --pdf-dir ./pdf --with-scheduler
 - 데이터 저장소는 Neo4j입니다.
 - 문서가 바뀌면 freshness 체크로 재검토 대상을 표시합니다.
 
----
-
-## 추천 읽기 순서
-
-1. main.py
-2. db/graph_store.py
-3. pipeline/extractor.py
-4. pipeline/ingestor.py
-
-이 순서로 보면 "데이터가 어떻게 쌓이고, 질문이 어떻게 답변으로 바뀌는지"를 가장 빠르게 이해할 수 있습니다.

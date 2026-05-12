@@ -3,20 +3,17 @@ graph_rag/pipeline/loader.py
 
 역할:
 - PDF 파일: pdfplumber로 페이지별 텍스트·섹션 헤더 추출
-- 공지사항 웹 URL: requests + BeautifulSoup4 HTML 파싱
 - 출력: RawDocument 목록 (text, source_file, source_page, section, ...)
+
+※ 웹 크롤링(WebLoader)은 agent/crawler 로 이전되었습니다.
 """
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import re
 from pathlib import Path
 from typing import List
-
-import requests
-from bs4 import BeautifulSoup
 
 from graph_rag.schema.types import RawDocument
 
@@ -89,80 +86,4 @@ class PDFLoader:
         return docs
 
 
-class WebLoader:
-    """requests + BeautifulSoup 기반 웹 공지사항 수집기."""
-
-    def __init__(self, timeout: int = 15) -> None:
-        self._timeout = timeout
-
-    def load(self, url: str) -> List[RawDocument]:
-        try:
-            resp = requests.get(url, timeout=self._timeout)
-            resp.raise_for_status()
-        except Exception as exc:
-            logger.error("웹 수집 실패 (%s): %s", url, exc)
-            return []
-
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        # 제목 추출
-        title_tag = soup.find(["h1", "h2", "h3", "title"])
-        title = title_tag.get_text(strip=True) if title_tag else ""
-
-        # 날짜 추출 (공지사항 신선도 관리용)
-        doc_version = ""
-        date_patterns = [
-            re.compile(r"\d{4}[-./]\d{2}[-./]\d{2}"),
-            re.compile(r"\d{4}년\s*\d{1,2}월"),
-        ]
-        page_text = soup.get_text()
-        for pat in date_patterns:
-            m = pat.search(page_text)
-            if m:
-                raw = m.group(0).replace("년", ".").replace("월", "").replace(" ", "")
-                doc_version = raw[:7]  # YYYY.MM
-                break
-
-        # 본문 블록 추출: <article>, <main>, <div.content> 순으로 시도
-        content_tag = (
-            soup.find("article")
-            or soup.find("main")
-            or soup.find("div", class_=re.compile(r"content|post|article", re.I))
-            or soup.find("body")
-        )
-        if not content_tag:
-            return []
-
-        # 문단 단위로 분리
-        paragraphs = [
-            p.get_text(separator=" ", strip=True)
-            for p in content_tag.find_all(["p", "li", "td", "div"])
-            if len(p.get_text(strip=True)) > 20
-        ]
-
-        if not paragraphs:
-            paragraphs = [page_text]
-
-        full_text = "\n\n".join(paragraphs)
-        filename = hashlib.md5(url.encode()).hexdigest()[:12] + ".html"
-
-        docs = [RawDocument(
-            text=full_text,
-            source_file=filename,
-            source_page=1,
-            section=title,
-            language="ko",
-            doc_version=doc_version,
-            source_url=url,
-        )]
-
-        logger.info("웹 로드 완료: %s (버전: %s)", url, doc_version)
-        return docs
-
-    def get_content_hash(self, url: str) -> str:
-        """신선도 감지용 URL 콘텐츠 MD5 해시를 반환한다."""
-        try:
-            resp = requests.get(url, timeout=self._timeout)
-            return hashlib.md5(resp.content).hexdigest()
-        except Exception:
-            return ""
+# WebLoader는 agent/crawler 로 이전되었습니다.
