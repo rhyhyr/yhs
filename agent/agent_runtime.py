@@ -34,6 +34,8 @@ class GateThresholds:
         )
 
 
+# 텍스트에 한자/한글이 포함되어 있는지 정규식으로 판별해서 언어 코드를 반환한다.
+# 한자+한글이 동시에 있으면 한국어(ko), 한자만 있으면 중국어(zh), 그 외 영어(en).
 def detect_language(text: str) -> str:
     if re.search(r"[\u4e00-\u9fff]", text):
         if re.search(r"[가-힣]", text):
@@ -44,10 +46,15 @@ def detect_language(text: str) -> str:
     return "en"
 
 
+# 연속된 공백을 하나로 줄이고 앞뒤 공백을 제거한다.
+# 검색 전 쿼리를 정규화하는 용도.
 def normalize_query(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+# 키워드 매칭으로 질문 유형(QuestionType)을 판별한다.
+# 비교/원인/예외/기한/서류/신청 순으로 체크하고 해당 없으면 GENERAL 반환.
+# → 이 결과가 should_use_deep_path()에서 deep path 강제 여부 결정에 사용된다.
 def detect_question_type(text: str) -> QuestionType:
     t = text.lower()
 
@@ -66,6 +73,8 @@ def detect_question_type(text: str) -> QuestionType:
     return QuestionType.GENERAL
 
 
+# 원본 쿼리에 '비교/원인/예외' 계열 키워드를 붙인 변형 쿼리 목록을 만든다.
+# deep path에서 여러 각도로 검색할 때 사용한다. 중복은 제거한다.
 def expand_query(text: str, language: Optional[str] = None) -> list[str]:
     lang = language or detect_language(text)
     base = normalize_query(text)
@@ -99,6 +108,12 @@ def expand_query(text: str, language: Optional[str] = None) -> list[str]:
     return uniq
 
 
+# fast path 결과를 보고 deep path로 넘어가야 할지 판단한다.
+# 아래 3가지 중 하나라도 해당하면 deep path가 필요하다고 판정한다:
+#   1) 검색 top 점수가 임계값(기본 0.25) 미만 → 관련 문서를 못 찾은 것
+#   2) 검색된 chunk 수가 최소 개수(기본 2개) 미만 → 근거가 부족한 것
+#   3) 질문 유형이 COMPARISON/CAUSE/EXCEPTION → 복잡한 추론이 필요한 것
+# 반환값: (deep 필요 여부, 이유 목록)
 def should_use_deep_path(
     query: str,
     top_score: float,
@@ -118,6 +133,9 @@ def should_use_deep_path(
     return len(reasons) > 0, reasons
 
 
+# LLM에 넘길 최종 프롬프트 문자열을 조립한다.
+# 언어/질문유형별 헤더·출력형식 지시 + 유저 프로필 + 대화 히스토리
+# + 검색된 근거 컨텍스트 + 출처 목록 + 유저 질문 순으로 구성된다.
 def build_answer_prompt(
     *,
     language: str,
@@ -151,6 +169,8 @@ def build_answer_prompt(
     )
 
 
+# 검색 근거가 부족해서 답변하기 어려울 때 사용자에게 보여줄 메시지를 반환한다.
+# 비자 유형·학교·마감일 같은 핵심 정보를 추가로 요청하는 내용.
 def insufficient_evidence_message(language: str) -> str:
     if language == "ko":
         return (
@@ -165,6 +185,8 @@ def insufficient_evidence_message(language: str) -> str:
     )
 
 
+# 사용자가 비자 유형·학교 등 프로필 정보를 업데이트했을 때 확인 메시지를 반환한다.
+# 저장된 프로필 내용을 그대로 출력해서 제대로 반영됐는지 확인할 수 있게 한다.
 def status_update_message(language: str, profile_text: str) -> str:
     if language == "ko":
         return (
@@ -185,6 +207,11 @@ def status_update_message(language: str, profile_text: str) -> str:
     )
 
 
+# 쿼리 1개로 검색을 한 번 실행하고 결과를 반환한다.
+# 검색 결과를 바탕으로 should_use_deep_path()를 호출해서
+# deep path로 넘어가야 하는지 여부(use_deep)도 함께 반환한다.
+# → query_runner에서 이 플래그를 보고 run_deep_path() 호출 여부를 결정해야 한다.
+#   (현재 query_runner.py에는 이 연결이 아직 구현되지 않은 상태)
 def run_fast_path(
     *,
     query: str,
@@ -208,6 +235,10 @@ def run_fast_path(
     }
 
 
+# expand_query()로 만든 변형 쿼리 여러 개로 검색을 반복하고 결과를 병합한다.
+# 같은 chunk가 여러 번 검색되면 가장 높은 점수 하나만 남긴다(중복 제거).
+# 병합 후에도 근거가 부족하면(should_use_deep_path 재판정) 웹 크롤링으로 보충한다.
+# → web_client.search_and_collect()가 외부 웹 검색 결과를 가져오는 진입점.
 def run_deep_path(
     *,
     query_variants: list[str],
@@ -261,6 +292,8 @@ def run_deep_path(
     }
 
 
+# 처리 경로(fast/deep), 응답 시간, 검색 점수 등을 JSONL 파일에 한 줄씩 기록한다.
+# 나중에 fast/deep 비율, 평균 응답 시간 같은 운영 통계를 뽑는 데 사용한다.
 def append_latency_log(
     *,
     log_path: str,
@@ -285,6 +318,8 @@ def append_latency_log(
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
+# LLM 시스템 프롬프트의 첫 줄(역할 지시)을 언어별로 반환한다.
+# '근거 기반으로만 답하고 불확실하면 명시하라'는 핵심 지시가 들어있다.
 def _header(language: str) -> str:
     if language == "ko":
         return (
@@ -302,6 +337,9 @@ def _header(language: str) -> str:
     )
 
 
+# LLM에게 줄 출력 형식 지시를 언어·질문유형에 맞게 반환한다.
+# 기본 형식(핵심답변/할일/서류/기한/근거요약)에 비교형·원인형·예외형일 때
+# 해당 유형에 맞는 추가 지시를 덧붙인다.
 def _style(language: str, question_type: QuestionType) -> str:
     if language == "ko":
         base = (
@@ -355,5 +393,7 @@ def _style(language: str, question_type: QuestionType) -> str:
     return f"{base}\n{q_hint[key]}"
 
 
+# 텍스트에 terms 리스트 중 하나라도 포함되어 있으면 True를 반환한다.
+# detect_question_type()의 키워드 매칭에서 내부적으로 사용한다.
 def _contains_any(text: str, terms: list[str]) -> bool:
     return any(term in text for term in terms)
