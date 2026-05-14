@@ -21,9 +21,16 @@ CRAWL_MAX_DEPTH     = int(os.environ.get("CRAWL_MAX_DEPTH", "3"))
 CRAWL_MAX_PAGES     = int(os.environ.get("CRAWL_MAX_PAGES", "10"))
 CRAWL_FETCH_TIMEOUT = int(os.environ.get("CRAWL_FETCH_TIMEOUT", "6"))
 CRAWL_SLEEP_SEC     = float(os.environ.get("CRAWL_SLEEP_SEC", "0.15"))
+allowed_sites = [
+    "https://www.donga.ac.kr",
+    "https://global.donga.ac.kr/global",
+    "https://www.hikorea.go.kr" #민원처리중심,
+    "https://www.immigration.go.kr" #제도 변경 시 참고
+]
 
 
-class Crawler:
+
+class WebSearchClient:
     """
     ALLOWED_SITES 내에서 Playwright(JS 렌더링) + Gemini LLM 가이드 방식으로
     질문과 관련 있는 페이지를 찾아 크롤링하는 클래스.
@@ -39,8 +46,9 @@ class Crawler:
         http: requests.Session,
         embedder: Any,
         llm: Any,           # Gemini GenerativeModel (URL 선택 + 답변 생성 모두 사용)
-        allowed_sites: list[str],
-        driver: Any,        # Neo4j driver (save_external_chunks 용)
+        driver: Any, 
+        allowed_sites: list[str], 
+               # Neo4j driver (save_external_chunks 용)
         openai_client: Any | None = None,
     ) -> None:
         self.http          = http
