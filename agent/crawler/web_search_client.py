@@ -7,6 +7,8 @@ import re
 import time
 import urllib.parse
 from typing import Any, Optional
+from dataclasses import dataclass
+from urllib.parse import urlparse
 
 import numpy as np
 import requests
@@ -581,3 +583,89 @@ class WebSearchClient:
                     text=text,
                     emb=json.dumps(np.asarray(e, dtype=np.float32).tolist()),
                 )
+
+    def close(self) -> None:
+        """Close any resources held by the client (HTTP session, driver, LLM/openai clients)."""
+        try:
+            if getattr(self, "http", None):
+                try:
+                    self.http.close()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        try:
+            if getattr(self, "driver", None):
+                try:
+                    self.driver.close()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        try:
+            if getattr(self, "llm", None) and hasattr(self.llm, "close"):
+                try:
+                    self.llm.close()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        try:
+            if getattr(self, "openai_client", None) and hasattr(self.openai_client, "close"):
+                try:
+                    self.openai_client.close()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    # =========================================================================
+    # 외부 검색 단일 진입점
+    # =========================================================================
+
+    def search_and_collect(self, query: str, max_results: int = 3) -> list[Any]:
+        """
+        Crawl+score pipeline that returns a small list of search snippets.
+
+        Returns a list of objects with attributes: `title`, `snippet`, `url`.
+        This is a lightweight helper used by agent runtime when deep-path
+        needs external web evidence.
+        """
+        print(f"[WEB SEARCH] search_and_collect: {query}", flush=True)
+
+        url_chunks = self.crawl_fallback_chunks(query)
+        if not url_chunks:
+            return []
+
+        # Encode query embedding
+        try:
+            q_embs = self.embedder.encode([query], show_progress_bar=False)
+            query_emb = q_embs[0]
+        except Exception:
+            query_emb = None
+
+        # Score and pick top chunks
+        try:
+            scored = self.score_external_chunks(query, query_emb, url_chunks)
+        except Exception:
+            # Fallback: no scoring, preserve original order
+            scored = [(u, c, 0.0) for u, c in url_chunks]
+
+        snippets: list[Any] = []
+        for u, c, sc in scored[: max_results]:
+            parsed = urlparse(u)
+            title = parsed.netloc + (parsed.path if parsed.path and parsed.path != "/" else "")
+            if not title:
+                title = u
+            snippet_text = (c or "").replace("\n", " ")[:300]
+            # simple namespace object
+            obj = type("SearchSnippet", (), {})()
+            setattr(obj, "title", title)
+            setattr(obj, "snippet", snippet_text)
+            setattr(obj, "url", u)
+            snippets.append(obj)
+
+        return snippets

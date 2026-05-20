@@ -14,6 +14,8 @@ from agent.agent_runtime import (
     should_use_deep_path,
 )
 from agent.crawler.web_search_client import WebSearchClient
+from agent.crawler.web_search_client import allowed_sites
+import requests
 from agent.faq import FastPathHandler
 from agent.gemini_runtime_client import GeminiRuntimeClient
 from agent.retrieval_engine import RetrievalEngine
@@ -80,7 +82,7 @@ def run_query_loop() -> None:
     embedder = Embedder()
     faq_handler = FastPathHandler()
     llm = GeminiRuntimeClient()
-    web_client = WebSearchClient()
+    web_client = None
     thresholds = GateThresholds.from_env()
 
     if not llm.is_available():
@@ -95,6 +97,10 @@ def run_query_loop() -> None:
 
     with GraphStore() as store:
         engine = RetrievalEngine(store, embedder, ollama_client=llm)
+
+        # create HTTP session and WebSearchClient with required dependencies
+        http = requests.Session()
+        web_client = WebSearchClient(http, embedder, llm, store._driver, allowed_sites)
 
         while True:
             try:
