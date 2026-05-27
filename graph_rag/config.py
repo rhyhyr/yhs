@@ -13,9 +13,10 @@ from pathlib import Path
 
 def _load_env(path: str = ".env") -> None:
     """python-dotenv 없이 .env 파일을 읽어 환경변수를 채운다."""
-    if not os.path.exists(path):
+    resolved = Path(path) if Path(path).is_absolute() else Path(__file__).parent.parent / path
+    if not resolved.exists():
         return
-    with open(path, encoding="utf-8") as f:
+    with open(resolved, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith("#") or "=" not in line:

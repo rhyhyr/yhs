@@ -53,6 +53,29 @@ _ANSWER_PROMPT_TEMPLATE = """당신은 동아대학교 외국인 유학생 지�
 {user_question}
 """
 
+_ANSWER_PROMPT_WEB_TEMPLATE = """당신은 동아대학교 외국인 유학생 지원 챗봇입니다.
+
+[엄격한 규칙]
+1. 아래 [참조 문서]에 명시된 내용만 근거로 답하세요.
+2. 참조 문서에 정보가 없으면 정확히 다음과 같이만 답하세요:
+   "제공된 자료에서는 확인할 수 없습니다. 동아대 국제교류처(연락처)
+    또는 하이코리아(hikorea.go.kr)에 직접 문의 바랍니다."
+3. 추측, 일반 상식, 외부 지식 사용 금지.
+4. 한국어로만 답변. 다른 언어 단어 절대 금지 (예: 总之, まず, 申请 등).
+5. 답변 끝에 사용한 출처 URL을 반드시 명시.
+6. 답변은 3~6문장 이내. 불필요한 정보 추가 금지.
+
+[답변 정책]
+참조 문서가 질문과 100% 일치하지 않더라도, 관련된 정보가 있다면 해당 내용을 바탕으로 답변하세요.
+참조 문서가 질문과 전혀 무관할 때만 "제공된 자료에서는 확인할 수 없습니다" 응답을 사용하세요.
+
+[참조 문서]
+{retrieved_chunks}
+
+[질문]
+{user_question}
+"""
+
 _NORMALIZE_PROMPT = """다음 질문에서 언급된 비자/행정 개념을 표준 용어로 추출하세요.
 
 규칙:
@@ -195,11 +218,18 @@ class GeminiRuntimeClient:
             logger.warning("Gemini 정규화 실패: %s", exc)
             return ""
 
-    def generate_answer(self, question: str, context: str, result: RetrievalResult) -> str:
-        if result.retrieval_method == "no_answer" or not context:
+    def generate_answer(
+        self,
+        question: str,
+        context: str,
+        result: RetrievalResult,
+        web_context: bool = False,
+    ) -> str:
+        if not context:
             return _STRICT_NO_ANSWER
 
-        prompt = _ANSWER_PROMPT_TEMPLATE.format(
+        template = _ANSWER_PROMPT_WEB_TEMPLATE if web_context else _ANSWER_PROMPT_TEMPLATE
+        prompt = template.format(
             retrieved_chunks=context,
             user_question=question,
         )

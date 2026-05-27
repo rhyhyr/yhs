@@ -5,6 +5,8 @@ import logging
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
 from agent.ingest_runner import run_embed_update, run_ingest
 from agent.query_runner import run_query_loop
 
