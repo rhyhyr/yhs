@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 from datetime import datetime
 from time import perf_counter
 
@@ -211,7 +212,7 @@ def run_query_loop() -> None:
             answer_start = perf_counter()
             print(f"[{_ts()}] 답변 생성 시작")
             if llm:
-                answer = llm.generate_answer(question, context, result)
+                answer = llm.generate_answer(question, context, result, web_context=bool(external_contexts))
             else:
                 answer = (
                     f"[검색 방법: {result.retrieval_method} / 경로: {path}]\n\n{context}\n\n"
@@ -242,3 +243,4 @@ def run_query_loop() -> None:
     web_client.close()
     if llm is not None:
         llm.close()
+    sys.exit(0)
