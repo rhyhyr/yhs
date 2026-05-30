@@ -1,6 +1,6 @@
 {
   "name": "@rhyhyr/yhs",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "9주차 GitHub Packages 자동 배포 실습",
   "main": "index.js",
   "scripts": {
