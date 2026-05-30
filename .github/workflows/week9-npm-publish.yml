@@ -1,0 +1,37 @@
+name: "Week9 ① npm → GitHub Packages 배포"
+
+on:
+  push:
+    tags:
+      - "npm-v*"        # npm-v1.0.0 또는 npm-v1.0.1 태그를 push하면 실행됨
+  workflow_dispatch:    # Actions 탭에서 수동 실행도 가능
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # GitHub Packages에 쓰기 권한
+
+    steps:
+      - name: 코드 받기
+        uses: actions/checkout@v4
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@taeing25"
+
+      - name: 패키지 테스트 실행
+        working-directory: npm-package
+        run: |
+          npm install
+          npm test
+
+      - name: GitHub Packages에 배포
+        working-directory: npm-package
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # 자동으로 제공됨, 별도 설정 불필요
