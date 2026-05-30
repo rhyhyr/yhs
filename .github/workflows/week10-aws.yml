@@ -1,0 +1,47 @@
+name: "Week10 ② AWS Lambda 배포 + 헬스체크"
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy-lambda:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lambda 패키지 압축
+        run: zip -r lambda.zip lambda_handler.py
+
+      - name: AWS 자격증명 설정
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Lambda 함수 업데이트
+        run: |
+          aws lambda update-function-code \
+            --function-name visa-navigator \
+            --zip-file fileb://lambda.zip
+
+      - name: 배포 안정화 대기
+        run: sleep 10
+
+      - name: 헬스체크
+        run: |
+          RESULT=$(aws lambda invoke \
+            --function-name visa-navigator \
+            --payload '{"rawPath":"/health"}' \
+            --cli-binary-format raw-in-base64-out \
+            response.json && cat response.json)
+          echo "응답: $RESULT"
+          echo "$RESULT" | python3 -c "
+          import sys, json
+          body = json.loads(sys.stdin.read())
+          inner = json.loads(body.get('body', '{}'))
+          assert inner.get('status') == 'healthy', f'헬스체크 실패: {inner}'
+          print('✅ 헬스체크 통과')
+          "
