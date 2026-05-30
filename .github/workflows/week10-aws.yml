@@ -1,4 +1,4 @@
-name: "Week10 ② AWS Lambda 배포 + 헬스체크"
+name: "Week10 AWS Lambda 배포 + 헬스체크"
 
 on:
   push:
@@ -6,8 +6,52 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy-lambda:
+  # 항상 실행: Lambda 핸들러 로컬 단위 테스트
+  local-test:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Lambda 핸들러 로컬 테스트
+        run: |
+          python - << 'PYEOF'
+          import json
+          import sys
+          sys.path.insert(0, '.')
+          from lambda_handler import handler
+
+          # 헬스체크 테스트
+          event = {"rawPath": "/health"}
+          response = handler(event, {})
+          assert response["statusCode"] == 200
+          body = json.loads(response["body"])
+          assert body["status"] == "healthy"
+          print("✅ /health 테스트 통과")
+
+          # 루트 경로 테스트
+          event2 = {"rawPath": "/"}
+          response2 = handler(event2, {})
+          assert response2["statusCode"] == 200
+          print("✅ / 테스트 통과")
+
+          print("✅ Lambda 핸들러 로컬 검증 완료")
+          PYEOF
+
+      - name: 패키지 압축 확인
+        run: |
+          zip -r lambda.zip lambda_handler.py
+          ls -lh lambda.zip
+          echo "✅ 배포 패키지 생성 완료: $(du -h lambda.zip | cut -f1)"
+
+  # AWS 시크릿이 있을 때만 실제 배포
+  deploy-lambda:
+    needs: local-test
+    runs-on: ubuntu-latest
+    if: ${{ vars.AWS_DEPLOY_ENABLED == 'true' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -27,11 +71,9 @@ jobs:
             --function-name visa-navigator \
             --zip-file fileb://lambda.zip
 
-      - name: 배포 안정화 대기
-        run: sleep 10
-
       - name: 헬스체크
         run: |
+          sleep 10
           RESULT=$(aws lambda invoke \
             --function-name visa-navigator \
             --payload '{"rawPath":"/health"}' \
@@ -42,6 +84,6 @@ jobs:
           import sys, json
           body = json.loads(sys.stdin.read())
           inner = json.loads(body.get('body', '{}'))
-          assert inner.get('status') == 'healthy', f'헬스체크 실패: {inner}'
+          assert inner.get('status') == 'healthy'
           print('✅ 헬스체크 통과')
           "
