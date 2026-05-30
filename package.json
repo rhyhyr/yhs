@@ -1,0 +1,18 @@
+{
+  "name": "@rhyhyr/yhs",
+  "version": "1.0.0",
+  "description": "9주차 GitHub Packages 자동 배포 실습",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhyhyr/yhs.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "author": "rhyhyr",
+  "license": "ISC"
+}

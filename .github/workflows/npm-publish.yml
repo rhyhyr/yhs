@@ -1,0 +1,33 @@
+name: Node.js Package Publish
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish-gpr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # GitHub Packages에 배포하기 위한 필수 권한입니다.
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@rhyhyr'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          # GitHub에서 자동으로 발급하는 토큰을 사용해 인증합니다.
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
