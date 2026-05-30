@@ -1,0 +1,37 @@
+name: "Week13 (선택) 주간 실험 리포트 → GitHub Issue"
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"   # 매주 월요일 오전 9시
+  workflow_dispatch:
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 리포트 생성
+        run: python -m experiments.generate_report > report.md
+
+      - name: GitHub Issue로 등록
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('report.md', 'utf8');
+            const date = new Date().toISOString().slice(0, 10);
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[실험 리포트] A/B 테스트 주간 결과 - ${date}`,
+              body,
+              labels: ['experiment', 'automated'],
+            });
