@@ -1,6 +1,6 @@
 {
   "name": "@taeing25/visa-navigator-utils",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Utility helpers for Global Campus Visa Navigator",
   "main": "index.js",
   "scripts": {
