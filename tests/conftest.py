@@ -2,6 +2,7 @@ import sys
 from unittest.mock import MagicMock
 
 MOCK_MODULES = [
+    # 외부 패키지
     "google",
     "google.generativeai",
     "neo4j",
@@ -17,6 +18,10 @@ MOCK_MODULES = [
     "sklearn",
     "sklearn.metrics",
     "sklearn.metrics.pairwise",
+    "numpy",
+    "bs4",
+    "requests",
+    # graph_rag 서브모듈
     "graph_rag",
     "graph_rag.config",
     "graph_rag.db",

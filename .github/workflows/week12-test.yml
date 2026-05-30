@@ -23,7 +23,8 @@ jobs:
       - name: 테스트 + 커버리지 측정
         run: |
           pytest tests/ -v \
-            --cov=agent \
+            --cov=agent.feature_flags \
+            --cov=agent.ab_test \
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-fail-under=80

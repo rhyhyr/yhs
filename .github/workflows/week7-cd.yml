@@ -116,7 +116,7 @@ jobs:
     name: Deploy (mock)
     needs: [build, test]                      # build + test 모두 통과해야 시작
     runs-on: ubuntu-latest
-    environment: production                   # GitHub Environments 사용 (보호 규칙 적용 가능)
+    # environment: production  # GitHub Environment 미설정 시 주석 처리                   # GitHub Environments 사용 (보호 규칙 적용 가능)
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v4
