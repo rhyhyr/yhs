@@ -1,0 +1,28 @@
+version: 2
+updates:
+  # 1. npm 패키지 보안 및 버전 업데이트
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly" # 스케줄 조건 (매주)
+      day: "monday"
+    groups:              # 그룹 조건 (업데이트들을 하나의 PR로 묶음)
+      npm-dependencies:
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+      - "auto-merge"     # 자동 머지를 위한 라벨
+
+  # 2. Dockerfile 베이스 이미지 업데이트
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      docker-dependencies:
+        patterns:
+          - "*"
+    labels:
+      - "security"

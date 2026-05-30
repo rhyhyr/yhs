@@ -1,0 +1,40 @@
+name: Security Audit & Report
+
+on:
+  push:
+    branches:
+      - hwa
+  schedule:
+    - cron: '0 9 * * 1' # 매주 월요일 오전 9시 정기 검사
+
+jobs:
+  npm-audit-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write # 자동 이슈 생성을 위한 필수 권한
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Run npm audit and Create Issue on Failure
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 1. npm audit을 실행하고 결과를 audit-report.txt에 저장합니다.
+          # 2. 취약점이 발견되어 에러(exit code 1)가 나면 아래의 gh issue create 명령어가 실행됩니다.
+          if ! npm audit --audit-level=moderate > audit-report.txt; then
+            echo "Vulnerabilities found! Creating an issue..."
+            gh issue create \
+              --title "🚨 [보안 경고] npm 패키지 취약점 발견" \
+              --body-file audit-report.txt \
+              --label "security,bug"
+          else
+            echo "안전합니다! 취약점이 발견되지 않았습니다."
+          fi
