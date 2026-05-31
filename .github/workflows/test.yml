@@ -16,7 +16,9 @@ jobs:
           node-version: '20'
 
       - name: 패키지 설치
-        run: npm install
+        run: |
+          rm -rf node_modules
+          npm install
 
       - name: 1. 단위 테스트 & 커버리지 확인 (Jest)
         run: npm run test:cov
