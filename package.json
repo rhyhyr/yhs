@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "jest",
-    "test:cov": "jest --coverage",
-    "test:e2e": "playwright test"
+    "test": "npx jest",
+    "test:cov": "npx jest --coverage",
+    "test:e2e": "npx playwright test"
   },
   "dependencies": {
     "express": "^4.18.2"
