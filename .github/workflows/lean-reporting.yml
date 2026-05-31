@@ -1,0 +1,25 @@
+name: Lean Startup Weekly Metrics Report
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # 매주 월요일 오전 9시 (KST 기준 오후 6시) 자동 실행
+  workflow_dispatch: # 수동 실행 버튼 활성화
+
+permissions:
+  issues: write
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Weekly Report Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: "📊 [주간 리포트] A/B 테스트 지표 현황",
+              body: "### 금주 A/B 테스트 지표 자동 수집 결과\n\n- **실험명**: Checkout_Button_Color\n- **Variant A (Blue)**: CTR 4.1%\n- **Variant B (Red)**: CTR 7.1%\n\n> 💡 의사결정: CTR 상승이 뚜렷하므로 **Persevere** 전략을 유지합니다. 추가적인 사용자 피드백은 백로그를 참조하세요.",
+              labels: ["report", "metrics"]
+            })
