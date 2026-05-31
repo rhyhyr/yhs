@@ -4,7 +4,9 @@
   "description": "9주차 GitHub Packages 자동 배포 실습",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:cov": "jest --coverage",
+    "test:e2e": "playwright test"
   },
   "repository": {
     "type": "git",
@@ -14,5 +16,9 @@
     "registry": "https://npm.pkg.github.com"
   },
   "author": "rhyhyr",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "jest": "^30.4.2"
+  }
 }

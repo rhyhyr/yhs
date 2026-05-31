@@ -1,0 +1,36 @@
+name: Shift-Left Test Automation CI
+
+on:
+  push:
+    branches: [ "feature/week12-testing" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 패키지 설치
+        run: npm install
+
+      - name: 1. 단위 테스트 & 커버리지 확인 (Jest)
+        run: npm run test:cov
+
+      - name: Playwright 브라우저 설치
+        run: npx playwright install chromium --with-deps
+
+      - name: 2. E2E 테스트 실행 (Playwright)
+        run: npm run test:e2e
+        continue-on-error: true # 의도된 실패 테스트가 있으므로 파이프라인을 멈추지 않음
+
+      - name: 3. 실패 시 스크린샷 아티팩트 저장
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failed-screenshots
+          path: test-results/
+          retention-days: 7
