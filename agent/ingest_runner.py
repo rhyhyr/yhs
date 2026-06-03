@@ -6,6 +6,23 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
+def _print_ingest_summary(store) -> None:
+    rows = store._run(
+        "MATCH (n) RETURN labels(n)[0] AS label, count(*) AS cnt ORDER BY cnt DESC"
+    )
+    rels = store._run(
+        "MATCH ()-[r]->() RETURN type(r) AS rel, count(*) AS cnt ORDER BY cnt DESC"
+    )
+    counts = {r["label"]: r["cnt"] for r in rows}
+    rel_summary = "  ".join(f"{r['rel']}({r['cnt']})" for r in rels if r["rel"] != "FOUND_IN")
+
+    print("\n" + "=" * 60)
+    print("  인제스트 완료")
+    print(f"  청크: {counts.get('Chunk', 0)}개  |  엔티티: {counts.get('Entity', 0)}개")
+    print(f"  관계: {rel_summary}")
+    print("=" * 60 + "\n")
+
+
 def run_ingest(pdf_dir: Path, use_llm: bool = True) -> None:
     """PDF 디렉토리의 모든 PDF를 처리하여 그래프 DB에 적재한다."""
     from graph_rag.config import PDF_DIR
@@ -55,7 +72,7 @@ def run_ingest(pdf_dir: Path, use_llm: bool = True) -> None:
             entities, triples, chunk_links = extractor.extract_all(all_chunks)
             ingestor.ingest_all(all_chunks, entities, triples, chunk_links)
 
-        logger.info("=== 인제스트 완료 ===")
+        _print_ingest_summary(store)
 
 
 def run_embed_update() -> None:

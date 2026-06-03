@@ -19,9 +19,15 @@ from typing import List
 
 import numpy as np
 
-from graph_rag.config import ALIASES_MAP, ENTITY_LINK_COSINE_THRESHOLD, ENTITY_LINK_TOP_K
+from graph_rag.config import (
+    ALIASES_MAP,
+    EMBEDDING_DIM,
+    ENTITY_LINK_COSINE_THRESHOLD,
+    ENTITY_LINK_TOP_K,
+)
 from graph_rag.db.graph_store import GraphStore
 from graph_rag.embedding.embedder import Embedder
+from agent.retrieval.translator import get_translator, is_translation_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +99,7 @@ class EntityLinker:
         self._store = store
         self._embedder = embedder
         self._ollama_client = ollama_client
+        self._translator = get_translator()          # 싱글턴, 모델은 첫 번역 시 로드
         self._entity_cache: list[dict] | None = None
         self._entity_texts: list[str] = []          # name + aliases + summary 결합
         self._entity_embeddings: np.ndarray | None = None
@@ -118,7 +125,7 @@ class EntityLinker:
         if texts:
             self._entity_embeddings = self._embedder.encode(texts)
         else:
-            self._entity_embeddings = np.zeros((0, 1024), dtype=np.float32)
+            self._entity_embeddings = np.zeros((0, EMBEDDING_DIM), dtype=np.float32)
 
     def invalidate_cache(self) -> None:
         self._entity_cache = None
@@ -127,25 +134,39 @@ class EntityLinker:
         self._entity_texts = []
         self._normalized_cache.clear()
 
-    # ── Step 0: LLM 정규화 (캐시 적용) ──────────────────────────────────────
+    # ── Step 0: 언어 감지 → 번역 → (선택) LLM 정규화 ────────────────────────
     def _step0_llm_normalize(self, question: str) -> str:
+        """
+        1단계: 중국어 감지 시 한국어로 번역 (로컬 모델, API 비용 없음)
+        2단계: ollama_client가 있으면 추가 정규화 (없으면 번역 결과 그대로 사용)
+
+        예) "我的签证怎么延长？" → "내 비자는 어떻게 연장하나요?"
+        """
         cached = self._normalized_cache.get(question)
         if cached is not None:
             return cached
 
-        if self._ollama_client is None:
-            self._normalized_cache[question] = question
-            return question
+        # 1단계: 번역 (중국어 → 한국어) — ENABLE_ZH_TRANSLATION=false 시 스킵
+        if is_translation_enabled():
+            translated, was_translated = self._translator.translate_if_needed(question)
+            if was_translated:
+                logger.info("질문 번역 적용: '%s' → '%s'", question[:40], translated[:40])
+        else:
+            translated, was_translated = question, False
 
-        try:
-            normalized = self._ollama_client.normalize_question(question)
-            result = normalized if normalized else question
-            self._normalized_cache[question] = result
-            return result
-        except Exception as exc:
-            logger.warning("LLM 정규화 실패, 원본 질문 사용: %s", exc)
-            self._normalized_cache[question] = question
-            return question
+        # 2단계: LLM 정규화 (ollama 있을 때만, 번역된 한국어 기준)
+        if self._ollama_client is not None:
+            try:
+                normalized = self._ollama_client.normalize_question(translated)
+                result = normalized if normalized else translated
+            except Exception as exc:
+                logger.warning("LLM 정규화 실패, 번역 결과 사용: %s", exc)
+                result = translated
+        else:
+            result = translated
+
+        self._normalized_cache[question] = result
+        return result
 
     # ── Step 1: Alias 매칭 ───────────────────────────────────────────────────
     def _step1_aliases_match(self, keyword: str) -> List[str]:
@@ -202,10 +223,11 @@ class EntityLinker:
             }
         """
         normalized = self._step0_llm_normalize(question)
-        logger.debug("LLM 정규화: '%s' → '%s'", question, normalized)
+        logger.debug("정규화 결과: '%s' → '%s'", question[:40], normalized[:40])
 
-        # 의도 분류는 원문 질문 기준으로 (정규화 전에 더 정확할 수 있음)
-        intents = _classify_intent(question)
+        # 의도 분류는 번역/정규화된 한국어 기준으로 수행
+        # (중국어 원문으로 분류하면 INTENT_KEYWORDS가 매칭되지 않음)
+        intents = _classify_intent(normalized)
         anchors = _extract_anchors(intents)
         logger.debug("의도 분류: %s, 앵커: %s", intents, anchors)
 

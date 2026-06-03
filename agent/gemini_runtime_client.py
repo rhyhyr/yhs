@@ -11,7 +11,8 @@ from __future__ import annotations
 import logging
 import re
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from graph_rag.config import GEMINI_API_KEY, GEMINI_MODEL
 from graph_rag.schema.types import RetrievalResult
@@ -91,113 +92,79 @@ def _has_forbidden_script(text: str) -> bool:
     """한글/숫자/기본 문장부호 외 CJK/태국어 등 비허용 스크립트 검출."""
     if not text:
         return False
-    # CJK 통합한자, 히라가나, 가타카나, 태국어
-    forbidden = re.compile(r"[\u4e00-\u9fff\u3040-\u30ff\u0e00-\u0e7f]")
+    forbidden = re.compile(r"[一-鿿぀-ヿ฀-๿]")
     return bool(forbidden.search(text))
 
 
 class GeminiRuntimeClient:
     def __init__(self, model: str = GEMINI_MODEL) -> None:
         self._model_name = model
-        self._model = None
+        self._client = None
         if GEMINI_API_KEY:
-            genai.configure(api_key=GEMINI_API_KEY)
-            self._model = self._init_model_with_fallback(self._model_name)
+            self._client = genai.Client(api_key=GEMINI_API_KEY)
+            self._model_name = self._resolve_model(model)
 
-    def _init_model_with_fallback(self, preferred_model: str):
+    def _resolve_model(self, preferred: str) -> str:
         """설정 모델이 지원되지 않으면 사용 가능한 Gemini 모델로 폴백한다."""
-        candidates = [
-            preferred_model,
-            "gemini-1.5-flash",
-            "gemini-1.5-pro",
-            "gemini-1.5-flash-8b",
-        ]
+        candidates = [preferred, "gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.5-flash-8b"]
 
-        # API에서 실제 사용 가능한 모델명을 수집해 후보 뒤에 추가한다.
         try:
-            discovered: list[str] = []
-            for m in genai.list_models():
+            for m in self._client.models.list():
                 name = getattr(m, "name", "") or ""
-                methods = list(getattr(m, "supported_generation_methods", []) or [])
-                if not name or "generateContent" not in methods:
-                    continue
-                short_name = name.split("models/")[-1]
-                if short_name and short_name not in discovered:
-                    discovered.append(short_name)
-
-            for name in discovered:
-                if name not in candidates:
-                    candidates.append(name)
+                short = name.split("models/")[-1]
+                if short and short not in candidates:
+                    candidates.append(short)
         except Exception as exc:
             logger.warning("Gemini 모델 목록 조회 실패: %s", exc)
 
         for name in candidates:
             try:
-                model = genai.GenerativeModel(model_name=name)
-                # 짧은 호출로 지원 여부 확인
-                model.generate_content(
-                    "ping",
-                    generation_config=genai.types.GenerationConfig(
-                        temperature=0,
-                        max_output_tokens=8,
-                    ),
+                self._client.models.generate_content(
+                    model=name,
+                    contents="ping",
+                    config=types.GenerateContentConfig(temperature=0, max_output_tokens=8),
                 )
-                if name != preferred_model:
-                    logger.warning(
-                        "요청 모델(%s) 대신 사용 가능한 모델(%s)로 폴백합니다.",
-                        preferred_model,
-                        name,
-                    )
-                self._model_name = name
-                return model
+                if name != preferred:
+                    logger.warning("요청 모델(%s) 대신 %s로 폴백합니다.", preferred, name)
+                return name
             except Exception:
                 continue
 
         logger.error("사용 가능한 Gemini 모델을 찾지 못했습니다.")
-        return None
+        return preferred
 
     def close(self) -> None:
         return None
 
     def is_available(self) -> bool:
-        return self._model is not None
+        return self._client is not None
 
-    def _call(
-        self,
-        prompt: str,
-        max_tokens: int = 2048,
-        temperature: float = 0.0,
-        top_p: float = 0.9,
-    ) -> str:
-        if self._model is None:
-            raise RuntimeError("Gemini model is not configured")
+    def _call(self, prompt: str, max_tokens: int = 2048, temperature: float = 0.0, top_p: float = 0.9) -> str:
+        if self._client is None:
+            raise RuntimeError("Gemini client is not configured")
 
-        resp = self._model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
+        resp = self._client.models.generate_content(
+            model=self._model_name,
+            contents=prompt,
+            config=types.GenerateContentConfig(
                 temperature=temperature,
                 top_p=top_p,
                 max_output_tokens=max_tokens,
             ),
         )
 
-        # 1) quick accessor 우선
         text = ""
         try:
             text = (resp.text or "").strip()
         except Exception:
             text = ""
 
-        # 2) quick accessor 실패 시 후보 파트에서 직접 조합
         if not text:
             candidates = getattr(resp, "candidates", None) or []
             for cand in candidates:
                 content = getattr(cand, "content", None)
                 parts = getattr(content, "parts", None) or []
-                merged = "".join(
-                    (getattr(p, "text", "") or "")
-                    for p in parts
-                ).strip()
+                merged = "".join((getattr(p, "text", "") or "") for p in parts).strip()
                 if merged:
                     text = merged
                     break
@@ -206,41 +173,20 @@ class GeminiRuntimeClient:
 
     def normalize_question(self, question: str) -> str:
         try:
-            prompt = _NORMALIZE_PROMPT.format(question=question)
-            normalized = self._call(
-                prompt,
-                max_tokens=128,
-                temperature=0.0,
-                top_p=0.9,
-            )
-            return normalized if normalized else ""
+            return self._call(_NORMALIZE_PROMPT.format(question=question), max_tokens=128) or ""
         except Exception as exc:
             logger.warning("Gemini 정규화 실패: %s", exc)
             return ""
 
-    def generate_answer(
-        self,
-        question: str,
-        context: str,
-        result: RetrievalResult,
-        web_context: bool = False,
-    ) -> str:
+    def generate_answer(self, question: str, context: str, result: RetrievalResult, web_context: bool = False) -> str:
         if not context:
             return _STRICT_NO_ANSWER
 
         template = _ANSWER_PROMPT_WEB_TEMPLATE if web_context else _ANSWER_PROMPT_TEMPLATE
-        prompt = template.format(
-            retrieved_chunks=context,
-            user_question=question,
-        )
+        prompt = template.format(retrieved_chunks=context, user_question=question)
 
         try:
-            answer = self._call(
-                prompt,
-                max_tokens=2048,
-                temperature=0.0,
-                top_p=0.9,
-            )
+            answer = self._call(prompt, max_tokens=2048)
             if not answer:
                 return _STRICT_NO_ANSWER
             if _has_forbidden_script(answer):

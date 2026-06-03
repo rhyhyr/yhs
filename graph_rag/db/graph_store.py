@@ -250,6 +250,10 @@ class GraphStore:
             self._add_to_review_queue(triple)
             return
 
+        if triple.subject_id == triple.object_id:
+            logger.warning("자기참조 triple 무시: %s -[%s]-> 자기자신", triple.subject_id, triple.predicate)
+            return
+
         p = triple.predicate
         base_props = {
             "confidence": triple.confidence,
@@ -278,7 +282,9 @@ class GraphStore:
 
         # Neo4j는 라벨을 몰라도 id로 MATCH 가능
         query = f"""
-        MATCH (a {{id: $s}}), (b {{id: $o}})
+        MATCH (a:Entity {{id: $s}})
+        WITH a
+        MATCH (b:Entity {{id: $o}})
         MERGE (a)-[r:{p}]->(b)
         SET r += $props
         """
@@ -294,7 +300,9 @@ class GraphStore:
         Neo4j는 라벨 무관하게 id로 MATCH하므로 단일 쿼리로 처리한다.
         """
         query = f"""
-        MATCH (a {{id: $nid}}), (b:Chunk {{id: $cid}})
+        MATCH (a:Entity {{id: $nid}})
+        WITH a
+        MATCH (b:Chunk {{id: $cid}})
         MERGE (a)-[r:{link.link_type}]->(b)
         SET r.confidence = $conf,
             r.source     = $src,

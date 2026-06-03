@@ -5,8 +5,6 @@ import logging
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
 from agent.ingest_runner import run_embed_update, run_ingest
 from agent.query_runner import run_query_loop
 
@@ -14,7 +12,6 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
-logger = logging.getLogger(__name__)
 
 
 def main() -> None:

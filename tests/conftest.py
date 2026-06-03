@@ -4,7 +4,8 @@ from unittest.mock import MagicMock
 MOCK_MODULES = [
     # 외부 패키지
     "google",
-    "google.generativeai",
+    "google.genai",
+    "google.genai.types",
     "neo4j",
     "sentence_transformers",
     "faiss",

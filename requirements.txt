@@ -1,5 +1,9 @@
 neo4j==5.20.0
-google-generativeai
+langdetect
+sentencepiece
+json-repair
+accelerate
+google-genai
 pdfplumber
 pypdf
 numpy
