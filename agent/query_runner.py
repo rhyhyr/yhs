@@ -5,6 +5,8 @@ import sys
 from datetime import datetime
 from time import perf_counter
 
+import requests
+
 from agent.agent_runtime import (
     GateThresholds,
     append_latency_log,
@@ -14,9 +16,7 @@ from agent.agent_runtime import (
     insufficient_evidence_message,
     should_use_deep_path,
 )
-from agent.crawler.web_search_client import WebSearchClient
-from agent.crawler.web_search_client import allowed_sites
-import requests
+from agent.crawler.web_search_client import WebSearchClient, allowed_sites
 from agent.faq import FastPathHandler
 from agent.gemini_runtime_client import GeminiRuntimeClient
 from agent.retrieval_engine import RetrievalEngine

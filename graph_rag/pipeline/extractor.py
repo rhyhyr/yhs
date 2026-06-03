@@ -90,8 +90,24 @@ class LLMExtractor:
 
     def _get_client(self):
         if self._client is None:
-            from graph_rag.llm.openai_client import OpenAIKBClient
-            self._client = OpenAIKBClient()
+            import os
+            provider = os.getenv("LLM_PROVIDER", "gemini").lower()
+            if provider == "openai":
+                from graph_rag.llm.openai_client import OpenAIKBClient
+                self._client = OpenAIKBClient()
+            elif provider == "exaone":
+                # 로컬 HuggingFace EXAONE — 완전 무료, 인터넷 불필요
+                # ~/.cache/huggingface에 모델 있어야 함
+                from graph_rag.llm.exaone_kb_client import ExaoneKBClient
+                self._client = ExaoneKBClient()
+            elif provider == "ollama":
+                # Ollama로 실행 중인 모델 사용
+                from graph_rag.llm.ollama_kb_client import OllamaKBClient
+                self._client = OllamaKBClient()
+            else:
+                # 기본값: Gemini (무료 티어)
+                from graph_rag.llm.gemini_client import GeminiKBClient
+                self._client = GeminiKBClient()
         return self._client
 
     def extract(self, chunk: ChunkNode) -> Tuple[List[EntityNode], List[Triple]]:
@@ -169,16 +185,25 @@ class HybridExtractor:
         chunk_links: List[Tuple[str, str]] = []
 
         for chunk in chunks:
-            # 규칙 기반 추출
+            # 규칙 기반 추출 (confidence=1.0, 비자코드·기관명)
             rule_entities = self._rule.extract_entities(chunk)
             rule_triples = self._rule.extract_triples(chunk)
 
-            # 규칙 기반에서 아무것도 못 잡은 청크만 LLM에 넘긴다.
-            # 이렇게 하면 API 호출 수와 비용을 크게 줄일 수 있다.
             llm_entities: List[EntityNode] = []
             llm_triples: List[Triple] = []
-            if self._llm and not rule_entities and not rule_triples:
-                llm_entities, llm_triples = self._llm.extract(chunk)
+
+            if self._llm:
+                # 규칙이 뭔가 잡은 청크만 LLM 실행
+                # → 규칙이 아무것도 못 잡은 청크는 관련 없는 내용일 가능성 높음 (API 절약)
+                if rule_entities or rule_triples:
+                    raw_llm_entities, raw_llm_triples = self._llm.extract(chunk)
+                    llm_triples = raw_llm_triples
+                    # 엔티티는 규칙이 이미 잡았으므로 LLM 엔티티 버림
+                else:
+                    # 규칙도 못 잡은 청크: LLM만으로 시도 (엔티티도 LLM에서)
+                    raw_llm_entities, raw_llm_triples = self._llm.extract(chunk)
+                    llm_entities = raw_llm_entities
+                    llm_triples = raw_llm_triples
 
             # 병합
             entities = rule_entities + llm_entities

@@ -9,24 +9,27 @@ graph_rag/llm/gemini_client.py
 구현 원칙:
 - LLM에 자유 텍스트 출력 허용 금지
 - 반드시 JSON 형식의 구조화 출력만 허용
-- 허용 predicate 7개 외 관계 생성 불가
+- 허용 predicate 외 관계 생성 불가
 """
 
 from __future__ import annotations
 
-import base64
 import json
 import logging
+import time
 from pathlib import Path
 from typing import Any, Dict
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from graph_rag.config import ALLOWED_PREDICATES, GEMINI_API_KEY, GEMINI_MODEL
 
 logger = logging.getLogger(__name__)
 
-# LLM 추출용 JSON Schema (구조화 출력 강제)
+_MAX_RETRIES = 4
+_RETRY_BASE_WAIT = 15
+
 _EXTRACTION_SCHEMA = {
     "entities": [
         {
@@ -65,62 +68,78 @@ _SYSTEM_PROMPT = f"""당신은 행정 문서에서 엔티티와 관계를 추출
 JSON 이외의 텍스트는 절대 출력하지 마세요."""
 
 
+def _is_rate_limit_error(exc: Exception) -> bool:
+    msg = str(exc).lower()
+    return "429" in msg or "resource exhausted" in msg or "quota" in msg
+
+
+def _call_with_retry(fn, *args, **kwargs) -> Any:
+    for attempt in range(_MAX_RETRIES + 1):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as exc:
+            if _is_rate_limit_error(exc) and attempt < _MAX_RETRIES:
+                wait = _RETRY_BASE_WAIT * (2 ** attempt)
+                logger.warning("Rate limit 초과. %d초 후 재시도 (%d/%d)...", wait, attempt + 1, _MAX_RETRIES)
+                time.sleep(wait)
+            else:
+                raise
+
+
 class GeminiKBClient:
     """KB 구축용 Gemini API 클라이언트."""
 
     def __init__(self) -> None:
         if not GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY가 설정되지 않았습니다.")
-        genai.configure(api_key=GEMINI_API_KEY)
-        self._model = genai.GenerativeModel(
-            model_name=GEMINI_MODEL,
+        self._client = genai.Client(api_key=GEMINI_API_KEY)
+        self._model = GEMINI_MODEL
+        self._config = types.GenerateContentConfig(
             system_instruction=_SYSTEM_PROMPT,
+            temperature=0.2,
+            max_output_tokens=8192,
+            response_mime_type="application/json",
         )
 
-    def extract_entities_and_relations(
-        self, text: str, source_file: str = ""
-    ) -> Dict[str, Any]:
-        """
-        텍스트에서 엔티티와 관계를 추출한다.
-        Returns: {"entities": [...], "relations": [...]}
-        """
+    def extract_entities_and_relations(self, text: str, source_file: str = "") -> Dict[str, Any]:
         user_content = (
             f"[출처: {source_file}]\n\n"
-            f"다음 텍스트에서 엔티티와 관계를 추출하세요:\n\n{text[:3000]}"
+            f"다음 텍스트에서 엔티티와 관계를 추출하세요:\n\n{text[:1500]}"
         )
 
         try:
-            response = self._model.generate_content(
-                user_content,
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0.2,
-                    max_output_tokens=2048,
-                ),
+            response = _call_with_retry(
+                self._client.models.generate_content,
+                model=self._model,
+                contents=user_content,
+                config=self._config,
             )
-            raw = response.text.strip()
+            raw = (response.text or "").strip()
 
-            # JSON 파싱 (마크다운 코드블록 제거)
-            if raw.startswith("```"):
-                raw = raw.split("```")[1]
-                if raw.startswith("json"):
-                    raw = raw[4:]
-            result = json.loads(raw)
-            return result
+            try:
+                return json.loads(raw)
+            except json.JSONDecodeError:
+                pass
 
-        except json.JSONDecodeError as exc:
-            logger.error("Gemini 응답 JSON 파싱 실패: %s", exc)
+            try:
+                from json_repair import repair_json
+                repaired = repair_json(raw)
+                result = json.loads(repaired)
+                logger.warning("JSON 복구 성공 (응답이 잘렸을 가능성 있음)")
+                return result
+            except Exception:
+                pass
+
+            logger.error("JSON 파싱 및 복구 모두 실패 — 해당 청크 건너뜀")
             return {"entities": [], "relations": []}
+
         except Exception as exc:
             logger.error("Gemini API 오류: %s", exc)
             return {"entities": [], "relations": []}
 
     def parse_flowchart_image(self, image_path: Path) -> Dict[str, Any]:
-        """
-        흐름도 이미지에서 노드와 엣지를 추출한다 (Gemini Vision).
-        Returns: {"entities": [...], "relations": [...]}
-        """
         with open(image_path, "rb") as f:
-            image_data = base64.standard_b64encode(f.read()).decode("utf-8")
+            image_bytes = f.read()
 
         suffix = image_path.suffix.lower()
         media_type_map = {
@@ -137,26 +156,21 @@ class GeminiKBClient:
         )
 
         try:
-            genai.upload_file(image_path)
-            response = self._model.generate_content(
-                [
-                    genai.Part.from_text(flowchart_prompt),
-                    genai.Part.from_data(
-                        data=base64.b64decode(image_data),
-                        mime_type=media_type,
-                    ),
+            response = _call_with_retry(
+                self._client.models.generate_content,
+                model=self._model,
+                contents=[
+                    flowchart_prompt,
+                    types.Part.from_bytes(data=image_bytes, mime_type=media_type),
                 ],
-                generation_config=genai.types.GenerationConfig(
-                    temperature=0.2,
-                    max_output_tokens=2048,
-                ),
+                config=self._config,
             )
-            raw = response.text.strip()
-            if raw.startswith("```"):
-                raw = raw.split("```")[1]
-                if raw.startswith("json"):
-                    raw = raw[4:]
-            return json.loads(raw)
+            raw = (response.text or "").strip()
+            try:
+                return json.loads(raw)
+            except json.JSONDecodeError:
+                from json_repair import repair_json
+                return json.loads(repair_json(raw))
 
         except Exception as exc:
             logger.error("흐름도 파싱 실패 (%s): %s", image_path, exc)
