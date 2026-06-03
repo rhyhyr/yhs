@@ -22,13 +22,13 @@ experiments/zh_eval.py
 
 from __future__ import annotations
 
-import os
-import sys
-import json
-import time
 import argparse
+import json
+import os
 import subprocess
-from dataclasses import dataclass, asdict
+import sys
+import time
+from dataclasses import dataclass
 from typing import Optional
 
 # ── 테스트 질문 셋 ────────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ def evaluate_one(query_id: str, query: str, expected_intent: str) -> EvalResult:
     질문 하나를 파이프라인에 넣고 결과를 반환한다.
     Neo4j 연결이 없어도 linker 단계(번역 + 의도분류 + entity linking)까지는 측정 가능.
     """
-    from agent.retrieval.linker import EntityLinker, _classify_intent, _extract_anchors
+    from agent.retrieval.linker import _classify_intent, _extract_anchors
     from agent.retrieval.translator import get_translator, is_translation_enabled
 
     start = time.perf_counter()
@@ -91,7 +91,7 @@ def evaluate_one(query_id: str, query: str, expected_intent: str) -> EvalResult:
     # 의도 분류 (번역 ON이면 번역된 텍스트, OFF면 원문)
     classify_target = translated_text if is_translation_enabled() else query
     intents = _classify_intent(classify_target)
-    anchors = _extract_anchors(intents)
+    _extract_anchors(intents)
 
     elapsed = time.perf_counter() - start
 
@@ -99,13 +99,16 @@ def evaluate_one(query_id: str, query: str, expected_intent: str) -> EvalResult:
     entity_count = 0
     retrieval_method = "not_tested"
     try:
+        from agent.retrieval_engine import RetrievalEngine
+        from graph_rag.config import (
+            EMBEDDING_MODEL,
+            NEO4J_DATABASE,
+            NEO4J_PASSWORD,
+            NEO4J_URI,
+            NEO4J_USER,
+        )
         from graph_rag.db.graph_store import GraphStore
         from graph_rag.embedding.embedder import Embedder
-        from graph_rag.config import (
-            NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, NEO4J_DATABASE,
-            EMBEDDING_MODEL
-        )
-        from agent.retrieval_engine import RetrievalEngine
 
         store = GraphStore(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, NEO4J_DATABASE)
         embedder = Embedder(EMBEDDING_MODEL)
@@ -116,7 +119,7 @@ def evaluate_one(query_id: str, query: str, expected_intent: str) -> EvalResult:
         retrieval_method = result.retrieval_method
 
         elapsed = time.perf_counter() - start
-    except Exception as e:
+    except Exception:
         # Neo4j 없으면 linker 단계만으로 평가
         retrieval_method = "db_unavailable"
 

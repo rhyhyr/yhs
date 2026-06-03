@@ -6,8 +6,7 @@ import os
 import re
 import time
 import urllib.parse
-from typing import Any, Optional
-from dataclasses import dataclass
+from typing import Any
 from urllib.parse import urlparse
 
 import numpy as np
@@ -386,7 +385,7 @@ class WebSearchClient:
             print(f"[WARN] crawl_page 오류({e}) → fetch_page_text 폴백", flush=True)
             content = self.fetch_page_text(url)
 
-        lines = [l.strip() for l in content.split("\n") if l.strip()]
+        lines = [line.strip() for line in content.split("\n") if line.strip()]
         content = "\n".join(lines)
 
         print(f"[STEP 3] 완료: {len(content)}bytes", flush=True)
@@ -455,8 +454,9 @@ class WebSearchClient:
         links = []
 
         try:
-            from playwright.sync_api import sync_playwright
             import urllib.parse
+
+            from playwright.sync_api import sync_playwright
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True)
                 page = browser.new_page()
@@ -472,7 +472,7 @@ class WebSearchClient:
                         if full_url not in seen:
                             seen.add(full_url)
                             links.append((text, full_url))  # tuple 형태로 저장
-                    except:
+                    except Exception:
                         continue
                 browser.close()
         except Exception as e:
