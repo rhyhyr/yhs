@@ -7,6 +7,8 @@ import re
 import time
 import urllib.parse
 from typing import Any, Optional
+from dataclasses import dataclass
+from urllib.parse import urlparse
 
 import numpy as np
 import requests
@@ -17,13 +19,20 @@ from sklearn.metrics.pairwise import cosine_similarity
 # ── 환경변수 (hybrid_query_agent.py와 공유) ───────────────────────────────
 VEC_WEIGHT          = float(os.environ.get("VEC_WEIGHT", "0.62"))
 KW_WEIGHT           = float(os.environ.get("KW_WEIGHT", "0.38"))
-CRAWL_MAX_DEPTH     = int(os.environ.get("CRAWL_MAX_DEPTH", "3"))
-CRAWL_MAX_PAGES     = int(os.environ.get("CRAWL_MAX_PAGES", "10"))
+CRAWL_MAX_DEPTH     = int(os.environ.get("CRAWL_MAX_DEPTH", "4"))
+CRAWL_MAX_PAGES     = int(os.environ.get("CRAWL_MAX_PAGES", "20"))
 CRAWL_FETCH_TIMEOUT = int(os.environ.get("CRAWL_FETCH_TIMEOUT", "6"))
 CRAWL_SLEEP_SEC     = float(os.environ.get("CRAWL_SLEEP_SEC", "0.15"))
+allowed_sites = [
+    "https://www.donga.ac.kr",
+    "https://global.donga.ac.kr/global",
+    "https://www.hikorea.go.kr" #민원처리중심,
+    "https://www.immigration.go.kr" #제도 변경 시 참고
+]
 
 
-class Crawler:
+
+class WebSearchClient:
     """
     ALLOWED_SITES 내에서 Playwright(JS 렌더링) + Gemini LLM 가이드 방식으로
     질문과 관련 있는 페이지를 찾아 크롤링하는 클래스.
@@ -39,8 +48,9 @@ class Crawler:
         http: requests.Session,
         embedder: Any,
         llm: Any,           # Gemini GenerativeModel (URL 선택 + 답변 생성 모두 사용)
-        allowed_sites: list[str],
-        driver: Any,        # Neo4j driver (save_external_chunks 용)
+        driver: Any, 
+        allowed_sites: list[str], 
+               # Neo4j driver (save_external_chunks 용)
         openai_client: Any | None = None,
     ) -> None:
         self.http          = http
@@ -112,11 +122,14 @@ class Crawler:
 
     def _openai_chat(self, messages: list[dict[str, str]], json_mode: bool = False) -> str:
         if self.openai_client is None:
+            print("[LLM] OpenAI 없음 → Gemini로 링크 선택", flush=True)
             prompt = "\n\n".join(f"{m.get('role', 'user').upper()}: {m.get('content', '')}" for m in messages)
             return self._gemini(prompt)
         try:
+            model_name = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+            print(f"[LLM] OpenAI({model_name})로 링크 선택", flush=True)
             kwargs: dict[str, Any] = {
-                "model": os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+                "model": model_name,
                 "messages": messages,
                 "temperature": 0,
             }
@@ -231,35 +244,42 @@ class Crawler:
         query: str,
         links: list[tuple[str, str]],
         visited: set[str],
+        max_select: int = 3,
     ) -> list[str]:
         """
-        Gemini가 메뉴 경로가 포함된 링크 목록을 보고 질문과 관련 있는 링크만 선택.
-        최대 3개 반환. crawl_fallback_chunks 에서 사용.
+        LLM이 메뉴 경로가 포함된 링크 목록을 보고 질문과 관련 있는 링크를 선택.
+        max_select개 반환.
         """
         links = [(label, url) for label, url in links if url not in visited]
         if not links:
             return []
         if self.openai_client is None:
-            return [url for _, url in links[:5]]
+            print(f"[LLM] OpenAI 없음 → Gemini로 링크 선택 (상위 {max_select}개 폴백)", flush=True)
+            return [url for _, url in links[:max_select]]
 
-        lines = [f"{i+1}. {label} → {url}" for i, (label, url) in enumerate(links[:40])]
+        display_limit = 100
+        lines = [f"{i+1}. {label} → {url}" for i, (label, url) in enumerate(links[:display_limit])]
         prompt = (
-            "다음은 대학교 홈페이지의 메뉴 구조입니다. (형식: 상위메뉴 > 하위메뉴 → URL)\n"
-            "아래 질문에 답하기 위해 들어가봐야 할 메뉴의 번호만 골라 콤마로 나열하세요.\n"
-            "최대 3개만 선택하고, 설명 없이 번호만 반환하세요.\n"
-            "예시 출력: 2,5\n\n"
+            "다음은 대학교 홈페이지의 메뉴 구조입니다. (형식: 메뉴명 → URL)\n"
+            f"아래 질문에 답하기 위해 들어가봐야 할 메뉴 번호를 최대 {max_select}개 골라 콤마로 나열하세요.\n"
+            "직접적인 정보뿐 아니라 관련 정보가 있을 법한 메뉴도 폭넓게 고르세요.\n"
+            "설명 없이 번호만 반환하세요. 예시 출력: 2,5,11\n\n"
             f"질문: {query}\n\n"
             "메뉴 목록:\n" + "\n".join(lines)
         )
         text = self._openai_chat([
             {
                 "role": "system",
-                "content": "대학 홈페이지 메뉴에서 질문과 관련된 링크 번호만 콤마로 반환하세요. 설명은 금지합니다.",
+                "content": (
+                    "대학 홈페이지 메뉴에서 질문과 관련된 링크 번호만 콤마로 반환하세요. "
+                    "명백한 메뉴 외에도 관련 정보가 있을 법한 메뉴를 폭넓게 선택하세요. "
+                    "설명은 금지합니다."
+                ),
             },
             {"role": "user", "content": prompt},
         ])
         if not text:
-            return [url for _, url in links[:3]]
+            return [url for _, url in links[:max_select]]
 
         picked_nums = [x.strip() for x in re.split(r"[,\n]", text) if x.strip().isdigit()]
         selected_urls = []
@@ -267,12 +287,12 @@ class Crawler:
             idx = int(num) - 1
             if 0 <= idx < len(links):
                 selected_urls.append(links[idx][1])
-        print(
-            f"[CRAWL] LLM 선택 메뉴: "
-            f"{[links[int(n)-1][0] for n in picked_nums if n.isdigit() and 0 <= int(n)-1 < len(links)]}",
-            flush=True,
-        )
-        return selected_urls or [url for _, url in links[:3]]
+        selected_labels = [
+            links[int(n) - 1][0] for n in picked_nums
+            if n.isdigit() and 0 <= int(n) - 1 < len(links)
+        ]
+        print(f"[CRAWL] LLM 선택 메뉴({len(selected_labels)}개): {selected_labels}", flush=True)
+        return selected_urls or [url for _, url in links[:max_select]]
 
     # =========================================================================
     # [추가] run_pipeline 전용 - 단일 최적 URL 선택 (Gemini)
@@ -487,46 +507,64 @@ class Crawler:
     # 메인 크롤링 (기존 - crawl_fallback_chunks)
     # =========================================================================
 
+    def _collect_links_only(self, base_url: str) -> list[tuple[str, str]]:
+        """base URL에서 링크만 수집한다. 콘텐츠는 추출하지 않는다."""
+        print(f"[CRAWL] 링크 수집: {base_url}", flush=True)
+        _, links = self.fetch_page_links_and_text(base_url)
+        return links
+
     def crawl_fallback_chunks(self, query: str) -> list[tuple[str, str]]:
         """
-        Playwright로 JS 렌더링 후 메뉴 구조를 파악,
-        Gemini가 질문과 관련 있는 메뉴를 선택해 타고 들어가는 방식으로 크롤링.
+        2단계 크롤링 전략:
+          Phase 1 - 모든 허용 사이트의 링크를 수집 (페이지 예산 소진 없음)
+          Phase 2 - LLM이 전체 링크를 보고 유망한 경로를 선택해 깊이 탐색
         """
-        all_chunks: list[tuple[str, str]] = []
-        visited: set[str] = set()
-        total_pages = 0
+        # ── Phase 1: 링크 수집 (콘텐츠 크롤링 X) ──────────────────────────────
+        all_links: list[tuple[str, str]] = []
+        visited: set[str] = set(self.ALLOWED_SITES)
 
         for base_url in self.ALLOWED_SITES:
-            if total_pages >= CRAWL_MAX_PAGES:
-                break
+            links = self._collect_links_only(base_url)
+            all_links.extend(links)
+            time.sleep(CRAWL_SLEEP_SEC)
 
-            queue: list[tuple[str, int]] = [(base_url, 0)]
+        print(f"[CRAWL] Phase1 완료: 총 {len(all_links)}개 링크 수집", flush=True)
 
-            while queue and total_pages < CRAWL_MAX_PAGES:
-                current_url, depth = queue.pop(0)
+        if not all_links:
+            return []
 
-                if current_url in visited:
-                    continue
-                visited.add(current_url)
-                total_pages += 1
+        # ── Phase 2: LLM이 유망 경로 선택 → 깊이 탐색 ────────────────────────
+        # 홈페이지 수준에서는 더 넓게 선택 (max_select=7)
+        seed_urls = self.llm_select_links(query, all_links, visited, max_select=7)
+        print(f"[CRAWL] Phase2 시작: {len(seed_urls)}개 경로 탐색", flush=True)
 
-                print(f"[CRAWL] depth={depth} 방문: {current_url}", flush=True)
-                page_text, links = self.fetch_page_links_and_text(current_url)
-                time.sleep(CRAWL_SLEEP_SEC)
+        all_chunks: list[tuple[str, str]] = []
+        queue: list[tuple[str, int]] = [(url, 1) for url in seed_urls]
+        page_count = 0
 
-                if page_text:
-                    for chunk in self._chunk_text(page_text):
-                        all_chunks.append((current_url, chunk))
+        while queue and page_count < CRAWL_MAX_PAGES:
+            current_url, depth = queue.pop(0)
 
-                if depth >= CRAWL_MAX_DEPTH:
-                    continue
+            if current_url in visited:
+                continue
+            visited.add(current_url)
+            page_count += 1
 
-                if links:
-                    selected_urls = self.llm_select_links(query, links, visited)
-                    for next_url in selected_urls:
-                        if next_url not in visited:
-                            queue.append((next_url, depth + 1))
+            print(f"[CRAWL] depth={depth} ({page_count}/{CRAWL_MAX_PAGES}) 방문: {current_url}", flush=True)
+            page_text, links = self.fetch_page_links_and_text(current_url)
+            time.sleep(CRAWL_SLEEP_SEC)
 
+            if page_text:
+                for chunk in self._chunk_text(page_text):
+                    all_chunks.append((current_url, chunk))
+
+            if depth < CRAWL_MAX_DEPTH and links:
+                next_urls = self.llm_select_links(query, links, visited, max_select=3)
+                for next_url in next_urls:
+                    if next_url not in visited:
+                        queue.append((next_url, depth + 1))
+
+        print(f"[CRAWL] 완료: {page_count}페이지 탐색, {len(all_chunks)}청크 수집", flush=True)
         return all_chunks
 
     # =========================================================================
@@ -573,3 +611,89 @@ class Crawler:
                     text=text,
                     emb=json.dumps(np.asarray(e, dtype=np.float32).tolist()),
                 )
+
+    def close(self) -> None:
+        """Close any resources held by the client (HTTP session, driver, LLM/openai clients)."""
+        try:
+            if getattr(self, "http", None):
+                try:
+                    self.http.close()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        try:
+            if getattr(self, "driver", None):
+                try:
+                    self.driver.close()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        try:
+            if getattr(self, "llm", None) and hasattr(self.llm, "close"):
+                try:
+                    self.llm.close()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        try:
+            if getattr(self, "openai_client", None) and hasattr(self.openai_client, "close"):
+                try:
+                    self.openai_client.close()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    # =========================================================================
+    # 외부 검색 단일 진입점
+    # =========================================================================
+
+    def search_and_collect(self, query: str, max_results: int = 3) -> list[Any]:
+        """
+        Crawl+score pipeline that returns a small list of search snippets.
+
+        Returns a list of objects with attributes: `title`, `snippet`, `url`.
+        This is a lightweight helper used by agent runtime when deep-path
+        needs external web evidence.
+        """
+        print(f"[WEB SEARCH] search_and_collect: {query}", flush=True)
+
+        url_chunks = self.crawl_fallback_chunks(query)
+        if not url_chunks:
+            return []
+
+        # Encode query embedding
+        try:
+            q_embs = self.embedder.encode([query], show_progress_bar=False)
+            query_emb = q_embs[0]
+        except Exception:
+            query_emb = None
+
+        # Score and pick top chunks
+        try:
+            scored = self.score_external_chunks(query, query_emb, url_chunks)
+        except Exception:
+            # Fallback: no scoring, preserve original order
+            scored = [(u, c, 0.0) for u, c in url_chunks]
+
+        snippets: list[Any] = []
+        for u, c, sc in scored[: max_results]:
+            parsed = urlparse(u)
+            title = parsed.netloc + (parsed.path if parsed.path and parsed.path != "/" else "")
+            if not title:
+                title = u
+            snippet_text = (c or "").replace("\n", " ")[:300]
+            # simple namespace object
+            obj = type("SearchSnippet", (), {})()
+            setattr(obj, "title", title)
+            setattr(obj, "snippet", snippet_text)
+            setattr(obj, "url", u)
+            snippets.append(obj)
+
+        return snippets
