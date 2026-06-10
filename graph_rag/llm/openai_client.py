@@ -94,7 +94,10 @@ _JSON_SCHEMA = {
                     "additionalProperties": False,
                     "properties": {
                         "subject_id": {"type": "string"},
-                        "predicate": {"type": "string"},
+                        "predicate": {
+                            "type": "string",
+                            "enum": ALLOWED_PREDICATES,  # 허용 목록 외 값 원천 차단
+                        },
                         "object_id": {"type": "string"},
                         "condition": {"type": "string"},
                         "confidence": {"type": "number"},

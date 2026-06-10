@@ -13,10 +13,9 @@ from pathlib import Path
 
 def _load_env(path: str = ".env") -> None:
     """python-dotenv 없이 .env 파일을 읽어 환경변수를 채운다."""
-    resolved = Path(path) if Path(path).is_absolute() else Path(__file__).parent.parent / path
-    if not resolved.exists():
+    if not os.path.exists(path):
         return
-    with open(resolved, encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line or line.startswith("#") or "=" not in line:
@@ -53,7 +52,7 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o")
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.0-flash")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
 
 OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "exaone3.5:7b")
@@ -90,8 +89,35 @@ KNOWN_INSTITUTIONS: list[str] = [
 ]
 
 ALLOWED_PREDICATES: list[str] = [
-    "CAN_TRANSITION_TO", "REQUIRES", "BLOCKS",
-    "NEXT_STEP", "ISSUED_BY", "RELATED_TO", "ENABLES_SHORTCUT",
+    # ── 기존 ──────────────────────────────────────────────────────────────────
+    "CAN_TRANSITION_TO",  # 비자 전환 가능  예) D-4 → D-2
+    "REQUIRES",           # A하려면 B 필요  예) 비자연장 REQUIRES 건강보험납부
+    "BLOCKS",             # B 없으면 A 불가 예) 건강보험미납 BLOCKS 비자연장
+    "NEXT_STEP",          # 다음 절차       예) 서류준비 NEXT_STEP 사무소방문
+    "ISSUED_BY",          # 발급 기관       예) 외국인등록증 ISSUED_BY 출입국관리사무소
+    "RELATED_TO",         # 일반 연관
+    "ENABLES_SHORTCUT",   # 지름길 존재     예) 온라인신청 ENABLES_SHORTCUT 방문신청
+    "ENABLED_BY",         # A는 B가 있어야 가능  예) 시간제취업 ENABLED_BY 취업허가증
+
+    # ── 행정 도메인 추가 ───────────────────────────────────────────────────────
+    "REQUIRED_FOR",       # A는 B에 필요한 서류/조건
+                          # 예) 여권사본 REQUIRED_FOR 비자신청
+                          # REQUIRES와 방향 반대 (서류→절차 관점)
+
+    "VALID_FOR",          # A는 B 목적/기간/대상에 유효
+                          # 예) D-2비자 VALID_FOR 학위과정
+                          # 예) 건강보험 VALID_FOR 6개월이상체류자
+
+    "AVAILABLE_TO",       # A는 B(특정 비자/조건) 소지자에게 이용 가능
+                          # 예) 시간제취업 AVAILABLE_TO D-2소지자
+                          # 예) 장학금 AVAILABLE_TO 성적우수자
+
+    "PRECEDED_BY",        # A 전에 B가 선행되어야 함 (NEXT_STEP 역방향)
+                          # 예) 비자연장신청 PRECEDED_BY 만료일60일전
+
+    "SUBMITTED_TO",       # A(서류)는 B(기관)에 제출
+                          # 예) 비자연장신청서 SUBMITTED_TO 출입국관리사무소
+                          # 예) 휴학신청서 SUBMITTED_TO 학생처
 ]
 
 # aliases 사전: 비표준 표현 → 표준 ID
