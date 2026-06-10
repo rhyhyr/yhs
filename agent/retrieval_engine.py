@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 # 재랭크 후보/최종 반환 정책
 _CANDIDATE_TOP_K = 10
-_FINAL_TOP_K = 4
+_FINAL_TOP_K = 6
 _MIN_CHUNK_SCORE = 0.30
 
 # 병합 스코어 가중치
@@ -48,7 +48,7 @@ _W_REC  = 0.10   # 문서 최신성
 
 # 그래프 연결 청크의 베이스 스코어 (직접 링크 = 높은 신뢰도)
 _GRAPH_BASE_SCORE = 0.75
-_QUESTION_FIT_THRESHOLD = 0.06
+_QUESTION_FIT_THRESHOLD = 0.03
 
 
 def _is_stale(doc_version: str, months: int = DOC_STALENESS_MONTHS) -> bool:
@@ -151,7 +151,7 @@ class RetrievalEngine:
         # 멀티홉/복합 질문이거나 그래프 결과가 부족할 때는 반드시 실행.
         # 단순 질문에서 그래프가 충분하면 벡터 생략으로 속도 개선.
         is_multi_intent = len(intents) >= 2
-        needs_vector = (len(graph_chunks) < MIN_CHUNKS_FROM_GRAPH) or is_multi_intent
+        needs_vector = True  # 그래프 단독으로는 정합도 부족 → 항상 벡터 병행
 
         vector_chunks: list = []
         if needs_vector:

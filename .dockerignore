@@ -1,0 +1,16 @@
+.env
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+.git*
+.github
+logs
+test_hf_local.py
+.ruff_cache
+.mypy_cache
+.pytest_cache
+2.6.0
+CONTRIBUTING.md
+.vscode
