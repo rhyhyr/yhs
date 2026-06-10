@@ -253,3 +253,8 @@ def run_query_loop() -> None:
     if llm is not None:
         llm.close()
     sys.exit(0)
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    run_query_loop()
