@@ -91,23 +91,20 @@ class LLMExtractor:
     def _get_client(self):
         if self._client is None:
             import os
-            provider = os.getenv("LLM_PROVIDER", "gemini").lower()
+            provider = os.getenv("LLM_PROVIDER", "ollama").lower()
             if provider == "openai":
                 from graph_rag.llm.openai_client import OpenAIKBClient
                 self._client = OpenAIKBClient()
             elif provider == "exaone":
-                # 로컬 HuggingFace EXAONE — 완전 무료, 인터넷 불필요
-                # ~/.cache/huggingface에 모델 있어야 함
                 from graph_rag.llm.exaone_kb_client import ExaoneKBClient
                 self._client = ExaoneKBClient()
-            elif provider == "ollama":
-                # Ollama로 실행 중인 모델 사용
-                from graph_rag.llm.ollama_kb_client import OllamaKBClient
-                self._client = OllamaKBClient()
-            else:
-                # 기본값: Gemini (무료 티어)
+            elif provider == "gemini":
                 from graph_rag.llm.gemini_client import GeminiKBClient
                 self._client = GeminiKBClient()
+            else:
+                # 기본값: Ollama
+                from graph_rag.llm.ollama_kb_client import OllamaKBClient
+                self._client = OllamaKBClient()
         return self._client
 
     def extract(self, chunk: ChunkNode) -> Tuple[List[EntityNode], List[Triple]]:

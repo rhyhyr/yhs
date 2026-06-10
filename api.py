@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 
 import requests
 from fastapi import FastAPI
@@ -16,7 +17,6 @@ from agent.agent_runtime import (
 )
 from agent.crawler.web_search_client import WebSearchClient, allowed_sites
 from agent.faq import FastPathHandler
-from agent.gemini_runtime_client import GeminiRuntimeClient
 from agent.retrieval_engine import RetrievalEngine
 from graph_rag.db.graph_store import GraphStore
 from graph_rag.embedding.embedder import Embedder
@@ -42,10 +42,32 @@ class AnswerResponse(BaseModel):
     answer: str
 
 
+def _build_llm():
+    """RUNTIME_LLM 환경변수에 따라 적절한 LLM 클라이언트를 반환한다."""
+    provider = os.environ.get("RUNTIME_LLM", "ollama").lower()
+    if provider == "gemini":
+        from agent.gemini_runtime_client import GeminiRuntimeClient
+        client = GeminiRuntimeClient()
+        if not client.is_available():
+            logger.warning("Gemini API 키 없음 — Ollama로 폴백합니다.")
+            provider = "ollama"
+        else:
+            return client
+    if provider == "hf":
+        from agent.hf_runtime_client import HFRuntimeClient
+        return HFRuntimeClient()
+    # 기본값: ollama
+    from agent.ollama_runtime_client import OllamaRuntimeClient
+    client = OllamaRuntimeClient()
+    if not client.is_available():
+        logger.warning("Ollama 서버에 연결할 수 없습니다. 'ollama serve' 실행 여부를 확인하세요.")
+    return client
+
+
 # 서버 시작/종료 시 리소스 관리 (GraphStore 연결 유지)
 embedder = Embedder()
 faq_handler = FastPathHandler()
-llm = GeminiRuntimeClient()
+llm = _build_llm()
 thresholds = GateThresholds.from_env()
 http_session = requests.Session()
 _store: GraphStore | None = None
