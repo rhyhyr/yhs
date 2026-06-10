@@ -254,8 +254,13 @@ class FastPathHandler:
 
     def match(self, question: str) -> Optional[str]:
         """단순 즉답 가능한 질문에 FAQ 답변을 반환한다. 복합 질문이거나 일치 없으면 None."""
+        answer, _ = self.match_with_score(question)
+        return answer
+
+    def match_with_score(self, question: str) -> tuple[Optional[str], int]:
+        """FAQ 답변과 키워드 매칭 점수(일치 키워드 수)를 함께 반환한다."""
         if _is_complex_question(question):
-            return None
+            return None, 0
 
         q_lower = question.lower().strip()
 
@@ -268,4 +273,6 @@ class FastPathHandler:
                 best_match_count = count
                 best_answer = answer
 
-        return best_answer if best_match_count >= 1 else None
+        if best_match_count >= 1:
+            return best_answer, best_match_count
+        return None, 0
