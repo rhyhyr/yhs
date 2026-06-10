@@ -55,7 +55,7 @@ class WebSearchClient:
         self.http          = http
         self.embedder      = embedder
         self.llm           = llm
-        self.openai_client = openai_client or self._build_openai_client()
+        self.openai_client = openai_client  # None이면 Gemini fallback 사용
         self.ALLOWED_SITES = allowed_sites
         self.driver        = driver
 
