@@ -28,9 +28,20 @@ _SECTION_HEADER_RE = re.compile(
 _SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?。])\s+")
 
 
+_tokenizer = None
+
+
+def _get_tokenizer():
+    global _tokenizer
+    if _tokenizer is None:
+        from transformers import AutoTokenizer
+        from graph_rag.config import EMBEDDING_MODEL
+        _tokenizer = AutoTokenizer.from_pretrained(EMBEDDING_MODEL)
+    return _tokenizer
+
+
 def _token_count(text: str) -> int:
-    """간이 토큰 수 추정 (공백 기준 단어 수 × 1.3)."""
-    return int(len(text.split()) * 1.3)
+    return len(_get_tokenizer().encode(text, add_special_tokens=False))
 
 
 def _split_by_sentences(text: str, max_tokens: int) -> List[str]:
