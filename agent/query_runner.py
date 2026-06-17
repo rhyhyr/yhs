@@ -21,6 +21,7 @@ from agent.crawler.web_search_client import WebSearchClient, allowed_sites
 from agent.faq import FastPathHandler
 from agent.gemini_runtime_client import GeminiRuntimeClient
 from agent.hf_runtime_client import HFRuntimeClient
+from agent.ollama_runtime_client import OllamaRuntimeClient
 from agent.retrieval_engine import RetrievalEngine
 from graph_rag.db.graph_store import GraphStore
 from graph_rag.embedding.embedder import Embedder
@@ -87,14 +88,19 @@ def run_query_loop() -> None:
     thresholds = GateThresholds.from_env()
     web_client = None
 
-    runtime_provider = os.environ.get("RUNTIME_LLM", "gemini").lower()
+    runtime_provider = os.environ.get("RUNTIME_LLM", "ollama").lower()
     if runtime_provider == "hf":
         llm = HFRuntimeClient()
         logger.info("런타임 LLM: HuggingFace (%s)", os.environ.get("HF_RUNTIME_MODEL", "Qwen2.5-3B"))
-    else:
+    elif runtime_provider == "gemini":
         llm = GeminiRuntimeClient()
         if not llm.is_available():
             logger.warning("Gemini를 사용할 수 없습니다. FAQ 모드로만 동작합니다.")
+            llm = None
+    else:  # ollama (기본값)
+        llm = OllamaRuntimeClient()
+        if not llm.is_available():
+            logger.warning("Ollama 서버에 연결할 수 없습니다. 'ollama serve' 실행 여부를 확인하세요.")
             llm = None
 
     print("\n" + "=" * 60)
@@ -106,10 +112,10 @@ def run_query_loop() -> None:
     with GraphStore() as store:
         engine = RetrievalEngine(store, embedder, ollama_client=llm)
 
-        # HF 모드에서는 WebSearchClient의 LLM 링크 선택 기능을 비활성화한다.
-        # (openai_client=None, web_llm=None → 상위 N개 휴리스틱 폴백으로 동작)
+        # hf/ollama 모드에서는 WebSearchClient의 LLM 링크 선택 기능을 비활성화한다.
+        # (web_llm=None → 상위 N개 휴리스틱 폴백으로 동작)
         http = requests.Session()
-        web_llm = None if runtime_provider == "hf" else llm
+        web_llm = llm if runtime_provider == "gemini" else None
         web_client = WebSearchClient(http, embedder, web_llm, store._driver, allowed_sites)
 
         while True:
