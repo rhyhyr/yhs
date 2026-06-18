@@ -1,3 +1,10 @@
 {"ts": "2026-05-27T13:34:21Z", "agent": "yhs", "path": "fast", "elapsed_sec": 43.37820880000072, "best_score": 0.648, "evidence_count": 4}
 {"ts": "2026-06-02T08:59:44Z", "agent": "yhs", "path": "fast", "elapsed_sec": 20.80078579997644, "best_score": 0.58, "evidence_count": 4}
 {"ts": "2026-06-17T09:06:28Z", "agent": "yhs", "path": "fast", "elapsed_sec": 33.42044740007259, "best_score": 0.545, "evidence_count": 6}
+{"ts": "2026-06-18T02:22:48Z", "agent": "yhs", "path": "deep", "elapsed_sec": 162.7155220999848, "best_score": 0.0, "evidence_count": 0}
+{"ts": "2026-06-18T02:53:49Z", "agent": "yhs", "path": "fast", "elapsed_sec": 27.025390699971467, "best_score": 0.633, "evidence_count": 6}
+{"ts": "2026-06-18T02:58:10Z", "agent": "yhs", "path": "fast", "elapsed_sec": 13.37576630001422, "best_score": 0.545, "evidence_count": 6}
+{"ts": "2026-06-18T03:07:08Z", "agent": "yhs", "path": "fast", "elapsed_sec": 28.13440370000899, "best_score": 0.545, "evidence_count": 6}
+{"ts": "2026-06-18T04:29:14Z", "agent": "yhs", "path": "fast", "elapsed_sec": 17.162874300032854, "best_score": 0.59, "evidence_count": 6}
+{"ts": "2026-06-18T04:29:40Z", "agent": "yhs", "path": "fast", "elapsed_sec": 4.785072099999525, "best_score": 0.59, "evidence_count": 6}
+{"ts": "2026-06-18T04:32:48Z", "agent": "yhs", "path": "deep", "elapsed_sec": 158.47917550010607, "best_score": 0.0, "evidence_count": 0}

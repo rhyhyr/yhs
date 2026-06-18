@@ -28,8 +28,8 @@ CRAWL_SLEEP_SEC     = float(os.environ.get("CRAWL_SLEEP_SEC", "0.15"))
 allowed_sites = [
     "https://www.donga.ac.kr",
     "https://global.donga.ac.kr/global",
-    "https://www.hikorea.go.kr" #민원처리중심,
-    "https://www.immigration.go.kr" #제도 변경 시 참고
+    "https://www.hikorea.go.kr", #민원처리중심,
+    "https://www.immigration.go.kr", #제도 변경 시 참고
     "https://www.hometax.go.kr"
 ]
 
