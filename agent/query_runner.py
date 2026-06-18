@@ -138,11 +138,11 @@ def run_query_loop() -> None:
             # ── 1. FAQ 빠른 매칭 ─────────────────────────────────────────────
             faq_start = perf_counter()
             print(f"[{_ts()}] FAQ 검사 시작")
-            faq_answer = faq_handler.match(question)
-            print(f"[{_ts()}] FAQ 검사 완료 ({perf_counter() - faq_start:.2f}s)")
+            faq_answer, faq_score = faq_handler.match_with_score(question)
+            print(f"[{_ts()}] FAQ 검사 완료 ({perf_counter() - faq_start:.2f}s) | keyword_match={faq_score}")
 
             if faq_answer:
-                print(f"[{_ts()}] [FAQ 빠른 답변]")
+                print(f"[{_ts()}] [FAQ] path=faq | keyword_match_score={faq_score}")
                 print(faq_answer)
                 print(f"[{_ts()}] 처리 완료 ({perf_counter() - question_start:.2f}s)\n")
                 continue
@@ -168,6 +168,11 @@ def run_query_loop() -> None:
                 question, best_score, evidence_count, thresholds
             )
 
+            print(f"[{_ts()}] [FAST] path=fast | best_score={best_score:.3f} | chunks={evidence_count} | use_deep={use_deep}")
+            for i, c in enumerate(result.chunks):
+                preview = (c.text or "").replace("\n", " ")[:60]
+                print(f"  [chunk {i}] score={c.score:.3f} | src={c.source_file} p.{c.source_page} | {preview}...")
+
             # ── 4. Deep Path: 변형 쿼리 병합 + 웹 크롤링 ───────────────────
             external_contexts: list[str] = []
             path = "fast"
@@ -187,22 +192,30 @@ def run_query_loop() -> None:
 
                 if extra_results:
                     result = _merge_results(result, extra_results)
+                    best_after_merge = max((c.score for c in result.chunks), default=0.0)
                     print(
                         f"[{_ts()}] [DEEP] 변형 쿼리 {len(variants)}개 병합 완료 "
-                        f"(chunks={len(result.chunks)})"
+                        f"(chunks={len(result.chunks)}, best_score={best_after_merge:.3f})"
                     )
+                    for i, c in enumerate(result.chunks):
+                        preview = (c.text or "").replace("\n", " ")[:60]
+                        print(f"  [chunk {i}] score={c.score:.3f} | src={c.source_file} p.{c.source_page} | {preview}...")
+                else:
+                    best_after_merge = max((c.score for c in result.chunks), default=0.0)
 
                 # 병합 후에도 근거 부족하면 웹 크롤링
-                best_after = max((c.score for c in result.chunks), default=0.0)
+                best_after = best_after_merge
                 needs_web, _ = should_use_deep_path(
                     question, best_after, len(result.chunks), thresholds
                 )
                 if needs_web:
-                    print(f"[{_ts()}] [DEEP] 웹 검색 시작")
+                    print(f"[{_ts()}] [DEEP] 웹 검색 시작 (merge 후 best_score={best_after:.3f} 미달)")
                     snippets = web_client.search_and_collect(question, max_results=3)
                     for sn in snippets:
                         external_contexts.append(f"[WEB] {sn.title}: {sn.snippet}")
                     print(f"[{_ts()}] [DEEP] 웹 검색 완료 ({len(snippets)}개 수집)")
+                    for i, sn in enumerate(snippets):
+                        print(f"  [web {i}] {sn.title} | {(sn.snippet or '')[:80]}...")
 
                 print(f"[{_ts()}] [DEEP] 완료 ({perf_counter() - deep_start:.2f}s)")
 
