@@ -6,6 +6,7 @@ import os
 import re
 import time
 import urllib.parse
+from collections import deque
 from typing import Any
 from urllib.parse import urlparse
 
@@ -15,11 +16,13 @@ from bs4 import BeautifulSoup
 from openai import OpenAI
 from sklearn.metrics.pairwise import cosine_similarity
 
+from agent.ollama_runtime_client import OllamaRuntimeClient
+
 # ── 환경변수 (hybrid_query_agent.py와 공유) ───────────────────────────────
 VEC_WEIGHT          = float(os.environ.get("VEC_WEIGHT", "0.62"))
 KW_WEIGHT           = float(os.environ.get("KW_WEIGHT", "0.38"))
-CRAWL_MAX_DEPTH     = int(os.environ.get("CRAWL_MAX_DEPTH", "4"))
-CRAWL_MAX_PAGES     = int(os.environ.get("CRAWL_MAX_PAGES", "20"))
+CRAWL_MAX_DEPTH     = int(os.environ.get("CRAWL_MAX_DEPTH", "6"))
+CRAWL_MAX_PAGES     = int(os.environ.get("CRAWL_MAX_PAGES", "50"))
 CRAWL_FETCH_TIMEOUT = int(os.environ.get("CRAWL_FETCH_TIMEOUT", "6"))
 CRAWL_SLEEP_SEC     = float(os.environ.get("CRAWL_SLEEP_SEC", "0.15"))
 allowed_sites = [
@@ -27,6 +30,7 @@ allowed_sites = [
     "https://global.donga.ac.kr/global",
     "https://www.hikorea.go.kr" #민원처리중심,
     "https://www.immigration.go.kr" #제도 변경 시 참고
+    "https://www.hometax.go.kr"
 ]
 
 
@@ -58,6 +62,7 @@ class WebSearchClient:
         self.openai_client = openai_client  # None이면 Gemini fallback 사용
         self.ALLOWED_SITES = allowed_sites
         self.driver        = driver
+        self._ollama_client: OllamaRuntimeClient | None = None
 
     # =========================================================================
     # 내부 유틸
@@ -78,6 +83,13 @@ class WebSearchClient:
             return 0.0
         return len(q & t) / max(1, len(q))
 
+    def _match_allowed_site(self, url: str) -> str | None:
+        """URL이 어떤 allowed site에 속하는지 가장 구체적인 prefix 기준으로 찾는다."""
+        for site in sorted(self.ALLOWED_SITES, key=len, reverse=True):
+            if url.startswith(site):
+                return site
+        return None
+
     def _chunk_text(self, text: str, chunk_size: int = 500, overlap: int = 100) -> list[str]:
         if not text:
             return []
@@ -95,8 +107,15 @@ class WebSearchClient:
         return out
 
     def _gemini(self, prompt: str) -> str:
-        """Gemini 호출 공통 헬퍼. llm이 None이면 빈 문자열 반환."""
+        """Gemini 호출 공통 헬퍼. Gemini가 없으면 Ollama로 폴백한다."""
         if self.llm is None:
+            try:
+                if self._ollama_client is None:
+                    self._ollama_client = OllamaRuntimeClient()
+                if self._ollama_client.is_available():
+                    return self._ollama_client._chat("", prompt, max_tokens=2048)
+            except Exception as e:
+                print(f"[WARN] Ollama 폴백 실패: {e}", flush=True)
             return ""
         try:
             resp = self.llm.generate_content(
@@ -516,53 +535,91 @@ class WebSearchClient:
     def crawl_fallback_chunks(self, query: str) -> list[tuple[str, str]]:
         """
         2단계 크롤링 전략:
-          Phase 1 - 모든 허용 사이트의 링크를 수집 (페이지 예산 소진 없음)
-          Phase 2 - LLM이 전체 링크를 보고 유망한 경로를 선택해 깊이 탐색
+          Phase 1 - 모든 허용 사이트의 루트를 먼저 1회씩 방문해 다양성 확보
+          Phase 2 - 사이트별 큐를 라운드로빈으로 돌려 남은 예산을 분배
         """
-        # ── Phase 1: 링크 수집 (콘텐츠 크롤링 X) ──────────────────────────────
-        all_links: list[tuple[str, str]] = []
-        visited: set[str] = set(self.ALLOWED_SITES)
+        crawl_budget = max(CRAWL_MAX_PAGES, len(self.ALLOWED_SITES))
+        print(
+            f"[CRAWL] budget: configured={CRAWL_MAX_PAGES}, effective={crawl_budget}, sites={len(self.ALLOWED_SITES)}",
+            flush=True,
+        )
 
-        for base_url in self.ALLOWED_SITES:
-            links = self._collect_links_only(base_url)
-            all_links.extend(links)
-            time.sleep(CRAWL_SLEEP_SEC)
-
-        print(f"[CRAWL] Phase1 완료: 총 {len(all_links)}개 링크 수집", flush=True)
-
-        if not all_links:
-            return []
-
-        # ── Phase 2: LLM이 유망 경로 선택 → 깊이 탐색 ────────────────────────
-        # 홈페이지 수준에서는 더 넓게 선택 (max_select=7)
-        seed_urls = self.llm_select_links(query, all_links, visited, max_select=7)
-        print(f"[CRAWL] Phase2 시작: {len(seed_urls)}개 경로 탐색", flush=True)
-
+        visited: set[str] = set()
         all_chunks: list[tuple[str, str]] = []
-        queue: list[tuple[str, int]] = [(url, 1) for url in seed_urls]
         page_count = 0
 
-        while queue and page_count < CRAWL_MAX_PAGES:
-            current_url, depth = queue.pop(0)
+        # 사이트별 큐를 따로 유지해 한 사이트가 남은 예산을 모두 가져가지 못하게 한다.
+        site_queues: dict[str, deque[tuple[str, int]]] = {site: deque() for site in self.ALLOWED_SITES}
 
-            if current_url in visited:
-                continue
-            visited.add(current_url)
+        # ── Phase 1: 모든 허용 사이트 루트를 먼저 1회씩 방문 ────────────────
+        for base_url in self.ALLOWED_SITES:
+            print(f"[CRAWL] root 방문: {base_url}", flush=True)
+            visited.add(base_url)
             page_count += 1
 
-            print(f"[CRAWL] depth={depth} ({page_count}/{CRAWL_MAX_PAGES}) 방문: {current_url}", flush=True)
-            page_text, links = self.fetch_page_links_and_text(current_url)
+            page_text, links = self.fetch_page_links_and_text(base_url)
             time.sleep(CRAWL_SLEEP_SEC)
 
             if page_text:
                 for chunk in self._chunk_text(page_text):
-                    all_chunks.append((current_url, chunk))
+                    all_chunks.append((base_url, chunk))
 
-            if depth < CRAWL_MAX_DEPTH and links:
-                next_urls = self.llm_select_links(query, links, visited, max_select=3)
-                for next_url in next_urls:
-                    if next_url not in visited:
-                        queue.append((next_url, depth + 1))
+            allowed_links = [
+                (label, url)
+                for label, url in links
+                if self._match_allowed_site(url) == base_url and url not in visited
+            ]
+            seed_urls = self.llm_select_links(query, allowed_links, visited, max_select=2)
+            for next_url in seed_urls:
+                if next_url not in visited:
+                    site_queues[base_url].append((next_url, 2))
+
+        print(f"[CRAWL] Phase1 완료: {page_count}페이지 방문, {sum(len(q) for q in site_queues.values())}개 seed 준비", flush=True)
+
+        # ── Phase 2: 사이트별 큐를 라운드로빈으로 깊이 탐색 ─────────────────
+        while page_count < crawl_budget:
+            progressed = False
+
+            for site in self.ALLOWED_SITES:
+                if page_count >= crawl_budget:
+                    break
+
+                queue = site_queues[site]
+                while queue and queue[0][0] in visited:
+                    queue.popleft()
+
+                if not queue:
+                    continue
+
+                current_url, depth = queue.popleft()
+                if current_url in visited:
+                    continue
+
+                visited.add(current_url)
+                page_count += 1
+                progressed = True
+
+                print(f"[CRAWL] depth={depth} ({page_count}/{crawl_budget}) 방문: {current_url}", flush=True)
+                page_text, links = self.fetch_page_links_and_text(current_url)
+                time.sleep(CRAWL_SLEEP_SEC)
+
+                if page_text:
+                    for chunk in self._chunk_text(page_text):
+                        all_chunks.append((current_url, chunk))
+
+                if depth < CRAWL_MAX_DEPTH and links:
+                    allowed_links = [
+                        (label, url)
+                        for label, url in links
+                        if self._match_allowed_site(url) == site and url not in visited
+                    ]
+                    next_urls = self.llm_select_links(query, allowed_links, visited, max_select=2)
+                    for next_url in next_urls:
+                        if next_url not in visited:
+                            queue.append((next_url, depth + 1))
+
+            if not progressed:
+                break
 
         print(f"[CRAWL] 완료: {page_count}페이지 탐색, {len(all_chunks)}청크 수집", flush=True)
         return all_chunks
@@ -645,6 +702,15 @@ class WebSearchClient:
             if getattr(self, "openai_client", None) and hasattr(self.openai_client, "close"):
                 try:
                     self.openai_client.close()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        try:
+            if getattr(self, "_ollama_client", None):
+                try:
+                    self._ollama_client.close()
                 except Exception:
                     pass
         except Exception:
