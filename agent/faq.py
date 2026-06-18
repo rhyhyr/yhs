@@ -17,7 +17,10 @@ _COMPLEX_INDICATORS: list[str] = [
     "필요한가요", "필요합니까", "필요한지", "동시에", "먼저",
     "그리고", "뿐만 아니라", "관련이 있", "어떤 영향", "납부",
     "확인이", "과 함께", "와 함께", "둘 다", "모두 필요",
-    "비교", "차이", "어떻게 달라", "연관", "조건", "조건부", "복합", "비교", "또는", "그리고",
+    "비교", "차이", "어떻게 달라", "연관", "조건", "조건부", "복합", "또는",
+    # 행동 키워드 — 이게 있으면 단순 FAQ 답변이 아니라 검색이 필요함
+    "연장", "해지", "취소", "신청", "방법", "절차", "어떻게", "어디서",
+    "서류", "준비", "발급", "변경", "전환", "갱신", "기간",
 ]
 
 
@@ -32,7 +35,7 @@ def _is_complex_question(question: str) -> bool:
 # 키워드는 즉답 가능한 수준의 구체적 표현만 사용한다.
 _FAQ_DB: list[tuple[list[str], str]] = [
     (
-        ["D-4 비자", "일반연수 비자", "어학원 비자", "어학연수 비자"],
+        ["D-4 비자란", "일반연수 비자 뭐야", "어학원 비자 종류", "어학연수 비자 소개"],
         """D-4(일반연수) 비자는 어학당, 어학원에서 어학연수를 목적으로 발급받는 비자입니다.
 
 주요 특징:
@@ -43,7 +46,7 @@ _FAQ_DB: list[tuple[list[str], str]] = [
 ⚠️ 최신 정보는 하이코리아(hikorea.go.kr)에서 확인하세요.""",
     ),
     (
-        ["D-2 비자", "유학비자", "학생비자", "D-2 유학"],
+        ["D-2 비자란", "D-2 비자가 뭐야", "D-2 비자 소개", "유학비자 종류", "학생비자 종류"],
         """D-2(유학) 비자는 한국의 대학교, 대학원에서 정규 학위과정을 이수하기 위한 비자입니다.
 
 주요 특징:
@@ -251,8 +254,13 @@ class FastPathHandler:
 
     def match(self, question: str) -> Optional[str]:
         """단순 즉답 가능한 질문에 FAQ 답변을 반환한다. 복합 질문이거나 일치 없으면 None."""
+        answer, _ = self.match_with_score(question)
+        return answer
+
+    def match_with_score(self, question: str) -> tuple[Optional[str], int]:
+        """FAQ 답변과 키워드 매칭 점수(일치 키워드 수)를 함께 반환한다."""
         if _is_complex_question(question):
-            return None
+            return None, 0
 
         q_lower = question.lower().strip()
 
@@ -265,4 +273,6 @@ class FastPathHandler:
                 best_match_count = count
                 best_answer = answer
 
-        return best_answer if best_match_count >= 1 else None
+        if best_match_count >= 1:
+            return best_answer, best_match_count
+        return None, 0

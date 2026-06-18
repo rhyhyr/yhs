@@ -35,7 +35,7 @@ _EXTRACTION_SCHEMA = {
             "type": "string (Entity|Procedure|Document|Institution 중 하나)",
             "domain": "string (visa|health_insurance|part_time|school_admin|daily_life 중 하나)",
             "summary": "string (1-2문장 요약)",
-            "confidence": "float [0.7-1.0]",
+            "confidence": "float [0.0-1.0]",
         }
     ],
     "relations": [
@@ -44,7 +44,7 @@ _EXTRACTION_SCHEMA = {
             "predicate": f"string ({' | '.join(ALLOWED_PREDICATES)} 중 하나만 허용)",
             "object_id": "string",
             "condition": "string (조건문이 있으면 여기에 기술, 없으면 빈 문자열)",
-            "confidence": "float [0.7-1.0]",
+            "confidence": "float [0.0-1.0]",
             "source_text": "string (근거 원문 발췌, 50자 이내)",
         }
     ],
@@ -56,8 +56,8 @@ _SYSTEM_PROMPT = f"""당신은 행정 문서에서 엔티티와 관계를 추출
 1. 출력은 반드시 아래 JSON 스키마 형식으로만 해야 합니다.
 2. predicate는 반드시 허용 목록({', '.join(ALLOWED_PREDICATES)}) 중 하나여야 합니다.
 3. 조건문("~인 경우", "~이상인 경우")은 별도 노드가 아닌 엣지의 condition 필드에 저장합니다.
-4. confidence는 추출 확실성을 [0.7, 1.0] 범위로 표현합니다.
-5. 확실하지 않으면 해당 항목을 포함하지 마세요.
+4. confidence는 추출 확실성을 [0.0, 1.0] 범위로 표현합니다.
+5. 추출이 불확실하면 낮은 confidence 값(0.5 미만)으로 포함하세요. 필터링은 시스템이 처리합니다.
 
 출력 JSON 스키마:
 {json.dumps(_EXTRACTION_SCHEMA, ensure_ascii=False, indent=2)}
@@ -94,7 +94,10 @@ _JSON_SCHEMA = {
                     "additionalProperties": False,
                     "properties": {
                         "subject_id": {"type": "string"},
-                        "predicate": {"type": "string"},
+                        "predicate": {
+                            "type": "string",
+                            "enum": ALLOWED_PREDICATES,  # 허용 목록 외 값 원천 차단
+                        },
                         "object_id": {"type": "string"},
                         "condition": {"type": "string"},
                         "confidence": {"type": "number"},

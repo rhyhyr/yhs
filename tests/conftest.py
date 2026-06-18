@@ -1,5 +1,9 @@
 import sys
+from pathlib import Path
 from unittest.mock import MagicMock
+
+# 프로젝트 루트를 경로에 추가 (CI 환경에서 'agent' 모듈을 찾을 수 있도록)
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 MOCK_MODULES = [
     # 외부 패키지

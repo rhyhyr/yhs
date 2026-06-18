@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from datetime import datetime
 from time import perf_counter
+
+import requests
 
 from agent.agent_runtime import (
     GateThresholds,
@@ -14,11 +17,11 @@ from agent.agent_runtime import (
     insufficient_evidence_message,
     should_use_deep_path,
 )
-from agent.crawler.web_search_client import WebSearchClient
-from agent.crawler.web_search_client import allowed_sites
-import requests
+from agent.crawler.web_search_client import WebSearchClient, allowed_sites
 from agent.faq import FastPathHandler
 from agent.gemini_runtime_client import GeminiRuntimeClient
+from agent.hf_runtime_client import HFRuntimeClient
+from agent.ollama_runtime_client import OllamaRuntimeClient
 from agent.retrieval_engine import RetrievalEngine
 from graph_rag.db.graph_store import GraphStore
 from graph_rag.embedding.embedder import Embedder
@@ -82,13 +85,23 @@ def run_query_loop() -> None:
     """
     embedder = Embedder()
     faq_handler = FastPathHandler()
-    llm = GeminiRuntimeClient()
-    web_client = None
     thresholds = GateThresholds.from_env()
+    web_client = None
 
-    if not llm.is_available():
-        logger.warning("Gemini를 사용할 수 없습니다. FAQ 모드로만 동작합니다.")
-        llm = None
+    runtime_provider = os.environ.get("RUNTIME_LLM", "ollama").lower()
+    if runtime_provider == "hf":
+        llm = HFRuntimeClient()
+        logger.info("런타임 LLM: HuggingFace (%s)", os.environ.get("HF_RUNTIME_MODEL", "Qwen2.5-3B"))
+    elif runtime_provider == "gemini":
+        llm = GeminiRuntimeClient()
+        if not llm.is_available():
+            logger.warning("Gemini를 사용할 수 없습니다. FAQ 모드로만 동작합니다.")
+            llm = None
+    else:  # ollama (기본값)
+        llm = OllamaRuntimeClient()
+        if not llm.is_available():
+            logger.warning("Ollama 서버에 연결할 수 없습니다. 'ollama serve' 실행 여부를 확인하세요.")
+            llm = None
 
     print("\n" + "=" * 60)
     print("  동아대학교 유학생 지원 AI 에이전트")
@@ -99,9 +112,11 @@ def run_query_loop() -> None:
     with GraphStore() as store:
         engine = RetrievalEngine(store, embedder, ollama_client=llm)
 
-        # create HTTP session and WebSearchClient with required dependencies
+        # hf/ollama 모드에서는 WebSearchClient의 LLM 링크 선택 기능을 비활성화한다.
+        # (web_llm=None → 상위 N개 휴리스틱 폴백으로 동작)
         http = requests.Session()
-        web_client = WebSearchClient(http, embedder, llm, store._driver, allowed_sites)
+        web_llm = llm if runtime_provider == "gemini" else None
+        web_client = WebSearchClient(http, embedder, web_llm, store._driver, allowed_sites)
 
         while True:
             try:
@@ -123,11 +138,11 @@ def run_query_loop() -> None:
             # ── 1. FAQ 빠른 매칭 ─────────────────────────────────────────────
             faq_start = perf_counter()
             print(f"[{_ts()}] FAQ 검사 시작")
-            faq_answer = faq_handler.match(question)
-            print(f"[{_ts()}] FAQ 검사 완료 ({perf_counter() - faq_start:.2f}s)")
+            faq_answer, faq_score = faq_handler.match_with_score(question)
+            print(f"[{_ts()}] FAQ 검사 완료 ({perf_counter() - faq_start:.2f}s) | keyword_match={faq_score}")
 
             if faq_answer:
-                print(f"[{_ts()}] [FAQ 빠른 답변]")
+                print(f"[{_ts()}] [FAQ] path=faq | keyword_match_score={faq_score}")
                 print(faq_answer)
                 print(f"[{_ts()}] 처리 완료 ({perf_counter() - question_start:.2f}s)\n")
                 continue
@@ -153,6 +168,11 @@ def run_query_loop() -> None:
                 question, best_score, evidence_count, thresholds
             )
 
+            print(f"[{_ts()}] [FAST] path=fast | best_score={best_score:.3f} | chunks={evidence_count} | use_deep={use_deep}")
+            for i, c in enumerate(result.chunks):
+                preview = (c.text or "").replace("\n", " ")[:60]
+                print(f"  [chunk {i}] score={c.score:.3f} | src={c.source_file} p.{c.source_page} | {preview}...")
+
             # ── 4. Deep Path: 변형 쿼리 병합 + 웹 크롤링 ───────────────────
             external_contexts: list[str] = []
             path = "fast"
@@ -172,22 +192,30 @@ def run_query_loop() -> None:
 
                 if extra_results:
                     result = _merge_results(result, extra_results)
+                    best_after_merge = max((c.score for c in result.chunks), default=0.0)
                     print(
                         f"[{_ts()}] [DEEP] 변형 쿼리 {len(variants)}개 병합 완료 "
-                        f"(chunks={len(result.chunks)})"
+                        f"(chunks={len(result.chunks)}, best_score={best_after_merge:.3f})"
                     )
+                    for i, c in enumerate(result.chunks):
+                        preview = (c.text or "").replace("\n", " ")[:60]
+                        print(f"  [chunk {i}] score={c.score:.3f} | src={c.source_file} p.{c.source_page} | {preview}...")
+                else:
+                    best_after_merge = max((c.score for c in result.chunks), default=0.0)
 
                 # 병합 후에도 근거 부족하면 웹 크롤링
-                best_after = max((c.score for c in result.chunks), default=0.0)
+                best_after = best_after_merge
                 needs_web, _ = should_use_deep_path(
                     question, best_after, len(result.chunks), thresholds
                 )
                 if needs_web:
-                    print(f"[{_ts()}] [DEEP] 웹 검색 시작")
+                    print(f"[{_ts()}] [DEEP] 웹 검색 시작 (merge 후 best_score={best_after:.3f} 미달)")
                     snippets = web_client.search_and_collect(question, max_results=3)
                     for sn in snippets:
                         external_contexts.append(f"[WEB] {sn.title}: {sn.snippet}")
                     print(f"[{_ts()}] [DEEP] 웹 검색 완료 ({len(snippets)}개 수집)")
+                    for i, sn in enumerate(snippets):
+                        print(f"  [web {i}] {sn.title} | {(sn.snippet or '')[:80]}...")
 
                 print(f"[{_ts()}] [DEEP] 완료 ({perf_counter() - deep_start:.2f}s)")
 
@@ -244,3 +272,8 @@ def run_query_loop() -> None:
     if llm is not None:
         llm.close()
     sys.exit(0)
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    run_query_loop()

@@ -104,3 +104,13 @@ def run_embed_update() -> None:
             store.upsert_chunk(chunk)
 
         logger.info("임베딩 업데이트 완료")
+
+
+if __name__ == "__main__":
+    import sys
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "ingest"
+    if cmd == "embed":
+        run_embed_update()
+    else:
+        run_ingest(None)

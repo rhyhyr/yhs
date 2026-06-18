@@ -1,17 +1,23 @@
-# Python 3.11 슬림 이미지 사용
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# 의존성 먼저 설치 (캐싱 효율을 위해 requirements.txt 단독 복사)
+# Playwright 브라우저 실행에 필요한 시스템 라이브러리
+RUN apt-get update && apt-get install -y \
+    wget curl gnupg \
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+    libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
+    libxfixes3 libxrandr2 libgbm1 libasound2 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 소스 코드 복사
-COPY agent/ ./agent/
-COPY graph_rag/ ./graph_rag/
+# Playwright 브라우저 설치
+RUN playwright install chromium
 
-ENV PYTHONPATH=/app
+COPY . .
 
-# 기본 실행 명령 (동작 확인용 smoke test)
-CMD ["python", "-c", "print('Visa Navigator container OK')"]
+EXPOSE 8000
+
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]

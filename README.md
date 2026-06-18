@@ -54,6 +54,66 @@ PDF 로딩, 청킹, 임베딩, 조항 단위 메타데이터 추출을 자동화
 | W15 | 성능 튜닝, 문서화 |
 | W16 | 최종 발표 및 데모 |
 
+## 시작하기 (처음 pull한 경우)
+
+### 1. Ollama 설치 및 EXAONE 모델 다운로드
+
+```bash
+# Ollama 설치 (https://ollama.com/download)
+# macOS
+brew install ollama
+
+# Windows — 위 링크에서 설치 파일 다운로드
+
+# EXAONE 모델 다운로드 (~5GB, 최초 1회)
+ollama pull exaone3.5:7.8b
+
+# Ollama 서버 실행 (터미널 하나 점유)
+ollama serve
+```
+
+### 2. 환경변수 설정
+
+```bash
+cp .env.example .env
+# .env 파일을 열어 NEO4J_PASSWORD 등 필요한 값을 채운다
+```
+
+### 3. 의존성 설치 및 실행
+
+```bash
+pip install -r requirements.txt
+
+# KB 구축 (PDF → Neo4j 인제스트)
+python main.py --ingest
+
+# 질의 루프 실행
+python main.py --query
+```
+
+### Docker로 실행하는 경우
+
+```bash
+# 첫 실행 — Ollama 컨테이너가 뜬 뒤 모델을 직접 pull해야 한다
+docker compose up -d
+
+# EXAONE 모델 pull (최초 1회, ollama 컨테이너 내부에서 실행)
+docker compose exec ollama ollama pull exaone3.5:7.8b  # ~5GB
+
+# 이후부터는 그냥 기동하면 됨 (모델은 ollama_data 볼륨에 저장됨)
+docker compose up
+```
+
+### LLM 공급자 전환 (선택사항)
+
+| 목적 | .env 설정 |
+|------|-----------|
+| Ollama EXAONE (기본) | `LLM_PROVIDER=ollama` / `RUNTIME_LLM=ollama` |
+| Gemini API | `LLM_PROVIDER=gemini` / `RUNTIME_LLM=gemini` + `GEMINI_API_KEY=...` |
+| OpenAI API | `LLM_PROVIDER=openai` + `OPENAI_API_KEY=...` |
+
+---
+
 ## 폴더 구조
 
 - [agent/](agent): 질의, 인제스트, 검색, LLM 연동
