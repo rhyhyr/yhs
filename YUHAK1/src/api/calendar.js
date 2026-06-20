@@ -52,6 +52,81 @@ export async function getCalendarEvents(year, month) {
   */
 }
 
+// ── 체크리스트 → 캘린더 이벤트 변환 ──────────────────────────────────────
+
+/**
+ * 체크리스트 스텝 배열을 캘린더 이벤트 맵으로 변환
+ *
+ * @param {Array<{ steps, type, color }>} checklists
+ *   - steps: 체크리스트 스텝 배열 (dueDate 필드가 있는 항목만 처리)
+ *   - type:  표시할 타입 레이블 (예: '비자', 'ARC', '학교')
+ *   - color: 이벤트 색상 hex (예: '#5B45C2')
+ * @returns {Record<string, Array>}  키: "YYYY-MM-DD", 값: 이벤트 배열
+ */
+export function checklistsToEvents(checklists) {
+  const result = {};
+  checklists.forEach(({ steps, type, color }) => {
+    steps.forEach(step => {
+      if (!step.dueDate) return;
+      if (!result[step.dueDate]) result[step.dueDate] = [];
+      result[step.dueDate].push({
+        title: step.text,
+        desc: step.sub || null,
+        color,
+        type,
+        source: 'checklist',
+        checklistItemId: step.id,
+        isCompleted: step.checked,
+      });
+    });
+  });
+  return result;
+}
+
+/**
+ * 여러 이벤트 맵을 날짜 키 기준으로 병합
+ * 같은 날짜에 여러 출처의 이벤트가 있으면 배열로 합쳐짐
+ */
+export function mergeEvents(...eventMaps) {
+  const result = {};
+  eventMaps.forEach(map => {
+    Object.entries(map).forEach(([date, evts]) => {
+      result[date] = [...(result[date] ?? []), ...evts];
+    });
+  });
+  return result;
+}
+
+/**
+ * 채팅 체크리스트에서 선택된 항목만 캘린더 이벤트 맵으로 변환
+ *
+ * @param {import('../data/mockChecklistData').ChatChecklist} checklist
+ * @param {number[]} selectedItemIds  — 사용자가 선택한 item.id 배열
+ * @returns {Record<string, Array>}
+ */
+export function convertChecklistItemsToEvents(checklist, selectedItemIds) {
+  const selectedSet = new Set(selectedItemIds);
+  const result      = {};
+
+  checklist.items
+    .filter(item => selectedSet.has(item.id) && item.dueDate)
+    .forEach(item => {
+      if (!result[item.dueDate]) result[item.dueDate] = [];
+      result[item.dueDate].push({
+        title:           item.text,
+        desc:            item.sub || null,
+        color:           checklist.color,
+        type:            checklist.type,
+        source:          'chat-checklist',
+        checklistId:     checklist.id,
+        checklistItemId: item.id,
+        isCompleted:     false,
+      });
+    });
+
+  return result;
+}
+
 // ── 내부 유틸 ─────────────────────────────────────────────────────────────
 
 // function authHeader() {

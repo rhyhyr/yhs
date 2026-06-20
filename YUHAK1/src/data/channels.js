@@ -25,7 +25,7 @@ export const CHANNEL_LIST = [
     icon: '🛂',
     iconBg: 'var(--c-purple-l)',
     placeholder: '비자 관련 질문하기...',
-    welcomeMsg: 'D-2 채널입니다. 만료까지 87일 남았어요. 위 버튼을 탭하거나 직접 질문해주세요!',
+    welcomeMsg: '비자 & 체류 채널입니다.\nARC 재등록, 비자 연장, 외국인등록증 관련 절차를 안내해드릴게요.',
     quickActions: [
       { label: '📋 비자 연장 절차', type: 'navigate', target: 's-step' },
       { label: '🪪 외국인등록증',   type: 'question', text: '외국인등록증 재발급 절차를 알려주세요.' },
@@ -39,8 +39,13 @@ export const CHANNEL_LIST = [
     icon: '🏫',
     iconBg: 'var(--c-green-l)',
     placeholder: '학교생활 관련 질문하기...',
-    welcomeMsg: '학교생활 채널입니다. 수강신청, 학사 일정, 장학금, 기숙사 등 학교 관련 질문을 해주세요!',
-    quickActions: [],
+    welcomeMsg: '학교생활 채널입니다.\n수강신청, 학사 일정, 장학금, 기숙사 등 학교 관련 정보를 단계별로 안내해드릴게요.',
+    quickActions: [
+      { label: '📋 수강신청 체크리스트', type: 'navigate', target: 's-school-checklist' },
+      { label: '📅 학사일정 확인',       type: 'question', text: '이번 학기 학사일정 알려주세요.' },
+      { label: '💰 등록금 납부',         type: 'question', text: '등록금 납부 방법을 알려주세요.' },
+      { label: '🎓 장학금 안내',         type: 'question', text: '유학생 장학금 신청 방법을 알려주세요.' },
+    ],
   },
   {
     id: 'job',
@@ -48,7 +53,7 @@ export const CHANNEL_LIST = [
     icon: '💼',
     iconBg: 'var(--c-amber-l)',
     placeholder: '취업 · 아르바이트 관련 질문하기...',
-    welcomeMsg: '취업 & 아르바이트 채널입니다. 시간제 취업 허가, 아르바이트 규정, 인턴십 관련 질문을 해주세요!',
+    welcomeMsg: '취업 & 아르바이트 채널입니다.\n시간제 취업 허가 절차, 허가 서류, 근무 가능 시간 등을 단계별로 안내해드릴게요.',
     quickActions: [],
   },
   {

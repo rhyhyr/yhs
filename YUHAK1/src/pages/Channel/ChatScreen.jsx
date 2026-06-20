@@ -9,10 +9,10 @@ const CHANNEL_ID = 'main';
 const WELCOME_MSG = '안녕하세요! 무엇이든 질문하세요. 적합한 채널로 안내해 드리겠습니다.';
 
 const CATEGORIES = [
-  { id: 'visa',   label: '🛂 비자 & 체류',       channelId: 'visa',   iconBg: 'var(--c-purple-l)' },
-  { id: 'job',    label: '💼 취업 & 아르바이트', channelId: 'job',    iconBg: 'var(--c-amber-l)'  },
-  { id: 'school', label: '🏫 학교생활',           channelId: 'school', iconBg: 'var(--c-green-l)'  },
-  { id: 'house',  label: '🏠 주거',               channelId: 'house',  iconBg: 'var(--c-accent-l)' },
+  { id: 'visa',   label: '🛂 비자 & 체류',       subtitle: 'ARC 재등록 · 서류 · 신청 절차',     channelId: 'visa',   iconBg: 'var(--c-purple-l)' },
+  { id: 'job',    label: '💼 취업 & 아르바이트', subtitle: '허가 절차 · 필요 서류 · 주의사항',   channelId: 'job',    iconBg: 'var(--c-amber-l)'  },
+  { id: 'school', label: '🏫 학교생활',           subtitle: '수강신청 · 학사일정 · 정정기간',     channelId: 'school', iconBg: 'var(--c-green-l)'  },
+  { id: 'house',  label: '🏠 주거',               subtitle: '전월세 · 전입신고 · 계약 주의사항', channelId: 'house',  iconBg: 'var(--c-accent-l)' },
 ];
 
 const CHANNEL_SCREEN = {
@@ -162,8 +162,8 @@ export default function ChatScreen() {
               >
                 <div style={{ fontSize: '20px' }}>{suggestedCat.label.split(' ')[0]}</div>
                 <div className="suggestion-card-text">
-                  <strong>{suggestedCat.label.slice(suggestedCat.label.indexOf(' ') + 1)}</strong> 채널에서<br />
-                  더 정확한 답변을 받아보세요
+                  <strong>{suggestedCat.label.slice(suggestedCat.label.indexOf(' ') + 1)}</strong> 채널에서 자세히 보기<br />
+                  {suggestedCat.subtitle}
                 </div>
                 <div className="suggestion-card-arrow">›</div>
               </div>

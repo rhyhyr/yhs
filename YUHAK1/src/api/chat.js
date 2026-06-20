@@ -90,15 +90,36 @@ export async function getChannelMessages(channelId) {
  * fetch 블록을 try 안에, mock 블록을 catch 안에 두거나
  * USE_MOCK 플래그로 분기하세요.
  */
+// ── 데모용 채널 추천 키워드 테이블 ──────────────────────────────────────
+const DEMO_SUGGEST_RULES = [
+  { keywords: ['보험', '건강보험', '의료', '진료', '부산대학교 유학생', '유학생 보험'], channelId: 'insurance' },
+  { keywords: ['등록금', '납부', '다음 학기 등록', '수강신청', '수강', '학사', '학교', '학점', '장학금', '기숙사'], channelId: 'school' },
+  { keywords: ['arc', 'ARC', '비자', '체류', '외국인등록증', '분실', '재발급', '재등록', '연장', 'hikorea', 'hi korea', '출입국'], channelId: 'visa' },
+  { keywords: ['알바', '아르바이트', '취업', '시간제', '허가'], channelId: 'job' },
+  { keywords: ['집', '전세', '월세', '계약', '이사', '주거'], channelId: 'house' },
+];
+
+function detectSuggestedChannel(message) {
+  const lower = message.toLowerCase();
+  for (const rule of DEMO_SUGGEST_RULES) {
+    if (rule.keywords.some(kw => lower.includes(kw.toLowerCase()))) {
+      return rule.channelId;
+    }
+  }
+  return null;
+}
+
 export async function sendMessage({ channelId, message, history }) {
   // ── mock 응답 (API 미연결 상태)
   await delay(MOCK_DELAY);
-  const { text, sources } = pickMockResponse(channelId);
+  const { text, sources, checklistId } = pickMockResponse(channelId, message);
+  const suggestedChannelId = channelId === 'main' ? detectSuggestedChannel(message) : null;
   return {
     answer: text,
     sources,
     tags: [],
-    suggestedChannelId: null,  // 백엔드 연결 시 채워짐 — 예: "visa" | "school" | null
+    suggestedChannelId,
+    checklistId: checklistId ?? null,
   };
 
   /* ── fetch 교체 예시 (위 mock 삭제 후 아래 주석 해제) ──

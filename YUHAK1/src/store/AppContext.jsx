@@ -1,6 +1,19 @@
 import { createContext, useState, useRef, useEffect } from 'react';
-import { INITIAL_STEPS } from '../api/mockData';
+import { INITIAL_STEPS, ARC_RENEW_STEPS, SCHOOL_REGISTER_STEPS } from '../api/mockData';
 import { getVisaSteps, updateStepStatus } from '../api/steps';
+import { persistUserProfile } from '../api/userProfile';
+import { loadUserProfile } from '../utils/storage';
+import { mergeEvents } from '../api/calendar';
+
+const DEFAULT_PROFILE = {
+  name: '',
+  nationality: '',
+  school: '',
+  department: '',
+  grade: '',
+  visaType: '',
+  languages: [],
+};
 
 // 안정적인 빈 배열 참조 — useEffect 의존성 배열에서 무한루프 방지
 const EMPTY_MESSAGES = [];
@@ -25,14 +38,28 @@ export function AppProvider({ children }) {
     getVisaSteps().then(setSteps).catch(() => {});
   }, []);
 
+  // ── 외국인등록증 재발급 체크리스트 ──
+  const [arcSteps, setArcSteps] = useState(ARC_RENEW_STEPS);
+
+  // ── 학교 수강신청·등록 체크리스트 ──
+  const [schoolSteps, setSchoolSteps] = useState(SCHOOL_REGISTER_STEPS);
+
   // ── 알림 토글 ──
   const [toggles, setToggles] = useState({ visa: true, house: true, insurance: false });
 
-  // ── 온보딩: 언어 선택 ──
-  const [langs, setLangs] = useState({ ko: true, zh: true, en: false, vi: false });
+  // ── 유저 프로필 ──
+  const [userProfile, setUserProfile] = useState(() => loadUserProfile() ?? DEFAULT_PROFILE);
 
-  // ── 온보딩: 비자 유형 선택 ──
-  const [visaChip, setVisaChip] = useState('D-2 학생');
+  function saveProfile(profile) {
+    persistUserProfile(profile);
+    setUserProfile(profile);
+  }
+
+  function updateUserProfile(partial) {
+    const updated = { ...userProfile, ...partial };
+    persistUserProfile(updated);
+    setUserProfile(updated);
+  }
 
   // ── 비자 채널: 정보 패널 열림 여부 ──
   const [infoOpen, setInfoOpen] = useState(true);
@@ -43,6 +70,14 @@ export function AppProvider({ children }) {
 
   // ── 채널 메인 필터 ──
   const [channelFilter, setChannelFilter] = useState('전체');
+
+  // ── 채팅 체크리스트 → 캘린더 연동 이벤트 맵 ──
+  // 형식: { 'YYYY-MM-DD': [CalendarEvent, ...] }
+  const [chatCalendarItems, setChatCalendarItems] = useState({});
+
+  function addChatChecklistToCalendar(eventMap) {
+    setChatCalendarItems(prev => mergeEvents(prev, eventMap));
+  }
 
   // ── 사용자가 생성한 채널 목록 (ChatScreen → HomeScreen 공유) ──
   const [createdChannels, setCreatedChannels] = useState([]);
@@ -59,12 +94,26 @@ export function AppProvider({ children }) {
   // ── 네비게이션 파라미터 (채널 ID 등 화면 전환 시 전달할 데이터) ──
   const [navParams, setNavParams] = useState({});
 
-  // ── 파생 값 (단계 진행률) ──
+  // ── 파생 값 (비자 연장 진행률) ──
   const total = steps.length;
   const checkedCount = steps.filter(s => s.checked).length;
   const pct = Math.round(checkedCount / total * 100);
   const grp1Checked = steps.slice(0, 4).filter(s => s.checked).length;
   const grp2Checked = steps.slice(4).filter(s => s.checked).length;
+
+  // ── 파생 값 (외국인등록증 재발급 진행률) ──
+  const arcTotal = arcSteps.length;
+  const arcCheckedCount = arcSteps.filter(s => s.checked).length;
+  const arcPct = Math.round(arcCheckedCount / arcTotal * 100);
+  const arcGrp1Checked = arcSteps.slice(0, 4).filter(s => s.checked).length;
+  const arcGrp2Checked = arcSteps.slice(4).filter(s => s.checked).length;
+
+  // ── 파생 값 (학교 수강신청·등록 진행률) ──
+  const schoolTotal = schoolSteps.length;
+  const schoolCheckedCount = schoolSteps.filter(s => s.checked).length;
+  const schoolPct = Math.round(schoolCheckedCount / schoolTotal * 100);
+  const schoolGrp1Checked = schoolSteps.slice(0, 4).filter(s => s.checked).length;
+  const schoolGrp2Checked = schoolSteps.slice(4).filter(s => s.checked).length;
 
   // ── 채팅 함수 ──
   // EMPTY_MESSAGES는 모듈 상수로 안정적인 참조 유지 (useEffect 무한루프 방지)
@@ -129,20 +178,58 @@ export function AppProvider({ children }) {
     });
   }
 
+  function toggleSchoolStep(id) {
+    setSchoolSteps(prevSteps => {
+      const updated = prevSteps.map(s => {
+        if (s.id === id) {
+          const nowChecked = !s.checked;
+          return { ...s, checked: nowChecked, current: !nowChecked };
+        }
+        return s;
+      });
+      if (updated.filter(s => s.checked).length === schoolTotal) {
+        showToast('🎉 수강신청 준비가 모두 완료됐어요!');
+      }
+      return updated;
+    });
+  }
+
+  function toggleArcStep(id) {
+    setArcSteps(prevSteps => {
+      const updated = prevSteps.map(s => {
+        if (s.id === id) {
+          const nowChecked = !s.checked;
+          return { ...s, checked: nowChecked, current: !nowChecked };
+        }
+        return s;
+      });
+      if (updated.filter(s => s.checked).length === arcTotal) {
+        showToast('🎉 재발급 준비가 모두 완료됐어요!');
+      }
+      return updated;
+    });
+  }
+
   return (
     <AppContext.Provider value={{
       // 네비게이션
       current, prev, navParams, navigate, back,
       // 토스트
       toastMsg, toastVisible, showToast,
-      // 단계
+      // 단계 (비자 연장)
       steps, toggleStep, checkedCount, total, pct, grp1Checked, grp2Checked,
+      // 단계 (외국인등록증 재발급)
+      arcSteps, toggleArcStep, arcCheckedCount, arcTotal, arcPct, arcGrp1Checked, arcGrp2Checked,
+      // 단계 (학교 수강신청·등록)
+      schoolSteps, toggleSchoolStep, schoolCheckedCount, schoolTotal, schoolPct, schoolGrp1Checked, schoolGrp2Checked,
       // 프로필/설정
       toggles, setToggles,
-      langs, setLangs,
-      visaChip, setVisaChip,
+      // 유저 프로필
+      userProfile, saveUserProfile: saveProfile, updateUserProfile,
       // 채팅 상태
       addMessage, getMessages,
+      // 채팅 체크리스트 → 캘린더
+      chatCalendarItems, addChatChecklistToCalendar,
       // 생성된 채널
       createdChannels, addCreatedChannel,
       // 채널

@@ -7,6 +7,8 @@ import SplashScreen from './pages/Splash/SplashScreen';
 import HomeScreen from './pages/Home/HomeScreen';
 import VisaScreen from './pages/Visa/VisaScreen';
 import StepGuideScreen from './pages/Guide/StepGuideScreen';
+import ArcRenewChecklistScreen from './pages/Guide/ArcRenewChecklistScreen';
+import SchoolChecklistScreen from './pages/Guide/SchoolChecklistScreen';
 import ChatScreen from './pages/Channel/ChatScreen';
 import CalendarScreen from './pages/Calendar/CalendarScreen';
 import ChannelChatScreen from './pages/Channel/ChannelChatScreen';
@@ -79,6 +81,8 @@ function AppShell() {
         <div className={sc('s-home')}         id="s-home">         <HomeScreen /></div>
         <div className={sc('s-visa')}         id="s-visa">         <VisaScreen /></div>
         <div className={sc('s-step')}         id="s-step">         <StepGuideScreen /></div>
+        <div className={sc('s-arc-checklist')}    id="s-arc-checklist">    <ArcRenewChecklistScreen /></div>
+        <div className={sc('s-school-checklist')} id="s-school-checklist"> <SchoolChecklistScreen /></div>
         <div className={sc('s-main')}         id="s-main">         <ChatScreen /></div>
         <div className={sc('s-calendar')}     id="s-calendar">     <CalendarScreen /></div>
         {/* s-channel-chat: navParams.channelId로 어떤 채널이든 하나의 화면으로 처리 */}

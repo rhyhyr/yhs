@@ -66,7 +66,12 @@ function GhostChItem({ icon, iconBg, name, preview, onClick }) {
 
 /* ── 메인 화면 ── */
 export default function HomeScreen() {
-  const { navigate, showToast, createdChannels } = useApp();
+  const { navigate, showToast, createdChannels, userProfile } = useApp();
+
+  const displayName = userProfile?.name?.trim() || '반갑습니다';
+  const initial = displayName !== '반갑습니다'
+    ? displayName.charAt(0).toUpperCase()
+    : '?';
 
   // 채널 ID → 전용 화면 매핑 (채널 추가 시 여기만 수정)
   const CHANNEL_SCREEN = {
@@ -100,8 +105,8 @@ export default function HomeScreen() {
           <div className="notif-bubble">1</div>
         </div>
         <div style={{ flex: 1, marginLeft: '8px' }}>
-          <div className="tb-title">YHS</div>
-          <div className="tb-sub">안녕하세요, Wei!</div>
+          <div className="tb-title">UniGuide</div>
+          <div className="tb-sub">안녕하세요, {displayName}!</div>
         </div>
         <div
           onClick={() => navigate('s-profile')}
@@ -111,7 +116,7 @@ export default function HomeScreen() {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '14px', fontWeight: 700, color: 'var(--c-accent)', cursor: 'pointer',
           }}
-        >W</div>
+        >{initial}</div>
       </div>
 
       {/* 스크롤 본문 */}

@@ -37,7 +37,7 @@ export function useChatChannel(channelId) {
     setIsLoading(true);
 
     try {
-      const { answer, tags, sources, suggestedChannelId: suggested } =
+      const { answer, tags, sources, suggestedChannelId: suggested, checklistId } =
         await sendMessage({ channelId, message: trimmed, history });
 
       addMessage(channelId, {
@@ -46,6 +46,7 @@ export function useChatChannel(channelId) {
         text: answer,
         tags,
         sources,
+        checklistId: checklistId ?? null,
       });
 
       // 메인채팅에서만 채널 추천을 사용 (채널 내부에서는 불필요)
