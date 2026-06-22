@@ -19,6 +19,7 @@ from typing import List
 
 import numpy as np
 
+from agent.retrieval.translator import get_translator, is_translation_enabled
 from graph_rag.config import (
     ALIASES_MAP,
     EMBEDDING_DIM,
@@ -27,7 +28,6 @@ from graph_rag.config import (
 )
 from graph_rag.db.graph_store import GraphStore
 from graph_rag.embedding.embedder import Embedder
-from agent.retrieval.translator import get_translator, is_translation_enabled
 
 logger = logging.getLogger(__name__)
 

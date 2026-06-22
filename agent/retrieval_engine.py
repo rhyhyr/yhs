@@ -27,7 +27,6 @@ from graph_rag.config import (
     DEFAULT_HOP_DEPTH,
     DISCLAIMER_TEMPLATE,
     DOC_STALENESS_MONTHS,
-    MIN_CHUNKS_FROM_GRAPH,
     TOP_K_GRAPH_DEFAULT,
 )
 from graph_rag.db.graph_store import GraphStore
