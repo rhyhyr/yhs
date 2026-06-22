@@ -84,7 +84,7 @@ jobs:
 
       # ★ 아티팩트 다운로드 — 이전 job 결과물을 가져옴
       - name: Download build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: yhs-build
           path: ./downloaded
@@ -119,7 +119,7 @@ jobs:
     # environment: production  # GitHub Environment 미설정 시 주석 처리                   # GitHub Environments 사용 (보호 규칙 적용 가능)
     steps:
       - name: Download build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: yhs-build
           path: ./release
