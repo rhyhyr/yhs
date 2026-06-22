@@ -1,0 +1,45 @@
+name: "Week11 (선택) Canary 롤아웃"
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "롤아웃 비율"
+        required: true
+        default: "1pct"
+        type: choice
+        options:
+          - 1pct
+          - 10pct
+          - 50pct
+          - 100pct
+
+jobs:
+  canary-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Canary 배포 (${{ inputs.stage }})"
+        run: |
+          echo "🚀 Canary 배포 시작: ${{ inputs.stage }}"
+          case "${{ inputs.stage }}" in
+            1pct)   WEIGHT=1  ;;
+            10pct)  WEIGHT=10 ;;
+            50pct)  WEIGHT=50 ;;
+            100pct) WEIGHT=100 ;;
+          esac
+          echo "트래픽 $WEIGHT% → canary 버전으로 라우팅"
+          # 실제 환경: aws lambda update-alias --routing-config 등
+
+      - name: "헬스체크"
+        run: |
+          echo "✅ 헬스체크 통과 (stage: ${{ inputs.stage }})"
+          # 실패 시 아래 rollback 스텝이 실행됨
+
+      - name: "자동 롤백 (헬스체크 실패 시)"
+        if: failure()
+        run: |
+          echo "❌ 헬스체크 실패 → 이전 버전으로 롤백"
+          echo "트래픽 100% → stable 버전으로 복구"
+          # 실제 환경: aws lambda update-alias --routing-config '{}'

@@ -1,0 +1,86 @@
+name: "Week9 ④ 보안 스캔 (npm audit + pip-audit)"
+
+on:
+  schedule:
+    - cron: "0 2 * * 1"   # 매주 월요일 새벽 2시 자동 실행
+  push:
+    branches: [main]
+  workflow_dispatch:       # 수동 실행 버튼
+
+jobs:
+  # npm 패키지 보안 스캔
+  npm-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: npm audit 실행
+        working-directory: npm-package
+        run: |
+          npm install
+          npm audit --json > npm-audit-report.json || true   # 취약점 있어도 워크플로우 실패 안 함
+          echo "=== npm audit 요약 ==="
+          npm audit || true
+
+      - name: 리포트 아티팩트로 저장
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: npm-package/npm-audit-report.json
+
+  # Python 패키지 보안 스캔
+  pip-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: pip-audit 실행
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt --format json -o pip-audit-report.json || true
+          echo "=== pip-audit 요약 ==="
+          pip-audit -r requirements.txt || true
+
+      - name: 리포트 아티팩트로 저장
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-report
+          path: pip-audit-report.json
+
+  # 스케줄 실행 시 GitHub 이슈로 결과 보고
+  create-issue:
+    needs: [npm-audit, pip-audit]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'   # 스케줄 실행 때만 이슈 생성
+    permissions:
+      issues: write
+    steps:
+      - name: 보안 스캔 결과 이슈 생성
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const date = new Date().toISOString().slice(0, 10);
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[보안 스캔] 주간 리포트 - ${date}`,
+              body: [
+                '## 주간 보안 스캔 결과',
+                '',
+                '자동화된 보안 스캔이 완료되었습니다.',
+                '',
+                '| 항목 | 상태 |',
+                '|------|------|',
+                '| npm audit | ✅ 완료 |',
+                '| pip-audit | ✅ 완료 |',
+                '',
+                `> 상세 리포트: [Actions 탭에서 확인](https://github.com/${context.repo.owner}/${context.repo.repo}/actions)`,
+              ].join('\n'),
+              labels: ['security', 'automated'],
+            });

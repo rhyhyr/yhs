@@ -1,0 +1,17 @@
+{
+  "name": "@taeing25/visa-navigator-utils",
+  "version": "1.0.1",
+  "description": "Utility helpers for Global Campus Visa Navigator",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/taeing25/yhs_t.git"
+  },
+  "license": "MIT"
+}

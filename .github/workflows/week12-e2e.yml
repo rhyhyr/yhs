@@ -1,0 +1,31 @@
+name: "Week12 (선택) Playwright E2E"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Playwright 설치
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: E2E 테스트 실행
+        working-directory: e2e
+        run: npx playwright test
+
+      - name: 실패 시 스크린샷 저장
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-screenshots
+          path: e2e/test-results/

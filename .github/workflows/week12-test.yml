@@ -1,0 +1,36 @@
+name: "Week12 단위 테스트 + 커버리지 (80% 이상)"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 의존성 설치
+        run: pip install pytest pytest-cov
+
+      - name: 테스트 + 커버리지 측정
+        run: |
+          pytest tests/ -v \
+            --cov=agent.feature_flags \
+            --cov=agent.ab_test \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-fail-under=80
+
+      - name: 커버리지 리포트 저장
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml

@@ -1,0 +1,28 @@
+version: 2
+updates:
+  # Python 의존성 (requirements.txt)
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+    groups:
+      dev-tools:
+        patterns: ["pytest*", "ruff*"]   # 개발 도구는 묶어서 한 PR로
+    labels: ["dependencies", "python"]
+
+  # npm 의존성 (npm-package/)
+  - package-ecosystem: npm
+    directory: "/npm-package"
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "npm"]
+
+  # GitHub Actions 버전
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "actions"]

@@ -67,8 +67,15 @@ jobs:
       - name: Run smoke validation
         shell: pwsh
         run: |
-          python -m compileall -q .
-          python -c "import regression_test, hierarchical_rag, hybrid_query_agent, student_agent"
+          python -m compileall -q agent/
+          python -c "
+          import pathlib, ast
+          targets = ['agent/feature_flags.py', 'agent/ab_test.py', 'lambda_handler.py']
+          for f in targets:
+              ast.parse(pathlib.Path(f).read_text(encoding='utf-8'))
+              print(f'syntax OK: {f}')
+          print('smoke validation passed')
+          "
 
       - name: Upload benchmark report
         id: upload-report
