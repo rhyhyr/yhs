@@ -14,3 +14,9 @@ Thumbs.db
 
 # Optional: keep large/sensitive PDFs out of Git
 # pdf/*.pdf
+
+# 실험 결과 및 런타임 로그 (로컬 전용)
+logs/*.jsonl
+agent/retrieval/logs/
+실험/results/
+실험/_dryrun_샘플/
