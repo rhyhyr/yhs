@@ -9,7 +9,7 @@ pdfplumber
 pypdf
 numpy
 scikit-learn
-sentence-transformers==3.0.1
+sentence-transformers==5.6.0
 requests
 beautifulsoup4
 langchain-community
