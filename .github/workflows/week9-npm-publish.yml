@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: 코드 받기
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Node.js 설정
         uses: actions/setup-node@v4
