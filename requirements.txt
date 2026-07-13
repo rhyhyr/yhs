@@ -3,7 +3,7 @@ langdetect
 sentencepiece
 json-repair
 accelerate
-transformers>=4.40.0
+transformers>=5.13.1
 google-genai
 pdfplumber
 pypdf
