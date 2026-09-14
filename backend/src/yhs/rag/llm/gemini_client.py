@@ -1,5 +1,5 @@
 """
-agent/gemini_runtime_client.py
+yhs/rag/llm/gemini_client.py
 
 역할:
 - 런타임 답변 생성용 Gemini 클라이언트.

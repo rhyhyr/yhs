@@ -1,5 +1,5 @@
 """
-graph_rag/db/graph_store.py
+yhs/infra/graph_store.py
 
 역할:
 - Neo4j DB 연결 및 스키마 초기화 (제약·인덱스).
@@ -457,7 +457,7 @@ class GraphStore:
     def close(self) -> None:
         self._driver.close()
 
-    def __enter__(self) -> "GraphStore":
+    def __enter__(self) -> GraphStore:
         return self
 
     def __exit__(self, *_: Any) -> None:

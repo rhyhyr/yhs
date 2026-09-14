@@ -1,0 +1,22 @@
+# 웹 크롤러 설정
+#
+# allowed_sites 밖의 URL 은 절대 방문하지 않는다 (화이트리스트).
+# 사이트를 추가할 때는 robots.txt 와 이용약관을 먼저 확인할 것.
+#
+# 환경변수 오버라이드: VEC_WEIGHT, KW_WEIGHT,
+# CRAWL_MAX_DEPTH, CRAWL_MAX_PAGES, CRAWL_FETCH_TIMEOUT, CRAWL_SLEEP_SEC
+
+allowed_sites:
+- https://www.donga.ac.kr
+- https://global.donga.ac.kr/global
+- https://www.hikorea.go.kr
+- https://www.immigration.go.kr
+- https://www.hometax.go.kr
+weights:
+  vector: 0.62
+  keyword: 0.38
+budget:
+  max_depth: 6
+  max_pages: 50
+  fetch_timeout_sec: 6
+  sleep_sec: 0.15

@@ -1,0 +1,47 @@
+# 검색·재랭크 튜닝 파라미터
+#
+# weights 는 Optuna TPE(n=150, gold bigram recall 기준)로 탐색한 값이다.
+# 그래프 홉 점수 차등화 + 벡터 이중 계산 제거 버그 수정 후 재탐색했다.
+# 값을 바꾸면 experiments/weight_sweep_optuna.py 로 재검증할 것.
+#
+# 환경변수로 개별 항목을 덮어쓸 수 있다 (예: TOP_K_VECTOR, GATE_MIN_TOP_SCORE).
+
+rerank:
+  candidate_top_k: 10
+  final_top_k: 6
+  min_chunk_score: 0.3
+weights:
+  base: 0.33
+  keyword: 0.53
+  recency: 0.14
+base_scores:
+  graph: 0.75
+  routed: 0.9
+question_fit_threshold: 0.03
+header_markers:
+- 'URL:'
+- '출처기관:'
+- '수집일:'
+- '출처:'
+- '날짜:'
+- 'Source:'
+- 'Retrieved:'
+graph:
+  default_hop_depth: 2
+  top_k_graph: 8
+  top_k_vector: 5
+  min_chunks_from_graph: 2
+  dde_score_by_hop:
+    0: 1.0
+    1: 0.5
+    2: 0.25
+    3: 0.125
+  always_include_edge_types:
+  - BLOCKS
+  - ENABLES_SHORTCUT
+entity_link:
+  cosine_threshold: 0.72
+  top_k: 3
+gate:
+  min_top_score: 0.25
+  min_evidence_chunks: 2

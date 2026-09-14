@@ -1,5 +1,5 @@
 """
-graph_rag/llm/ollama_kb_client.py
+yhs/ingest/llm/ollama_kb_client.py
 
 역할:
 - KB 구축 단계에서 EXAONE(Ollama) 로컬 모델로 엔티티·관계를 추출한다.
@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import requests
 
@@ -85,14 +85,14 @@ class OllamaKBClient:
         except requests.exceptions.ConnectionError:
             raise ConnectionError(
                 f"Ollama 서버에 연결할 수 없습니다. 'ollama serve' 실행 여부 확인: {self._base_url}"
-            )
+            ) from None
         except Exception as exc:
             logger.error("Ollama 호출 실패: %s", exc)
             raise
 
     def extract_entities_and_relations(
         self, text: str, source_file: str = ""
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         텍스트에서 엔티티와 관계를 추출한다.
         Returns: {"entities": [...], "relations": [...]}
@@ -112,7 +112,7 @@ class OllamaKBClient:
             logger.error("Ollama 추출 실패: %s", exc)
             return {"entities": [], "relations": []}
 
-    def parse_flowchart_image(self, image_path: Path) -> Dict[str, Any]:
+    def parse_flowchart_image(self, image_path: Path) -> dict[str, Any]:
         """Ollama는 Vision 미지원 — 빈 결과 반환."""
         logger.warning("Ollama는 이미지 파싱을 지원하지 않습니다: %s", image_path)
         return {"entities": [], "relations": []}

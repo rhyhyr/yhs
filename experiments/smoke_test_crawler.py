@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 experiments/smoke_test_crawler.py
 크롤러 스모크테스트 — uncovered 2개만 돌려 크롤러 로직 검증
@@ -29,13 +28,14 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf-8-s
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 import requests
 from openai import OpenAI
 
-from yhs.rag.crawler.web_search_client import WebSearchClient, allowed_sites
 from yhs.infra.embedder import Embedder
+from yhs.rag.crawler.web_search_client import WebSearchClient, allowed_sites
 
 SMOKE_QUERIES = [
     {

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 experiments/run_eval100_openai.py
 run_eval100.py의 OpenAI 버전 — 답변 모델을 gpt-4o-mini로 교체
@@ -26,19 +25,21 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf-8-s
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 import requests
 
-from yhs.rag.runtime import GateThresholds, expand_query, should_use_deep_path
-from yhs.rag.crawler.web_search_client import WebSearchClient, allowed_sites
-from yhs.rag.llm.openai_client import OpenAIRuntimeClient
-from yhs.rag.engine import RetrievalEngine
-from yhs.infra.graph_store import GraphStore
+from experiments.eval_sets.eval_questions_v3 import (
+    EVAL_QUERIES,  # noqa: E402  (v3: cross_hop 58개 포함)
+)
 from yhs.infra.embedder import Embedder
+from yhs.infra.graph_store import GraphStore
+from yhs.rag.crawler.web_search_client import WebSearchClient, allowed_sites
+from yhs.rag.engine import RetrievalEngine
+from yhs.rag.llm.openai_client import OpenAIRuntimeClient
+from yhs.rag.runtime import GateThresholds, expand_query, should_use_deep_path
 from yhs.schema.types import ChunkNode, RetrievalResult
-
-from experiments.eval_sets.eval_questions_v3 import EVAL_QUERIES  # noqa: E402  (v3: cross_hop 58개 포함)
 
 RUNS_PATH = "experiments/results/runs_v3b.jsonl"
 SCORES_PATH = "experiments/results/scores_v3b.jsonl"
@@ -436,7 +437,7 @@ def main() -> None:
     print("=" * 60)
 
     embedder = Embedder()
-    thresholds = GateThresholds.from_env()
+    thresholds = GateThresholds.from_config()
     llm = OpenAIRuntimeClient()
     answer_model = llm._model
     print(f"LLM: {answer_model} (OpenAI)")

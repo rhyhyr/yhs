@@ -17,22 +17,24 @@ from bs4 import BeautifulSoup
 from openai import OpenAI
 from sklearn.metrics.pairwise import cosine_similarity
 
+from yhs.core.settings import _override, get_settings, load_config
 from yhs.rag.llm.ollama_client import OllamaRuntimeClient
 
-# ── 환경변수 (hybrid_query_agent.py와 공유) ───────────────────────────────
-VEC_WEIGHT          = float(os.environ.get("VEC_WEIGHT", "0.62"))
-KW_WEIGHT           = float(os.environ.get("KW_WEIGHT", "0.38"))
-CRAWL_MAX_DEPTH     = int(os.environ.get("CRAWL_MAX_DEPTH", "6"))
-CRAWL_MAX_PAGES     = int(os.environ.get("CRAWL_MAX_PAGES", "50"))
-CRAWL_FETCH_TIMEOUT = int(os.environ.get("CRAWL_FETCH_TIMEOUT", "6"))
-CRAWL_SLEEP_SEC     = float(os.environ.get("CRAWL_SLEEP_SEC", "0.15"))
-allowed_sites = [
-    "https://www.donga.ac.kr",
-    "https://global.donga.ac.kr/global",
-    "https://www.hikorea.go.kr", #민원처리중심,
-    "https://www.immigration.go.kr", #제도 변경 시 참고
-    "https://www.hometax.go.kr"
-]
+# ── 크롤러 설정 (backend/config/crawler.yaml) ─────────────────────────────
+# 값은 YAML 이 기본이고, 환경변수가 설정돼 있으면 그쪽이 이긴다.
+# (실험 스크립트가 스윕을 돌릴 때 환경변수만 바꾸면 되도록)
+_cfg = load_config("crawler")
+_s = get_settings()
+
+VEC_WEIGHT          = _override(_cfg["weights"]["vector"], _s.vec_weight)
+KW_WEIGHT           = _override(_cfg["weights"]["keyword"], _s.kw_weight)
+CRAWL_MAX_DEPTH     = _override(_cfg["budget"]["max_depth"], _s.crawl_max_depth)
+CRAWL_MAX_PAGES     = _override(_cfg["budget"]["max_pages"], _s.crawl_max_pages)
+CRAWL_FETCH_TIMEOUT = _override(_cfg["budget"]["fetch_timeout_sec"], _s.crawl_fetch_timeout)
+CRAWL_SLEEP_SEC     = _override(_cfg["budget"]["sleep_sec"], _s.crawl_sleep_sec)
+
+# 크롤링 허용 도메인 화이트리스트 — 이 밖의 URL 은 절대 방문하지 않는다.
+allowed_sites: list[str] = list(_cfg["allowed_sites"])
 
 
 
@@ -762,9 +764,9 @@ class WebSearchClient:
                 title = u
             snippet_text = (c or "").replace("\n", " ")[:300]
             obj = type("SearchSnippet", (), {})()
-            setattr(obj, "title", title)
-            setattr(obj, "snippet", snippet_text)
-            setattr(obj, "url", u)
+            obj.title = title
+            obj.snippet = snippet_text
+            obj.url = u
             snippets.append(obj)
 
         print(f"[WEB SEARCH] 완료: {len(snippets)}개 스니펫 반환 (query={query[:40]})", flush=True)

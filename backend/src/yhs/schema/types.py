@@ -1,5 +1,5 @@
 """
-graph_rag/schema/types.py
+yhs/schema/types.py
 
 역할: 그래프 DB의 노드·엣지를 표현하는 Enum과 데이터클래스를 정의한다.
       DB 레이어와 파이프라인 레이어 사이의 공통 데이터 계약이다.
@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
 
 
 # ─── 노드 타입 ────────────────────────────────────────────────────────────────
@@ -69,11 +68,11 @@ class EntityNode:
     id: str
     name: str
     domain: str
-    aliases: List[str] = field(default_factory=list)
+    aliases: list[str] = field(default_factory=list)
     summary: str = ""
-    valid_from: Optional[str] = None
-    valid_until: Optional[str] = None
-    last_verified: Optional[str] = None
+    valid_from: str | None = None
+    valid_until: str | None = None
+    last_verified: str | None = None
     confidence: float = 1.0
     source: str = ""
     needs_review: bool = False
@@ -126,7 +125,7 @@ class ChunkNode:
     language: str = "ko"
     doc_version: str = ""
     score: float = 0.0
-    embedding: Optional[List[float]] = None  # numpy 변환 후 저장
+    embedding: list[float] | None = None  # numpy 변환 후 저장
     needs_review: bool = False
     created_at: str = field(default_factory=_now)
 
@@ -180,7 +179,7 @@ class RawDocument:
 @dataclass
 class RetrievalResult:
     """검색 엔진 최종 반환값"""
-    triples: List[Triple]
-    chunks: List[ChunkNode]
+    triples: list[Triple]
+    chunks: list[ChunkNode]
     retrieval_method: str       # "graph" | "vector" | "no_answer"
-    entity_ids: List[str] = field(default_factory=list)
+    entity_ids: list[str] = field(default_factory=list)

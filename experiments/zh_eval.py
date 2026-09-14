@@ -29,7 +29,6 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
-from typing import Optional
 
 # ── 테스트 질문 셋 ────────────────────────────────────────────────────────────
 # 실제 중국인 유학생이 쓸 법한 표현으로 작성
@@ -61,7 +60,7 @@ class EvalResult:
     query_id: str
     query: str
     expected_intent: str
-    translated: Optional[str]        # 번역된 텍스트 (번역 OFF면 None)
+    translated: str | None        # 번역된 텍스트 (번역 OFF면 None)
     intents: list
     entity_count: int
     retrieval_method: str
@@ -99,7 +98,6 @@ def evaluate_one(query_id: str, query: str, expected_intent: str) -> EvalResult:
     entity_count = 0
     retrieval_method = "not_tested"
     try:
-        from yhs.rag.engine import RetrievalEngine
         from yhs.core.config import (
             EMBEDDING_MODEL,
             NEO4J_DATABASE,
@@ -107,8 +105,9 @@ def evaluate_one(query_id: str, query: str, expected_intent: str) -> EvalResult:
             NEO4J_URI,
             NEO4J_USER,
         )
-        from yhs.infra.graph_store import GraphStore
         from yhs.infra.embedder import Embedder
+        from yhs.infra.graph_store import GraphStore
+        from yhs.rag.engine import RetrievalEngine
 
         store = GraphStore(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, NEO4J_DATABASE)
         embedder = Embedder(EMBEDDING_MODEL)

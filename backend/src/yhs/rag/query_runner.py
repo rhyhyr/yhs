@@ -8,6 +8,16 @@ from time import perf_counter
 
 import requests
 
+from yhs.core.settings import get_settings
+from yhs.infra.embedder import Embedder
+from yhs.infra.graph_store import GraphStore
+from yhs.rag.crawler.web_search_client import WebSearchClient, allowed_sites
+from yhs.rag.engine import RetrievalEngine
+from yhs.rag.faq import FastPathHandler
+from yhs.rag.llm.gemini_client import GeminiRuntimeClient
+from yhs.rag.llm.hf_client import HFRuntimeClient
+from yhs.rag.llm.ollama_client import OllamaRuntimeClient
+from yhs.rag.llm.openai_client import OpenAIRuntimeClient
 from yhs.rag.runtime import (
     GateThresholds,
     append_latency_log,
@@ -17,15 +27,6 @@ from yhs.rag.runtime import (
     insufficient_evidence_message,
     should_use_deep_path,
 )
-from yhs.rag.crawler.web_search_client import WebSearchClient, allowed_sites
-from yhs.rag.faq import FastPathHandler
-from yhs.rag.llm.gemini_client import GeminiRuntimeClient
-from yhs.rag.llm.hf_client import HFRuntimeClient
-from yhs.rag.llm.ollama_client import OllamaRuntimeClient
-from yhs.rag.llm.openai_client import OpenAIRuntimeClient
-from yhs.rag.engine import RetrievalEngine
-from yhs.infra.graph_store import GraphStore
-from yhs.infra.embedder import Embedder
 from yhs.schema.types import ChunkNode, RetrievalResult
 
 logger = logging.getLogger(__name__)
@@ -169,10 +170,10 @@ def run_query_loop() -> None:
     """
     embedder = Embedder()
     faq_handler = FastPathHandler()
-    thresholds = GateThresholds.from_env()
+    thresholds = GateThresholds.from_config()
     web_client = None
 
-    runtime_provider = os.environ.get("RUNTIME_LLM", "ollama").lower()
+    runtime_provider = get_settings().runtime_llm.lower()
     if runtime_provider == "hf":
         llm = HFRuntimeClient()
         logger.info("런타임 LLM: HuggingFace (%s)", os.environ.get("HF_RUNTIME_MODEL", "Qwen2.5-3B"))

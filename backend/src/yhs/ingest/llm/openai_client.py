@@ -1,5 +1,5 @@
 """
-graph_rag/llm/openai_client.py
+yhs/ingest/llm/openai_client.py
 
 역할:
 - KB 구축 단계(초기 1회)에만 사용하는 OpenAI API 클라이언트.
@@ -18,7 +18,7 @@ import base64
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from openai import OpenAI
 
@@ -123,7 +123,7 @@ class OpenAIKBClient:
 
     def extract_entities_and_relations(
         self, text: str, source_file: str = ""
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         텍스트에서 엔티티와 관계를 추출한다.
         Returns: {"entities": [...], "relations": [...]}
@@ -154,7 +154,7 @@ class OpenAIKBClient:
             logger.error("OpenAI API 오류: %s", exc)
             return {"entities": [], "relations": []}
 
-    def parse_flowchart_image(self, image_path: Path) -> Dict[str, Any]:
+    def parse_flowchart_image(self, image_path: Path) -> dict[str, Any]:
         """
         흐름도 이미지에서 노드와 엣지를 추출한다 (OpenAI Vision).
         Returns: {"entities": [...], "relations": [...]}

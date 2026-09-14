@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import logging
-import os
 
 import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from yhs.core.settings import get_settings
+from yhs.infra.embedder import Embedder
+from yhs.infra.graph_store import GraphStore
+from yhs.rag.crawler.web_search_client import WebSearchClient, allowed_sites
+from yhs.rag.engine import RetrievalEngine
+from yhs.rag.faq import FastPathHandler
 from yhs.rag.runtime import (
     GateThresholds,
     detect_language,
@@ -15,11 +20,6 @@ from yhs.rag.runtime import (
     insufficient_evidence_message,
     should_use_deep_path,
 )
-from yhs.rag.crawler.web_search_client import WebSearchClient, allowed_sites
-from yhs.rag.faq import FastPathHandler
-from yhs.rag.engine import RetrievalEngine
-from yhs.infra.graph_store import GraphStore
-from yhs.infra.embedder import Embedder
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ class AnswerResponse(BaseModel):
 
 def _build_llm():
     """RUNTIME_LLM 환경변수에 따라 적절한 LLM 클라이언트를 반환한다."""
-    provider = os.environ.get("RUNTIME_LLM", "ollama").lower()
+    provider = get_settings().runtime_llm.lower()
     if provider == "gemini":
         from yhs.rag.llm.gemini_client import GeminiRuntimeClient
         client = GeminiRuntimeClient()
@@ -68,7 +68,7 @@ def _build_llm():
 embedder = Embedder()
 faq_handler = FastPathHandler()
 llm = _build_llm()
-thresholds = GateThresholds.from_env()
+thresholds = GateThresholds.from_config()
 http_session = requests.Session()
 _store: GraphStore | None = None
 _engine = None

@@ -1,9 +1,9 @@
 """
-agent/ollama_runtime_client.py
+yhs/rag/llm/ollama_client.py
 
 역할:
 - Ollama 로컬 서버를 통한 런타임 답변 생성 클라이언트.
-- GeminiRuntimeClient와 동일한 인터페이스 → query_runner/api.py에서 드롭인 교체 가능.
+- GeminiRuntimeClient와 동일한 인터페이스 → query_runner/yhs/api/main.py에서 드롭인 교체 가능.
 
 사용:
     .env 또는 환경변수에 RUNTIME_LLM=ollama 설정
@@ -95,7 +95,7 @@ class OllamaRuntimeClient:
         except requests.exceptions.ConnectionError:
             raise ConnectionError(
                 f"Ollama 서버에 연결할 수 없습니다. 'ollama serve' 실행 여부 확인: {self._base_url}"
-            )
+            ) from None
         except Exception as exc:
             logger.error("Ollama 호출 실패: %s", exc)
             raise

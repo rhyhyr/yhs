@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 experiments/post_to_notion.py
 uncovered 실험 결과를 Notion 페이지에 기록
@@ -6,6 +5,7 @@ uncovered 실험 결과를 Notion 페이지에 기록
 실행: python experiments/post_to_notion.py
 """
 from __future__ import annotations
+
 import json
 import os
 import sys
@@ -15,6 +15,7 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _ROOT)                                   # experiments.* 패키지
 sys.path.insert(0, os.path.join(_ROOT, "backend", "src"))   # yhs.* 패키지
 from dotenv import load_dotenv
+
 load_dotenv()
 
 import requests
@@ -201,7 +202,7 @@ def main() -> None:
 
     title = f"YHS uncovered 실험 결과 — {time.strftime('%Y-%m-%d')} (크롤 50페이지)"
     new_page_id = create_page(NOTION_PAGE_ID, title, blocks)
-    print(f"\n노션 새 페이지 생성 완료!")
+    print("\n노션 새 페이지 생성 완료!")
     print(f"https://app.notion.com/p/d-{new_page_id.replace('-', '')}")
 
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 experiments/make_judge_prompt.py
 

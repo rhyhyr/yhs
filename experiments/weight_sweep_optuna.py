@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 experiments/weight_sweep_optuna.py
 
@@ -44,18 +43,20 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf-8-s
 os.environ.setdefault("RUNTIME_LLM", "ollama")  # EXAONE3.5 via Ollama
 
 from dotenv import load_dotenv
+
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(_ROOT, ".env"), override=True)
 
 import optuna
+
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 import yhs.rag.engine as re_module
-from yhs.rag.engine import RetrievalEngine
-from yhs.core.config import DEFAULT_HOP_DEPTH, TOP_K_GRAPH_DEFAULT
-from yhs.infra.graph_store import GraphStore
-from yhs.infra.embedder import Embedder
 from experiments.eval_sets.eval_questions_v2 import EVAL_QUERIES
+from yhs.core.config import DEFAULT_HOP_DEPTH, TOP_K_GRAPH_DEFAULT
+from yhs.infra.embedder import Embedder
+from yhs.infra.graph_store import GraphStore
+from yhs.rag.engine import RetrievalEngine
 
 # in_db + complex 만 대상 (DB에 정답 청크가 존재하는 항목)
 TARGET = [q for q in EVAL_QUERIES if q["stratum"] in ("in_db", "complex")]

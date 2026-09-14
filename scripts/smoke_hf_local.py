@@ -1,21 +1,28 @@
 """
-test_hf_local.py
+scripts/smoke_hf_local.py
 
-HFRuntimeClient (EXAONE-3.5-2.4B-Instruct) 단독 테스트.
+HFRuntimeClient (EXAONE-3.5-2.4B-Instruct) 단독 스모크 테스트.
 - Neo4j 없이 LLM 생성만 검증
 - 이후 Neo4j가 켜져 있으면 Full Deep-Path 쿼리까지 실행
 
+pytest 대상이 아니다 (모델 다운로드가 필요한 수동 점검용).
+
 실행:
-    python test_hf_local.py
+    python scripts/smoke_hf_local.py
 """
 from __future__ import annotations
 
 import os
 import sys
 import time
+from typing import TYPE_CHECKING
 
-# 프로젝트 루트를 sys.path에 추가
-sys.path.insert(0, os.path.dirname(__file__))
+# backend/src 를 경로에 추가 (`pip install -e backend` 를 했다면 불필요)
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(_ROOT, "backend", "src"))
+
+if TYPE_CHECKING:
+    from yhs.rag.llm.hf_client import HFRuntimeClient
 
 os.environ.setdefault("RUNTIME_LLM", "hf")
 os.environ.setdefault("HF_RUNTIME_MODEL", "Qwen/Qwen2.5-3B-Instruct")
@@ -61,7 +68,7 @@ def check_env() -> None:
 
 
 # ─── 단계 2: HFRuntimeClient LLM 생성 테스트 ─────────────────────────────────
-def test_llm_generation() -> "HFRuntimeClient":
+def test_llm_generation() -> HFRuntimeClient:
     from yhs.rag.llm.hf_client import HFRuntimeClient
     from yhs.schema.types import RetrievalResult
 
@@ -109,13 +116,16 @@ def test_full_deep_path() -> None:
     # 비교형 질문 → Deep Path 강제 유도
     deep_question = "D-2 비자와 D-4 비자의 차이점과 각각 연장 절차를 비교해 주세요."
 
-    from yhs.infra.graph_store import GraphStore
     from yhs.infra.embedder import Embedder
-    from yhs.rag.llm.hf_client import HFRuntimeClient
+    from yhs.infra.graph_store import GraphStore
     from yhs.rag.engine import RetrievalEngine
+    from yhs.rag.llm.hf_client import HFRuntimeClient
     from yhs.rag.runtime import (
-        GateThresholds, detect_language, detect_question_type,
-        expand_query, should_use_deep_path, build_answer_prompt,
+        GateThresholds,
+        detect_language,
+        detect_question_type,
+        expand_query,
+        should_use_deep_path,
     )
 
     embedder = Embedder()
@@ -144,7 +154,6 @@ def test_full_deep_path() -> None:
         if use_deep:
             t0 = time.perf_counter()
             variants = expand_query(deep_question, lang)[1:]
-            from yhs.schema.types import ChunkNode
             from yhs.rag.query_runner import _merge_results
             extra = []
             for v in variants:

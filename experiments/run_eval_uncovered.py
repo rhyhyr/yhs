@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 experiments/run_eval_uncovered.py
 uncovered 20개만 크롤러 집중 실험
@@ -26,15 +25,15 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf-8-s
 os.environ.setdefault("RUNTIME_LLM", "openai")
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
-from yhs.rag.runtime import GateThresholds
-from yhs.rag.llm.openai_client import OpenAIRuntimeClient
-from yhs.infra.graph_store import GraphStore
-from yhs.infra.embedder import Embedder
-
 from experiments.eval_sets.eval_questions_v3 import EVAL_QUERIES
-from experiments.run_eval100 import collect_answers, score_answers, aggregate
+from experiments.run_eval100 import aggregate, collect_answers, score_answers
+from yhs.infra.embedder import Embedder
+from yhs.infra.graph_store import GraphStore
+from yhs.rag.llm.openai_client import OpenAIRuntimeClient
+from yhs.rag.runtime import GateThresholds
 
 RUNS_PATH   = "experiments/results/runs_uncovered.jsonl"
 SCORES_PATH = "experiments/results/scores_uncovered.jsonl"
@@ -101,7 +100,7 @@ def main() -> None:
         print(f"  {q['id']}: {q['query'][:50]}")
 
     embedder = Embedder()
-    thresholds = GateThresholds.from_env()
+    thresholds = GateThresholds.from_config()
     llm = OpenAIRuntimeClient()
     if not llm.is_available():
         print("[FATAL] OPENAI_API_KEY가 설정되지 않았습니다.")

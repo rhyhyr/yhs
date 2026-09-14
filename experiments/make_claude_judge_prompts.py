@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 experiments/make_claude_judge_prompts.py
 runs_*.jsonl 파일을 읽어 Claude 채팅에 붙여넣을 수 있는 배치 판정 프롬프트를 생성.

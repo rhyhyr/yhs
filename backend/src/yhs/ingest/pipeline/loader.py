@@ -1,11 +1,11 @@
 """
-graph_rag/pipeline/loader.py
+yhs/ingest/pipeline/loader.py
 
 역할:
 - PDF 파일: pdfplumber로 페이지별 텍스트·섹션 헤더 추출
 - 출력: RawDocument 목록 (text, source_file, source_page, section, ...)
 
-※ 웹 크롤링(WebLoader)은 agent/crawler 로 이전되었습니다.
+※ 웹 크롤링(WebLoader)은 yhs/rag/crawler 로 이전되었습니다.
 """
 
 from __future__ import annotations
@@ -13,7 +13,6 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import List
 
 from yhs.schema.types import RawDocument
 
@@ -49,13 +48,13 @@ def _detect_doc_version(filename: str) -> str:
 class PDFLoader:
     """pdfplumber 기반 PDF 텍스트 수집기."""
 
-    def load(self, pdf_path: Path) -> List[RawDocument]:
+    def load(self, pdf_path: Path) -> list[RawDocument]:
         try:
             import pdfplumber
         except ImportError:
-            raise ImportError("pdfplumber를 설치하세요: pip install pdfplumber")
+            raise ImportError("pdfplumber를 설치하세요: pip install pdfplumber") from None
 
-        docs: List[RawDocument] = []
+        docs: list[RawDocument] = []
         doc_version = _detect_doc_version(pdf_path.name)
 
         try:
@@ -86,4 +85,4 @@ class PDFLoader:
         return docs
 
 
-# WebLoader는 agent/crawler 로 이전되었습니다.
+# WebLoader는 yhs/rag/crawler 로 이전되었습니다.

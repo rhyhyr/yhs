@@ -1,5 +1,5 @@
 """
-agent/retrieval/translator.py
+yhs/rag/retrieval/translator.py
 
 역할:
   중국어 질문을 한국어로 번역하여 기존 파이프라인이 그대로 동작하게 한다.
@@ -88,7 +88,7 @@ class QueryTranslator:
             raise ImportError(
                 "번역 모델 실행에 필요한 패키지가 없습니다.\n"
                 "pip install transformers sentencepiece"
-            )
+            ) from None
         except Exception as exc:
             logger.error("번역 모델 로드 실패: %s", exc)
             raise
@@ -174,5 +174,6 @@ def is_translation_enabled() -> bool:
     사용:
         ENABLE_ZH_TRANSLATION=false python experiments/zh_eval.py
     """
-    import os
-    return os.getenv("ENABLE_ZH_TRANSLATION", "true").strip().lower() != "false"
+    from yhs.core.settings import get_settings
+
+    return get_settings().enable_zh_translation

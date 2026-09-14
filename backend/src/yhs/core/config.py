@@ -1,149 +1,113 @@
 """
-graph_rag/config.py
+yhs/core/config.py
 
-역할: 전체 시스템에서 공유하는 상수·경로·모델명·임계값을 한 곳에서 관리한다.
-      환경변수로 오버라이드 가능하도록 os.environ.get() 패턴을 사용한다.
+설정 값의 평면(flat) 뷰.
+
+실제 값은 두 곳에서 온다.
+  - 환경변수 / .env  → yhs.core.settings.Settings
+  - backend/config/*.yaml → yhs.core.settings.load_config()
+
+이 모듈은 그 둘을 합쳐 기존 코드가 쓰던 대문자 상수 이름으로 노출한다.
+새로 작성하는 코드는 가능하면 settings 를 직접 쓰는 쪽이 낫다 —
+이 모듈의 값은 import 시점에 고정되므로 런타임에 환경변수를 바꿔도
+반영되지 않는다.
+
+    from yhs.core.settings import get_settings, load_config
+    s = get_settings()
 """
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
+from yhs.core.settings import (
+    BACKEND_DIR,
+    PACKAGE_DIR,
+    REPO_ROOT,
+    _override,
+    get_settings,
+    load_config,
+)
 
-def _load_env(path: str = ".env") -> None:
-    """python-dotenv 없이 .env 파일을 읽어 환경변수를 채운다."""
-    if not os.path.exists(path):
-        return
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            k, v = line.split("=", 1)
-            k, v = k.strip(), v.strip().strip('"').strip("'")
-            if k:
-                os.environ.setdefault(k, v)
-
-
-_load_env()
+_s = get_settings()
+_retrieval = load_config("retrieval")
+_domain = load_config("domain")
 
 # ─── 경로 ────────────────────────────────────────────────────────────────────
-# 이 파일: <repo>/backend/src/yhs/core/config.py
-#   parents[0]=core  [1]=yhs  [2]=src  [3]=backend  [4]=<repo>
-PACKAGE_DIR = Path(__file__).resolve().parents[1]   # .../src/yhs
-BACKEND_DIR = Path(__file__).resolve().parents[3]   # .../backend
-BASE_DIR = Path(__file__).resolve().parents[4]      # 저장소 루트
-DATA_DIR = Path(os.environ.get("DATA_DIR", str(BASE_DIR / "data")))
-CONFIG_DIR = Path(os.environ.get("CONFIG_DIR", str(BACKEND_DIR / "config")))
-REVIEW_QUEUE_PATH = Path(os.environ.get("REVIEW_QUEUE_PATH", str(DATA_DIR / "cache" / "review_queue.json")))
-EMBED_CACHE_PATH = Path(os.environ.get("EMBED_CACHE_PATH", str(DATA_DIR / "cache" / "embed_cache.pkl")))
-PDF_DIR = Path(os.environ.get("PDF_DIR", str(DATA_DIR / "sources")))
+BASE_DIR = REPO_ROOT
+DATA_DIR: Path = _s.data_dir
+CONFIG_DIR: Path = _s.config_dir
+PDF_DIR: Path = _s.sources_dir
+REVIEW_QUEUE_PATH: Path = _s.review_queue
+EMBED_CACHE_PATH: Path = _s.embed_cache
 
 # ─── Neo4j ───────────────────────────────────────────────────────────────────
-NEO4J_URI = os.environ.get("NEO4J_URI", "bolt://localhost:7687")
-NEO4J_USER = os.environ.get("NEO4J_USER", os.environ.get("NEO4J_USERNAME", "neo4j"))
-NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD", "")
-NEO4J_DATABASE = os.environ.get("NEO4J_DATABASE", "neo4j")
+NEO4J_URI = _s.neo4j_uri
+NEO4J_USER = _s.neo4j_user
+NEO4J_PASSWORD = _s.neo4j_password
+NEO4J_DATABASE = _s.neo4j_database
 # Neo4j 5.11+ 네이티브 벡터 인덱스 사용 여부 (False 시 numpy fallback)
-USE_NEO4J_VECTOR_INDEX = os.environ.get("USE_NEO4J_VECTOR_INDEX", "true").lower() == "true"
+USE_NEO4J_VECTOR_INDEX = _s.use_neo4j_vector_index
 
 # ─── 임베딩 모델 ─────────────────────────────────────────────────────────────
-EMBEDDING_MODEL = os.environ.get("EMBEDDING_MODEL", "BAAI/bge-m3")
-EMBEDDING_DIM = int(os.environ.get("EMBEDDING_DIM", "1024"))
-EMBEDDING_BATCH_SIZE = int(os.environ.get("EMBEDDING_BATCH_SIZE", "32"))
+EMBEDDING_MODEL = _s.embedding_model
+EMBEDDING_DIM = _s.embedding_dim
+EMBEDDING_BATCH_SIZE = _s.embedding_batch_size
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o")
-
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
-
-OLLAMA_BASE_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "exaone3.5:7.8b")
-OLLAMA_TIMEOUT = int(os.environ.get("OLLAMA_TIMEOUT", "180"))
+# ─── LLM ─────────────────────────────────────────────────────────────────────
+OPENAI_API_KEY = _s.openai_api_key
+OPENAI_MODEL = _s.openai_model
+GEMINI_API_KEY = _s.gemini_api_key
+GEMINI_MODEL = _s.gemini_model
+OLLAMA_BASE_URL = _s.ollama_base_url
+OLLAMA_MODEL = _s.ollama_model
+OLLAMA_TIMEOUT = _s.ollama_timeout
 
 # ─── 파이프라인 ───────────────────────────────────────────────────────────────
-MAX_CHUNK_TOKENS = int(os.environ.get("MAX_CHUNK_TOKENS", "512"))
-MIN_CHUNK_TOKENS = int(os.environ.get("MIN_CHUNK_TOKENS", "50"))
-CONFIDENCE_THRESHOLD = float(os.environ.get("CONFIDENCE_THRESHOLD", "0.7"))
-DOC_STALENESS_MONTHS = int(os.environ.get("DOC_STALENESS_MONTHS", "6"))
+MAX_CHUNK_TOKENS = _s.max_chunk_tokens
+MIN_CHUNK_TOKENS = _s.min_chunk_tokens
+CONFIDENCE_THRESHOLD = _s.confidence_threshold
+DOC_STALENESS_MONTHS = _s.doc_staleness_months
+FRESHNESS_CHECK_INTERVAL_WEEKS = _s.freshness_check_interval_weeks
 
-# ─── 검색(Retrieval) ─────────────────────────────────────────────────────────
-ENTITY_LINK_COSINE_THRESHOLD = float(os.environ.get("ENTITY_LINK_COSINE_THRESHOLD", "0.72"))
-ENTITY_LINK_TOP_K = int(os.environ.get("ENTITY_LINK_TOP_K", "3"))
-DEFAULT_HOP_DEPTH = int(os.environ.get("DEFAULT_HOP_DEPTH", "2"))
-TOP_K_GRAPH_DEFAULT = int(os.environ.get("TOP_K_GRAPH_DEFAULT", "8"))
-TOP_K_VECTOR = int(os.environ.get("TOP_K_VECTOR", "5"))
-MIN_CHUNKS_FROM_GRAPH = int(os.environ.get("MIN_CHUNKS_FROM_GRAPH", "2"))
+# ─── 검색(Retrieval) — backend/config/retrieval.yaml ─────────────────────────
+_graph = _retrieval["graph"]
+_link = _retrieval["entity_link"]
+
+ENTITY_LINK_COSINE_THRESHOLD = _override(_link["cosine_threshold"], _s.entity_link_cosine_threshold)
+ENTITY_LINK_TOP_K = _override(_link["top_k"], _s.entity_link_top_k)
+DEFAULT_HOP_DEPTH = _override(_graph["default_hop_depth"], _s.default_hop_depth)
+TOP_K_GRAPH_DEFAULT = _override(_graph["top_k_graph"], _s.top_k_graph_default)
+TOP_K_VECTOR = _override(_graph["top_k_vector"], _s.top_k_vector)
+MIN_CHUNKS_FROM_GRAPH = _override(_graph["min_chunks_from_graph"], _s.min_chunks_from_graph)
 
 # DDE 스코어: 홉 거리별 가중치 (Mean Propagation)
-DDE_SCORE_BY_HOP: dict[int, float] = {0: 1.0, 1: 0.5, 2: 0.25, 3: 0.125}
+DDE_SCORE_BY_HOP: dict[int, float] = {int(k): float(v) for k, v in _graph["dde_score_by_hop"].items()}
 
-# 거리 무관 강제 포함 엣지 타입 (BLOCKS, ENABLES_SHORTCUT)
-ALWAYS_INCLUDE_EDGE_TYPES: list[str] = ["BLOCKS", "ENABLES_SHORTCUT"]
+# 거리 무관 강제 포함 엣지 타입
+ALWAYS_INCLUDE_EDGE_TYPES: list[str] = list(_graph["always_include_edge_types"])
 
-# ─── 스케줄러 ─────────────────────────────────────────────────────────────────
-FRESHNESS_CHECK_INTERVAL_WEEKS = int(os.environ.get("FRESHNESS_CHECK_INTERVAL_WEEKS", "1"))
-
-# ─── 도메인 상수 ──────────────────────────────────────────────────────────────
-KNOWN_INSTITUTIONS: list[str] = [
-    "출입국관리사무소", "국민건강보험공단", "하이코리아",
-    "외국인종합안내센터", "동아대학교", "국제교류처",
-    "법무부", "고용노동부",
-]
-
-ALLOWED_PREDICATES: list[str] = [
-    # ── 기존 ──────────────────────────────────────────────────────────────────
-    "CAN_TRANSITION_TO",  # 비자 전환 가능  예) D-4 → D-2
-    "REQUIRES",           # A하려면 B 필요  예) 비자연장 REQUIRES 건강보험납부
-    "BLOCKS",             # B 없으면 A 불가 예) 건강보험미납 BLOCKS 비자연장
-    "NEXT_STEP",          # 다음 절차       예) 서류준비 NEXT_STEP 사무소방문
-    "ISSUED_BY",          # 발급 기관       예) 외국인등록증 ISSUED_BY 출입국관리사무소
-    "RELATED_TO",         # 일반 연관
-    "ENABLES_SHORTCUT",   # 지름길 존재     예) 온라인신청 ENABLES_SHORTCUT 방문신청
-    "ENABLED_BY",         # A는 B가 있어야 가능  예) 시간제취업 ENABLED_BY 취업허가증
-
-    # ── 행정 도메인 추가 ───────────────────────────────────────────────────────
-    "REQUIRED_FOR",       # A는 B에 필요한 서류/조건
-                          # 예) 여권사본 REQUIRED_FOR 비자신청
-                          # REQUIRES와 방향 반대 (서류→절차 관점)
-
-    "VALID_FOR",          # A는 B 목적/기간/대상에 유효
-                          # 예) D-2비자 VALID_FOR 학위과정
-                          # 예) 건강보험 VALID_FOR 6개월이상체류자
-
-    "AVAILABLE_TO",       # A는 B(특정 비자/조건) 소지자에게 이용 가능
-                          # 예) 시간제취업 AVAILABLE_TO D-2소지자
-                          # 예) 장학금 AVAILABLE_TO 성적우수자
-
-    "PRECEDED_BY",        # A 전에 B가 선행되어야 함 (NEXT_STEP 역방향)
-                          # 예) 비자연장신청 PRECEDED_BY 만료일60일전
-
-    "SUBMITTED_TO",       # A(서류)는 B(기관)에 제출
-                          # 예) 비자연장신청서 SUBMITTED_TO 출입국관리사무소
-                          # 예) 휴학신청서 SUBMITTED_TO 학생처
-]
-
-# aliases 사전: 비표준 표현 → 표준 ID
-ALIASES_MAP: dict[str, str] = {
-    "D2": "D-2",
-    "D4": "D-4",
-    "F5": "F-5",
-    "영주권": "F-5",
-    "어학원비자": "D-4",
-    "일반연수비자": "D-4",
-    "유학비자": "D-2",
-    "어학연수비자": "D-4",
-    "학생비자": "D-2",
-}
+# ─── 도메인 상수 — backend/config/domain.yaml ────────────────────────────────
+KNOWN_INSTITUTIONS: list[str] = list(_domain["known_institutions"])
+ALLOWED_PREDICATES: list[str] = list(_domain["allowed_predicates"])
+ALIASES_MAP: dict[str, str] = dict(_domain["aliases"])
 
 # ─── 메시지 템플릿 ────────────────────────────────────────────────────────────
-DISCLAIMER_TEMPLATE = (
-    "\n\n⚠️  이 정보는 [{source_file}] ({doc_version}) 기준입니다. "
-    "최신 정보는 하이코리아(hikorea.go.kr) 또는 외국인종합안내센터(1345)에서 확인하세요."
-)
-NO_ANSWER_RESPONSE = (
-    "죄송합니다. 해당 정보를 찾을 수 없습니다. "
-    "외국인종합안내센터(☎ 1345)에 문의하시거나 하이코리아(hikorea.go.kr)를 방문해 주세요."
-)
+DISCLAIMER_TEMPLATE = _domain["messages"]["disclaimer_template"]
+NO_ANSWER_RESPONSE = _domain["messages"]["no_answer"]
+
+__all__ = [
+    "BACKEND_DIR", "PACKAGE_DIR", "BASE_DIR", "DATA_DIR", "CONFIG_DIR",
+    "PDF_DIR", "REVIEW_QUEUE_PATH", "EMBED_CACHE_PATH",
+    "NEO4J_URI", "NEO4J_USER", "NEO4J_PASSWORD", "NEO4J_DATABASE", "USE_NEO4J_VECTOR_INDEX",
+    "EMBEDDING_MODEL", "EMBEDDING_DIM", "EMBEDDING_BATCH_SIZE",
+    "OPENAI_API_KEY", "OPENAI_MODEL", "GEMINI_API_KEY", "GEMINI_MODEL",
+    "OLLAMA_BASE_URL", "OLLAMA_MODEL", "OLLAMA_TIMEOUT",
+    "MAX_CHUNK_TOKENS", "MIN_CHUNK_TOKENS", "CONFIDENCE_THRESHOLD",
+    "DOC_STALENESS_MONTHS", "FRESHNESS_CHECK_INTERVAL_WEEKS",
+    "ENTITY_LINK_COSINE_THRESHOLD", "ENTITY_LINK_TOP_K", "DEFAULT_HOP_DEPTH",
+    "TOP_K_GRAPH_DEFAULT", "TOP_K_VECTOR", "MIN_CHUNKS_FROM_GRAPH",
+    "DDE_SCORE_BY_HOP", "ALWAYS_INCLUDE_EDGE_TYPES",
+    "KNOWN_INSTITUTIONS", "ALLOWED_PREDICATES", "ALIASES_MAP",
+    "DISCLAIMER_TEMPLATE", "NO_ANSWER_RESPONSE",
+]

@@ -1,5 +1,5 @@
 """
-graph_rag/pipeline/ingestor.py
+yhs/ingest/pipeline/ingestor.py
 
 역할:
 - 추출된 엔티티·트리플·청크를 정규화 후 Kuzu DB에 적재한다.
@@ -12,7 +12,6 @@ graph_rag/pipeline/ingestor.py
 from __future__ import annotations
 
 import logging
-from typing import List, Tuple
 
 from yhs.core.config import ALIASES_MAP, CONFIDENCE_THRESHOLD
 from yhs.infra.graph_store import GraphStore
@@ -37,13 +36,13 @@ class GraphIngestor:
     def __init__(self, store: GraphStore) -> None:
         self._store = store
 
-    def ingest_chunks(self, chunks: List[ChunkNode]) -> None:
+    def ingest_chunks(self, chunks: list[ChunkNode]) -> None:
         """Chunk 노드를 임베딩과 함께 DB에 적재한다."""
         for chunk in chunks:
             self._store.upsert_chunk(chunk)
         logger.info("Chunk %d개 적재 완료", len(chunks))
 
-    def ingest_entities(self, entities: List[EntityNode]) -> None:
+    def ingest_entities(self, entities: list[EntityNode]) -> None:
         """aliases 정규화 후 Entity 노드를 DB에 적재한다."""
         seen: dict[str, EntityNode] = {}
 
@@ -64,7 +63,7 @@ class GraphIngestor:
 
         logger.info("Entity %d개 적재 완료 (중복 제거 후)", len(seen))
 
-    def ingest_triples(self, triples: List[Triple]) -> None:
+    def ingest_triples(self, triples: list[Triple]) -> None:
         """
         트리플을 적재한다.
         - subject_id, object_id에 aliases 정규화 적용
@@ -90,7 +89,7 @@ class GraphIngestor:
             ingested, low_conf,
         )
 
-    def ingest_chunk_links(self, links: List[Tuple[str, str]]) -> None:
+    def ingest_chunk_links(self, links: list[tuple[str, str]]) -> None:
         """(entity_id, chunk_id) 연결 목록을 ENTITY_FOUND_IN 엣지로 적재한다."""
         for entity_id, chunk_id in links:
             entity_id = _normalize_id(entity_id)
@@ -106,10 +105,10 @@ class GraphIngestor:
 
     def ingest_all(
         self,
-        chunks: List[ChunkNode],
-        entities: List[EntityNode],
-        triples: List[Triple],
-        chunk_links: List[Tuple[str, str]],
+        chunks: list[ChunkNode],
+        entities: list[EntityNode],
+        triples: list[Triple],
+        chunk_links: list[tuple[str, str]],
     ) -> None:
         """파이프라인 6단계를 순서대로 실행한다."""
         logger.info("=== 그래프 적재 시작 ===")

@@ -1,5 +1,5 @@
 """
-graph_rag/embedding/embedder.py
+yhs/infra/embedder.py
 
 역할:
 - BAAI/bge-m3 (100개 언어 지원) 임베딩 모델을 로컬에서 실행한다.
@@ -13,7 +13,6 @@ from __future__ import annotations
 import logging
 import pickle
 from pathlib import Path
-from typing import List, Optional
 
 import numpy as np
 
@@ -30,7 +29,7 @@ logger = logging.getLogger(__name__)
 class Embedder:
     """BAAI/bge-m3 기반 텍스트 임베딩 생성기."""
 
-    def __init__(self, model_name: Optional[str] = None) -> None:
+    def __init__(self, model_name: str | None = None) -> None:
         self._model_name = model_name or EMBEDDING_MODEL
         self._model = None  # 지연 로딩
 
@@ -42,9 +41,9 @@ class Embedder:
             self._model = SentenceTransformer(self._model_name)
             logger.info("임베딩 모델 로드 완료: %s", self._model_name)
         except ImportError:
-            raise ImportError("sentence-transformers를 설치하세요: pip install sentence-transformers")
+            raise ImportError("sentence-transformers를 설치하세요: pip install sentence-transformers") from None
 
-    def encode(self, texts: List[str]) -> np.ndarray:
+    def encode(self, texts: list[str]) -> np.ndarray:
         """
         텍스트 목록을 배치 임베딩으로 변환한다.
         Returns:
@@ -88,7 +87,7 @@ class Embedder:
 
 
 # ─── 캐시 유틸 ───────────────────────────────────────────────────────────────
-def save_embed_cache(data: dict, path: Optional[Path] = None) -> None:
+def save_embed_cache(data: dict, path: Path | None = None) -> None:
     """임베딩 캐시를 pickle로 저장한다."""
     p = path or EMBED_CACHE_PATH
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -96,7 +95,7 @@ def save_embed_cache(data: dict, path: Optional[Path] = None) -> None:
         pickle.dump(data, f)
 
 
-def load_embed_cache(path: Optional[Path] = None) -> dict:
+def load_embed_cache(path: Path | None = None) -> dict:
     """임베딩 캐시를 pickle에서 로드한다."""
     p = path or EMBED_CACHE_PATH
     if p.exists():

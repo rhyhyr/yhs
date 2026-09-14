@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 YHS 평가 질문셋 v3 — 100문항
 
@@ -21,13 +20,30 @@ cross_hop 설계 원칙:
 
 from experiments.eval_sets.eval_questions_v2 import (
     EVAL_QUERIES as _BASE_QUERIES,
-    S_REGTIME, S_REGDOCS, S_REISSUE, S_REGCHG, S_CHGSTATUS, S_ACTOUT,
-    S_EMINWON, S_VISAPORT, S_DONGAVISA, S_DONGAINTL, S_NHISLAW,
-    S_IMMARREAR, S_DONGAINS, S_STUDYKR, S_GOV24WORK,
-    S_SCH_KR_UG, S_SCH_EN_UG, S_SCH_KR_GR,
-    S_LOA, S_RETURN, S_ENROLL, S_TUITION,
-    S_GLOBALHS, S_HANLIM, S_BANKNEWS, S_MOBILEID, S_KOTRATEL,
-    S_BUSANSUP, S_BUSANCALL, S_IMM1345, S_BUSANIMM, S_MANUAL,
+)
+from experiments.eval_sets.eval_questions_v2 import (
+    S_ACTOUT,
+    S_BANKNEWS,
+    S_CHGSTATUS,
+    S_DONGAINS,
+    S_DONGAINTL,
+    S_DONGAVISA,
+    S_GLOBALHS,
+    S_HANLIM,
+    S_IMM1345,
+    S_IMMARREAR,
+    S_KOTRATEL,
+    S_LOA,
+    S_MOBILEID,
+    S_NHISLAW,
+    S_REGCHG,
+    S_REGTIME,
+    S_REISSUE,
+    S_RETURN,
+    S_SCH_EN_UG,
+    S_SCH_KR_UG,
+    S_STUDYKR,
+    S_TUITION,
 )
 
 S_INSURANCE_ARREARS = S_IMMARREAR

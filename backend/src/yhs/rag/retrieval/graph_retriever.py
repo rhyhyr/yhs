@@ -1,5 +1,5 @@
 """
-agent/retrieval/graph_retriever.py
+yhs/rag/retrieval/graph_retriever.py
 
 역할:
 - Topic Entity 노드에서 출발하여 멀티홉 그래프 탐색을 수행한다.
@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import logging
 from collections import deque
-from typing import Dict, List, Set, Tuple
 
 from yhs.core.config import (
     ALWAYS_INCLUDE_EDGE_TYPES,
@@ -35,10 +34,10 @@ class DDEGraphRetriever:
 
     def retrieve(
         self,
-        entity_ids: List[str],
+        entity_ids: list[str],
         hop_depth: int = DEFAULT_HOP_DEPTH,
         top_k: int = TOP_K_GRAPH_DEFAULT,
-    ) -> Tuple[List[dict], List[dict]]:
+    ) -> tuple[list[dict], list[dict]]:
         """
         Args:
             entity_ids: 시작 Entity ID 목록
@@ -53,13 +52,13 @@ class DDEGraphRetriever:
         if not entity_ids:
             return [], []
 
-        node_scores: Dict[str, float] = {}
+        node_scores: dict[str, float] = {}
         for eid in entity_ids:
             node_scores[eid] = 1.0
 
         all_edges: list[dict] = []
-        visited: Set[str] = set(entity_ids)
-        queue: deque[Tuple[str, int]] = deque([(eid, 0) for eid in entity_ids])
+        visited: set[str] = set(entity_ids)
+        queue: deque[tuple[str, int]] = deque([(eid, 0) for eid in entity_ids])
 
         while queue:
             node_id, hop = queue.popleft()

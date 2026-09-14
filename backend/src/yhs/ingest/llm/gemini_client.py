@@ -1,5 +1,5 @@
 """
-graph_rag/llm/gemini_client.py
+yhs/ingest/llm/gemini_client.py
 
 역할:
 - KB 구축 단계(초기 1회)에만 사용하는 Gemini API 클라이언트.
@@ -18,7 +18,7 @@ import json
 import logging
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from google import genai
 from google.genai import types
@@ -101,7 +101,7 @@ class GeminiKBClient:
             response_mime_type="application/json",
         )
 
-    def extract_entities_and_relations(self, text: str, source_file: str = "") -> Dict[str, Any]:
+    def extract_entities_and_relations(self, text: str, source_file: str = "") -> dict[str, Any]:
         user_content = (
             f"[출처: {source_file}]\n\n"
             f"다음 텍스트에서 엔티티와 관계를 추출하세요:\n\n{text[:1500]}"
@@ -137,7 +137,7 @@ class GeminiKBClient:
             logger.error("Gemini API 오류: %s", exc)
             return {"entities": [], "relations": []}
 
-    def parse_flowchart_image(self, image_path: Path) -> Dict[str, Any]:
+    def parse_flowchart_image(self, image_path: Path) -> dict[str, Any]:
         with open(image_path, "rb") as f:
             image_bytes = f.read()
 

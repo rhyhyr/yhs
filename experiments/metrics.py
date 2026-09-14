@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 YHS 평가 데이터셋 — 6개 지표 측정용 재구조화
 
@@ -42,9 +41,18 @@ YHS 평가 데이터셋 — 6개 지표 측정용 재구조화
 
 from YHS_eval_questions_100 import (
     EVAL_QUERIES as _BASE,
-    S_REGTIME, S_DONGAVISA, S_CHGSTATUS, S_STUDYKR, S_NHISDISC,
-    S_IMMARREAR, S_KOTRATEL, S_BANKGUIDE, S_NHISLAW, S_MANUAL,
-    S_BANKNEWS, S_ENROLL, S_BUSANSUP,
+)
+from YHS_eval_questions_100 import (
+    S_BANKNEWS,
+    S_BUSANSUP,
+    S_CHGSTATUS,
+    S_DONGAVISA,
+    S_ENROLL,
+    S_IMMARREAR,
+    S_MANUAL,
+    S_NHISLAW,
+    S_REGTIME,
+    S_STUDYKR,
 )
 
 # ── ⑤ 캐시 클러스터: 같은 gold를 다른 표현(ko오타/zh/en/구어)으로 묻는 묶음 ──

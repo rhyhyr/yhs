@@ -1,5 +1,5 @@
 """
-agent/retrieval_engine.py
+yhs/rag/engine.py
 
 역할:
 - 검색 오케스트레이터. 그래프 탐색과 벡터 검색을 함께 실행하고 재랭크한다.
@@ -18,112 +18,51 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import List
 
-from yhs.rag.retrieval.graph_retriever import DDEGraphRetriever
-from yhs.rag.retrieval.linker import EntityLinker
-from yhs.rag.retrieval.vector_retriever import VectorRetriever
 from yhs.core.config import (
     DEFAULT_HOP_DEPTH,
     DISCLAIMER_TEMPLATE,
     DOC_STALENESS_MONTHS,
     TOP_K_GRAPH_DEFAULT,
 )
-from yhs.infra.graph_store import GraphStore
+from yhs.core.settings import load_config
 from yhs.infra.embedder import Embedder
+from yhs.infra.graph_store import GraphStore
+from yhs.rag.retrieval.graph_retriever import DDEGraphRetriever
+from yhs.rag.retrieval.linker import EntityLinker
+from yhs.rag.retrieval.vector_retriever import VectorRetriever
 from yhs.schema.types import RetrievalResult
 
 logger = logging.getLogger(__name__)
 
-# 재랭크 후보/최종 반환 정책
-_CANDIDATE_TOP_K = 10
-_FINAL_TOP_K = 6
-_MIN_CHUNK_SCORE = 0.30
+# ── 튜닝 파라미터 ────────────────────────────────────────────────────────────
+# 값은 backend/config/retrieval.yaml 에 있다. 코드에 숫자를 박지 말 것 —
+# 가중치는 Optuna 스윕(experiments/weight_sweep_optuna.py)의 결과물이라
+# 재현성을 위해 버전 관리 대상이어야 한다.
+_cfg = load_config("retrieval")
 
-# 병합 스코어 가중치 (Optuna TPE, n=150, gold bigram recall 기준 최적화)
-# 버그 수정(그래프 홉 점수 차등화 + 벡터 이중 계산 제거) 후 재탐색한 값
-_W_BASE = 0.33   # 출처 기반 점수 (그래프 홉 점수 or 벡터 cosine)
-_W_KW   = 0.53   # 키워드/앵커 겹침
-_W_REC  = 0.14   # 문서 최신성
+_CANDIDATE_TOP_K = _cfg["rerank"]["candidate_top_k"]
+_FINAL_TOP_K = _cfg["rerank"]["final_top_k"]
+_MIN_CHUNK_SCORE = _cfg["rerank"]["min_chunk_score"]
+
+# 병합 스코어 가중치
+_W_BASE = _cfg["weights"]["base"]        # 출처 기반 점수 (그래프 홉 점수 or 벡터 cosine)
+_W_KW = _cfg["weights"]["keyword"]       # 키워드/앵커 겹침
+_W_REC = _cfg["weights"]["recency"]      # 문서 최신성
 
 # 그래프 연결 청크의 베이스 스코어 (직접 링크 = 높은 신뢰도)
-_GRAPH_BASE_SCORE = 0.75
-_QUESTION_FIT_THRESHOLD = 0.03
+_GRAPH_BASE_SCORE = _cfg["base_scores"]["graph"]
+# 소스 라우팅된 청크의 보장 베이스 스코어 (그래프 청크보다 높아야 최종 top-k 진입)
+_ROUTED_BASE_SCORE = _cfg["base_scores"]["routed"]
 
-# 키워드 → 소스파일 라우팅 (엔티티 링킹 실패 보완; 질문에 키워드가 있으면 해당 파일 강제 포함)
-_SOURCE_ROUTING: dict[str, list[str]] = {
-    "장학금": [
-        "26_동아대_장학금_학부_한국어트랙.pdf",
-        "27_동아대_장학금_학부_영어트랙.pdf",
-        "28_동아대_장학금_대학원_한국어트랙.pdf",
-        "29_동아대_장학금_대학원_영어트랙.pdf",
-    ],
-    "장학": [
-        "26_동아대_장학금_학부_한국어트랙.pdf",
-        "27_동아대_장학금_학부_영어트랙.pdf",
-        "28_동아대_장학금_대학원_한국어트랙.pdf",
-        "29_동아대_장학금_대학원_영어트랙.pdf",
-    ],
-    # 기숙사: 엔티티 링킹 오류 보완
-    "한림생활관": ["31_동아대_한림생활관.pdf"],
-    # 외국인등록 기간: 90일 정보가 01번 파일에 있으나 graph에서 체류자격변경으로 잘못 이동
-    "외국인등록": ["01_하이코리아_외국인등록.pdf"],
-    "외국인 등록": ["01_하이코리아_외국인등록.pdf"],
-    # 지원기관
-    "1345": ["15_출입국_1345_외국인종합안내센터.pdf"],
-    "콜센터": ["35_부산시_외국인주민지원.pdf"],
-    "통역": ["15_출입국_1345_외국인종합안내센터.pdf", "35_부산시_외국인주민지원.pdf"],
-    "글로벌도시재단": ["35_부산시_외국인주민지원.pdf"],
-    "1600-0051": ["35_부산시_외국인주민지원.pdf"],
-    "외국인주민": ["35_부산시_외국인주민지원.pdf"],
-    # 건강보험: 19번(인제스트 버그) 대신 20번(실제 내용) 우선 라우팅
-    "건강보험": ["20_동아대_국제교류과_보험안내.pdf"],
-    "보험료": ["20_동아대_국제교류과_보험안내.pdf"],
-    "지역가입": ["20_동아대_국제교류과_보험안내.pdf"],
-    "당연가입": ["20_동아대_국제교류과_보험안내.pdf"],
-    "nhis": ["20_동아대_국제교류과_보험안내.pdf"],
-    "국민건강": ["20_동아대_국제교류과_보험안내.pdf"],
-    # 후불 핸드폰: 09번(KOTRA) 라우팅
-    "후불": ["09_KOTRA_통신_유선전화_휴대폰.pdf"],
-    "핸드폰": ["09_KOTRA_통신_유선전화_휴대폰.pdf"],
-    "유심": ["09_KOTRA_통신_유선전화_휴대폰.pdf"],
-    # 모바일 외국인등록증 계좌개설: 32번/33번 라우팅
-    "모바일 외국인등록증": [
-        "32_금융위_모바일외국인등록증_계좌개설.pdf",
-        "33_모바일신분증_외국인등록증_발급안내.pdf",
-    ],
-    "계좌개설": ["32_금융위_모바일외국인등록증_계좌개설.pdf"],
-    # 체납 비자연장 제한: 05번 라우팅
-    "체납": ["05_출입국_비자연장전_체납확인제도.pdf"],
-    # D-4→D-2 재정능력 금액: 07번 라우팅
-    "재정능력": ["07_동아대_국제교류과_VISA정보.pdf"],
-    # 보험료 납부방법: 20번 명시 보강
-    "납부방법": ["20_동아대_국제교류과_보험안내.pdf"],
-    "납부 방법": ["20_동아대_국제교류과_보험안내.pdf"],
-    # 체류자격변경 (D-4→D-2 전환): 06번 + 07번 라우팅
-    "비자 전환": ["06_하이코리아_체류자격변경.pdf", "07_동아대_국제교류과_VISA정보.pdf"],
-    "비자 변경": ["06_하이코리아_체류자격변경.pdf", "07_동아대_국제교류과_VISA정보.pdf"],
-    "비자 바꾸": ["06_하이코리아_체류자격변경.pdf", "07_동아대_국제교류과_VISA정보.pdf"],
-    "체류자격변경": ["06_하이코리아_체류자격변경.pdf", "07_동아대_국제교류과_VISA정보.pdf"],
-    "체류자격 변경": ["06_하이코리아_체류자격변경.pdf", "07_동아대_국제교류과_VISA정보.pdf"],
-    "자격 바꾸": ["06_하이코리아_체류자격변경.pdf", "07_동아대_국제교류과_VISA정보.pdf"],
-    "자격 변경": ["06_하이코리아_체류자격변경.pdf", "07_동아대_국제교류과_VISA정보.pdf"],
-    "D-2로 바꾸": ["06_하이코리아_체류자격변경.pdf", "07_동아대_국제교류과_VISA정보.pdf"],
-    "D-2로 변경": ["06_하이코리아_체류자격변경.pdf", "07_동아대_국제교류과_VISA정보.pdf"],
-    "d-2로 바꾸": ["06_하이코리아_체류자격변경.pdf", "07_동아대_국제교류과_VISA정보.pdf"],
-    "d-2로 변경": ["06_하이코리아_체류자격변경.pdf", "07_동아대_국제교류과_VISA정보.pdf"],
-    # 외국인등록증 재발급 (체류자격변경 후 ARC 재발급): 10번 라우팅
-    "외국인등록증 갱신": ["10_하이코리아_외국인등록증_재발급.pdf"],
-    "외국인등록증 재발급": ["10_하이코리아_외국인등록증_재발급.pdf"],
-    "등록증 재발급": ["10_하이코리아_외국인등록증_재발급.pdf"],
-    "등록증을 새로": ["10_하이코리아_외국인등록증_재발급.pdf"],
-}
-
-# 소스 라우팅된 청크의 보장 베이스 스코어 (graph 청크보다 살짝 높게 → 최종 top-6에 진입 보장)
-_ROUTED_BASE_SCORE = 0.90
+_QUESTION_FIT_THRESHOLD = _cfg["question_fit_threshold"]
 
 # 헤더/메타 청크 감지 패턴 (URL/출처기관/수집일만 있는 청크에 페널티)
-_HEADER_MARKERS = ("URL:", "출처기관:", "수집일:", "출처:", "날짜:", "Source:", "Retrieved:")
+_HEADER_MARKERS = tuple(_cfg["header_markers"])
+
+# 키워드 → 소스파일 라우팅 (backend/config/routing.yaml)
+# 엔티티 링킹 실패 보완: 질문에 키워드가 있으면 해당 파일을 강제 포함한다.
+_SOURCE_ROUTING: dict[str, list[str]] = load_config("routing")["source_routing"]
 
 
 def _is_stale(doc_version: str, months: int = DOC_STALENESS_MONTHS) -> bool:
@@ -404,11 +343,11 @@ class RetrievalEngine:
         triples: list,
         chunks_raw: list,
         method: str,
-        entity_ids: List[str],
+        entity_ids: list[str],
     ) -> RetrievalResult:
         from yhs.schema.types import ChunkNode
 
-        chunk_nodes: List[ChunkNode] = []
+        chunk_nodes: list[ChunkNode] = []
         for c in chunks_raw:
             chunk_nodes.append(ChunkNode(
                 id=c.get("id", ""),
@@ -432,7 +371,7 @@ class RetrievalEngine:
         if result.retrieval_method == "no_answer":
             return ""
 
-        lines: List[str] = []
+        lines: list[str] = []
 
         if result.triples:
             lines.append("[그래프 트리플]")

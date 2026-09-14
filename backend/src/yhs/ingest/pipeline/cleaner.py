@@ -1,5 +1,5 @@
 """
-graph_rag/pipeline/cleaner.py
+yhs/ingest/pipeline/cleaner.py
 
 역할:
 - 원시 텍스트의 공백 정리, 특수문자 제거, 불필요한 줄바꿈 정규화

@@ -1,5 +1,5 @@
 """
-agent/hf_runtime_client.py
+yhs/rag/llm/hf_client.py
 
 역할:
 - HuggingFace 로컬 모델 기반 런타임 답변 생성 클라이언트.

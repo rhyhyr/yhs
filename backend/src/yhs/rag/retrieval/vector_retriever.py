@@ -1,5 +1,5 @@
 """
-agent/retrieval/vector_retriever.py
+yhs/rag/retrieval/vector_retriever.py
 
 역할:
 - 그래프 탐색이 실패하거나 Chunk가 부족할 때 동작하는 벡터 검색.
@@ -14,13 +14,12 @@ agent/retrieval/vector_retriever.py
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
 
 import numpy as np
 
 from yhs.core.config import TOP_K_VECTOR, USE_NEO4J_VECTOR_INDEX
-from yhs.infra.graph_store import GraphStore
 from yhs.infra.embedder import Embedder
+from yhs.infra.graph_store import GraphStore
 
 logger = logging.getLogger(__name__)
 
@@ -32,15 +31,15 @@ class VectorRetriever:
     def __init__(self, store: GraphStore, embedder: Embedder) -> None:
         self._store = store
         self._embedder = embedder
-        self._chunk_ids: List[str] = []
-        self._chunk_texts: List[str] = []
-        self._chunk_meta: List[dict] = []
-        self._matrix: Optional[np.ndarray] = None
+        self._chunk_ids: list[str] = []
+        self._chunk_texts: list[str] = []
+        self._chunk_meta: list[dict] = []
+        self._matrix: np.ndarray | None = None
 
     # ── Neo4j 벡터 검색 ──────────────────────────────────────────────────────
     def _search_neo4j(
         self, question: str, top_k: int, keywords: list[str]
-    ) -> List[dict]:
+    ) -> list[dict]:
         q_emb = self._embedder.encode_single(question)
         raw = self._store.vector_search_chunks(q_emb, top_k)
         results = []
@@ -78,7 +77,7 @@ class VectorRetriever:
 
     def _search_numpy(
         self, question: str, top_k: int, keywords: list[str]
-    ) -> List[dict]:
+    ) -> list[dict]:
         if self._matrix is None:
             self._build_index()
 
@@ -102,7 +101,7 @@ class VectorRetriever:
         results.sort(key=lambda x: x["score"], reverse=True)
         return results[:top_k]
 
-    def _get_all_chunks(self) -> List[dict]:
+    def _get_all_chunks(self) -> list[dict]:
         """인덱스에 있는 모든 청크를 id/text/meta dict 리스트로 반환한다 (소스 라우팅용)."""
         if self._matrix is None:
             self._build_index()
@@ -127,7 +126,7 @@ class VectorRetriever:
         question: str,
         top_k: int = TOP_K_VECTOR,
         keywords: list[str] | None = None,
-    ) -> List[dict]:
+    ) -> list[dict]:
         """코사인 유사도 기반 청크 검색. 키워드·최신성 혼합은 retrieval_engine에서 수행."""
         if keywords is None:
             keywords = []

@@ -1,4 +1,6 @@
-import json, sys
+import json
+import sys
+
 sys.stdout.reconfigure(encoding="utf-8")
 
 IDK = ["확인할 수 없", "알 수 없", "모르겠", "정보가 없", "제공된 자료에서는"]

@@ -1,4 +1,6 @@
-import json, sys
+import json
+import sys
+
 sys.stdout.reconfigure(encoding="utf-8")
 
 CITE = ["에 따르면", "출처:", "문서에", "안내에", "기준으로", "명시", "따라"]

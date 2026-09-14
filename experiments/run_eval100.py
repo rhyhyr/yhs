@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 experiments/run_eval100.py
 YHS N=100 평가 러너 — docs/experiments/실행계획.md 기반
@@ -31,20 +30,22 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf-8-s
 os.environ.setdefault("RUNTIME_LLM", "ollama")
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 import requests
 
-from yhs.rag.runtime import GateThresholds, expand_query, should_use_deep_path
-from yhs.rag.crawler.web_search_client import WebSearchClient, allowed_sites
-from yhs.rag.llm.ollama_client import OllamaRuntimeClient
-from yhs.rag.engine import RetrievalEngine
-from yhs.infra.graph_store import GraphStore
-from yhs.infra.embedder import Embedder
-from yhs.schema.types import ChunkNode, RetrievalResult
-
 # ── 데이터셋 ────────────────────────────────────────────────────────────────
-from experiments.eval_sets.eval_questions_v3 import EVAL_QUERIES  # noqa: E402  (v3: cross_hop 58개 포함)
+from experiments.eval_sets.eval_questions_v3 import (
+    EVAL_QUERIES,  # noqa: E402  (v3: cross_hop 58개 포함)
+)
+from yhs.infra.embedder import Embedder
+from yhs.infra.graph_store import GraphStore
+from yhs.rag.crawler.web_search_client import WebSearchClient, allowed_sites
+from yhs.rag.engine import RetrievalEngine
+from yhs.rag.llm.ollama_client import OllamaRuntimeClient
+from yhs.rag.runtime import GateThresholds, expand_query, should_use_deep_path
+from yhs.schema.types import ChunkNode, RetrievalResult
 
 RUNS_PATH = "experiments/results/runs_exaone_v3b.jsonl"
 SCORES_PATH = "experiments/results/scores_exaone_v3b.jsonl"
@@ -289,7 +290,7 @@ def score_answers(runs: list[dict]) -> list[dict]:
                     time.sleep(1)
                 else:
                     score_record["error"] = f"json_parse_failed: {raw_text[:200]}"
-                    print(f"  재시도 실패 → error 기록")
+                    print("  재시도 실패 → error 기록")
             except Exception as exc:
                 score_record["error"] = str(exc)
                 print(f"  API 오류: {exc}")
@@ -303,7 +304,6 @@ def score_answers(runs: list[dict]) -> list[dict]:
 # ── 3단계: 집계 ───────────────────────────────────────────────────────────────
 
 def aggregate(runs: list[dict], scores: list[dict]) -> dict:
-    from statistics import median
 
     score_map = {s["id"]: s for s in scores}
 
@@ -525,7 +525,7 @@ def main() -> None:
     print("=" * 60)
 
     embedder = Embedder()
-    thresholds = GateThresholds.from_env()
+    thresholds = GateThresholds.from_config()
     llm = OllamaRuntimeClient()
     if not llm.is_available():
         print("[FATAL] Ollama 서버 응답 없음. 'ollama serve' 실행 후 재시도.")

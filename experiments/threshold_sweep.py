@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 experiments/threshold_sweep.py
 
@@ -22,15 +21,15 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf-8-s
 
 os.environ.setdefault("RUNTIME_LLM", "ollama")
 from dotenv import load_dotenv
+
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(_ROOT, ".env"), override=True)
 
 import yhs.rag.engine as re_module
-from yhs.rag.runtime import GateThresholds, should_use_deep_path
-from yhs.infra.graph_store import GraphStore
-from yhs.infra.embedder import Embedder
-
 from experiments.eval_sets.eval_questions_v2 import EVAL_QUERIES
+from yhs.infra.embedder import Embedder
+from yhs.infra.graph_store import GraphStore
+from yhs.rag.runtime import GateThresholds, should_use_deep_path
 
 # 한국어 in_db + complex (정적 정답이 있는 항목만)
 TARGET_QUERIES = [

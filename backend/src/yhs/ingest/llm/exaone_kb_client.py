@@ -1,5 +1,5 @@
 """
-graph_rag/llm/exaone_kb_client.py
+yhs/ingest/llm/exaone_kb_client.py
 
 역할:
 - HuggingFace로 로컬에 설치된 EXAONE 3.5로 엔티티·관계를 추출한다.
@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from yhs.core.config import ALLOWED_PREDICATES
 
@@ -125,7 +125,7 @@ class ExaoneKBClient:
 
     def extract_entities_and_relations(
         self, text: str, source_file: str = ""
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         텍스트에서 엔티티와 관계를 추출한다.
         Returns: {"entities": [...], "relations": [...]}
@@ -160,7 +160,7 @@ class ExaoneKBClient:
             logger.error("EXAONE 추출 실패: %s\n%s", exc, traceback.format_exc())
             return {"entities": [], "relations": []}
 
-    def parse_flowchart_image(self, image_path: Path) -> Dict[str, Any]:
+    def parse_flowchart_image(self, image_path: Path) -> dict[str, Any]:
         """Vision 미지원 — 빈 결과 반환."""
         logger.warning("EXAONE은 이미지 파싱을 지원하지 않습니다: %s", image_path)
         return {"entities": [], "relations": []}

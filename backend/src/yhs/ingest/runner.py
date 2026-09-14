@@ -26,8 +26,8 @@ def _print_ingest_summary(store) -> None:
 def run_ingest(pdf_dir: Path, use_llm: bool = True) -> None:
     """PDF 디렉토리의 모든 PDF를 처리하여 그래프 DB에 적재한다."""
     from yhs.core.config import PDF_DIR
-    from yhs.infra.graph_store import GraphStore
     from yhs.infra.embedder import Embedder
+    from yhs.infra.graph_store import GraphStore
     from yhs.ingest.pipeline.chunker import chunk_document
     from yhs.ingest.pipeline.cleaner import clean_text
     from yhs.ingest.pipeline.extractor import HybridExtractor
@@ -77,8 +77,8 @@ def run_ingest(pdf_dir: Path, use_llm: bool = True) -> None:
 
 def run_embed_update() -> None:
     """기존 Chunk에 임베딩이 없는 경우 배치로 생성한다."""
-    from yhs.infra.graph_store import GraphStore
     from yhs.infra.embedder import Embedder
+    from yhs.infra.graph_store import GraphStore
     from yhs.schema.types import ChunkNode
 
     embedder = Embedder()

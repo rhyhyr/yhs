@@ -22,11 +22,16 @@ select = ["E", "F", "I", "UP", "B"]
 ignore = [
   "E501",   # line too long — line-length는 포매터에 맡긴다
   "B008",   # FastAPI Depends() 기본값 패턴
+  "B905",   # zip(strict=) — 기존 코드에 일괄 적용 시 동작이 바뀔 수 있어 보류
+  "B007",   # 미사용 루프 변수 (언패킹 가독성 목적이 다수)
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "backend/tests/*" = ["F401"]
-"experiments/*"   = ["E402"]   # sys.path 설정 후 import 하는 러너 스크립트
+# 실험 러너는 일회성 분석 스크립트다. 스타일보다 결과 재현성이 우선이라
+# 아래 규칙은 면제한다 (제품 코드에는 그대로 적용된다).
+"experiments/*"   = ["E402", "E741", "E701", "F841"]
+"scripts/*"       = ["E402", "E741", "E701", "F841"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["yhs"]

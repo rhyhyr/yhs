@@ -1,5 +1,5 @@
 """
-graph_rag/pipeline/chunker.py
+yhs/ingest/pipeline/chunker.py
 
 역할:
 - 정제된 텍스트를 의미 단위 Chunk로 분할한다.
@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import re
 import uuid
-from typing import List, Tuple
 
 from yhs.core.config import MAX_CHUNK_TOKENS, MIN_CHUNK_TOKENS
 from yhs.schema.types import ChunkNode, RawDocument
@@ -35,6 +34,7 @@ def _get_tokenizer():
     global _tokenizer
     if _tokenizer is None:
         from transformers import AutoTokenizer
+
         from yhs.core.config import EMBEDDING_MODEL
         _tokenizer = AutoTokenizer.from_pretrained(EMBEDDING_MODEL)
     return _tokenizer
@@ -44,11 +44,11 @@ def _token_count(text: str) -> int:
     return len(_get_tokenizer().encode(text, add_special_tokens=False))
 
 
-def _split_by_sentences(text: str, max_tokens: int) -> List[str]:
+def _split_by_sentences(text: str, max_tokens: int) -> list[str]:
     """문장 단위로 분할하여 max_tokens 이하 청크를 생성한다."""
     sentences = _SENTENCE_SPLIT_RE.split(text)
-    chunks: List[str] = []
-    current: List[str] = []
+    chunks: list[str] = []
+    current: list[str] = []
     current_tokens = 0
 
     for sentence in sentences:
@@ -66,7 +66,7 @@ def _split_by_sentences(text: str, max_tokens: int) -> List[str]:
     return chunks
 
 
-def _split_raw_text(text: str) -> List[Tuple[str, str]]:
+def _split_raw_text(text: str) -> list[tuple[str, str]]:
     """
     텍스트를 청킹 우선순위에 따라 (chunk_text, section) 튜플 목록으로 반환한다.
     """
@@ -74,7 +74,7 @@ def _split_raw_text(text: str) -> List[Tuple[str, str]]:
     parts = _SECTION_HEADER_RE.split(text)
     headers = _SECTION_HEADER_RE.findall(text)
 
-    segments: List[Tuple[str, str]] = []  # (text, section_header)
+    segments: list[tuple[str, str]] = []  # (text, section_header)
     if len(parts) > 1:
         for i, part in enumerate(parts):
             header = headers[i - 1].strip() if i > 0 and i - 1 < len(headers) else ""
@@ -84,7 +84,7 @@ def _split_raw_text(text: str) -> List[Tuple[str, str]]:
         segments = [(text, "")]
 
     # 2순위: 문단 경계로 추가 분할
-    result: List[Tuple[str, str]] = []
+    result: list[tuple[str, str]] = []
     for (seg_text, section) in segments:
         paragraphs = re.split(r"\n{2,}", seg_text)
         for para in paragraphs:
@@ -95,12 +95,12 @@ def _split_raw_text(text: str) -> List[Tuple[str, str]]:
     return result
 
 
-def chunk_document(doc: RawDocument) -> List[ChunkNode]:
+def chunk_document(doc: RawDocument) -> list[ChunkNode]:
     """
     RawDocument 하나를 ChunkNode 목록으로 변환한다.
     """
     segments = _split_raw_text(doc.text)
-    chunks: List[ChunkNode] = []
+    chunks: list[ChunkNode] = []
     buffer_text = ""
     buffer_section = doc.section
 

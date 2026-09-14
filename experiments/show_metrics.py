@@ -1,5 +1,6 @@
 import json
 import statistics
+
 from experiments.eval_sets.eval_questions_v2 import EVAL_QUERIES
 
 meta = {q['id']: q for q in EVAL_QUERIES}
@@ -41,10 +42,10 @@ for label, rp, sp in [
     cited = [r for r in eligible if has_citation(r.get('answer', ''))]
     cc_rate = len(cited) / max(len(eligible), 1) * 100
     print(f"\n② 근거 커버리지(proxy): {len(cited)}/{len(eligible)} = {cc_rate:.1f}%")
-    print(f"   (인용 표현 포함 답변 비율 — 사람 검토 필요)")
+    print("   (인용 표현 포함 답변 비율 — 사람 검토 필요)")
 
     # 3. 최신성 정답률 → 미측정
-    print(f"\n③ 최신성 정답률: 미측정 (FRESHNESS_PAIRS 실행 필요)")
+    print("\n③ 최신성 정답률: 미측정 (FRESHNESS_PAIRS 실행 필요)")
 
     # 4. 지연시간
     latencies = [r['latency'] for r in runs if r.get('latency')]
@@ -66,6 +67,6 @@ for label, rp, sp in [
     # 5. 비용 & 캐시
     fast_n = sum(1 for r in runs if r.get('path') == 'fast')
     deep_n = sum(1 for r in runs if r.get('path') == 'deep')
-    print(f"\n⑤ 비용·캐시: 토큰 수 미기록 → 정밀 측정 불가")
+    print("\n⑤ 비용·캐시: 토큰 수 미기록 → 정밀 측정 불가")
     print(f"   fast(DB만): {fast_n}건  /  deep(크롤링+확장): {deep_n}건")
-    print(f"   (deep는 fast 대비 LLM 호출량·비용 증가)")
+    print("   (deep는 fast 대비 LLM 호출량·비용 증가)")

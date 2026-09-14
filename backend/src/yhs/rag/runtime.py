@@ -3,10 +3,13 @@ from __future__ import annotations
 import json
 import os
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any
+
+from yhs.core.settings import _override, get_settings, load_config
 
 from .crawler.web_search_client import WebSearchClient
 
@@ -23,15 +26,26 @@ class QuestionType(str, Enum):
 
 @dataclass
 class GateThresholds:
+    """deep path / 웹 검색으로 넘어갈지 판단하는 문턱값."""
+
     min_top_score: float = 0.17
     min_evidence_chunks: int = 2
 
     @classmethod
-    def from_env(cls) -> "GateThresholds":
+    def from_config(cls) -> GateThresholds:
+        """backend/config/retrieval.yaml 의 gate 섹션을 읽는다.
+
+        GATE_MIN_TOP_SCORE / GATE_MIN_EVIDENCE 환경변수가 있으면 그쪽이 이긴다.
+        """
+        gate = load_config("retrieval")["gate"]
+        s = get_settings()
         return cls(
-            min_top_score=float(os.environ.get("GATE_MIN_TOP_SCORE", "0.25")),
-            min_evidence_chunks=int(os.environ.get("GATE_MIN_EVIDENCE", "2")),
+            min_top_score=float(_override(gate["min_top_score"], s.gate_min_top_score)),
+            min_evidence_chunks=int(_override(gate["min_evidence_chunks"], s.gate_min_evidence)),
         )
+
+    # 이전 이름 유지 (호출부 호환)
+    from_env = from_config
 
 
 # 텍스트에 한자/한글이 포함되어 있는지 정규식으로 판별해서 언어 코드를 반환한다.
@@ -94,7 +108,7 @@ _KO_REWRITE_PAIRS: list[tuple[str, str]] = [
 
 # 쿼리 변형 생성 — deep path에서 여러 각도로 DB를 검색할 때 사용.
 # cross_hop 대응: 구어체 → 행정 용어 재표현 + 공식 키워드 단독 검색 추가.
-def expand_query(text: str, language: Optional[str] = None) -> list[str]:
+def expand_query(text: str, language: str | None = None) -> list[str]:
     lang = language or detect_language(text)
     base = normalize_query(text)
     variants = [base]
@@ -264,7 +278,7 @@ def run_deep_path(
     retrieve_fn: Callable[[str, int], tuple[list[tuple[Any, float]], list[str]]],
     top_k: int,
     thresholds: GateThresholds,
-    web_client: Optional[WebSearchClient] = None,
+    web_client: WebSearchClient | None = None,
     enable_external: bool = True,
 ) -> dict[str, Any]:
     merged: dict[str, tuple[Any, float]] = {}

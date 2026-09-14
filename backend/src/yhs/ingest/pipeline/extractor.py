@@ -1,5 +1,5 @@
 """
-graph_rag/pipeline/extractor.py
+yhs/ingest/pipeline/extractor.py
 
 역할:
 - Chunk 목록에서 엔티티와 관계를 추출한다.
@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import List, Tuple
 
 from yhs.core.config import ALLOWED_PREDICATES, KNOWN_INSTITUTIONS
 from yhs.schema.types import ChunkNode, EntityNode, Triple
@@ -30,8 +29,8 @@ _SECTION_HEADER_RE = re.compile(r"(유형\d+|\d+단계|Part\s*\d+)", re.IGNORECA
 class RuleBasedExtractor:
     """정규식 기반 엔티티 추출기 (confidence = 1.0)."""
 
-    def extract_entities(self, chunk: ChunkNode) -> List[EntityNode]:
-        entities: List[EntityNode] = []
+    def extract_entities(self, chunk: ChunkNode) -> list[EntityNode]:
+        entities: list[EntityNode] = []
         text = chunk.text
 
         # 비자 코드 추출
@@ -60,9 +59,9 @@ class RuleBasedExtractor:
 
         return entities
 
-    def extract_triples(self, chunk: ChunkNode) -> List[Triple]:
+    def extract_triples(self, chunk: ChunkNode) -> list[Triple]:
         """규칙 기반 관계 추출."""
-        triples: List[Triple] = []
+        triples: list[Triple] = []
         text = chunk.text
 
         # 연장 가능/불가 패턴에서 BLOCKS 관계 추론
@@ -107,7 +106,7 @@ class LLMExtractor:
                 self._client = OllamaKBClient()
         return self._client
 
-    def extract(self, chunk: ChunkNode) -> Tuple[List[EntityNode], List[Triple]]:
+    def extract(self, chunk: ChunkNode) -> tuple[list[EntityNode], list[Triple]]:
         """
         Chunk에서 엔티티와 관계를 JSON 형식으로 추출한다.
         LLM 오류 시 빈 목록을 반환한다 (전체 파이프라인 중단 방지).
@@ -123,7 +122,7 @@ class LLMExtractor:
         triples = self._parse_triples(result.get("relations", []), chunk)
         return entities, triples
 
-    def _parse_entities(self, raw: list, chunk: ChunkNode) -> List[EntityNode]:
+    def _parse_entities(self, raw: list, chunk: ChunkNode) -> list[EntityNode]:
         entities = []
         for item in raw:
             try:
@@ -139,7 +138,7 @@ class LLMExtractor:
                 logger.warning("엔티티 파싱 실패: %s (%s)", item, exc)
         return entities
 
-    def _parse_triples(self, raw: list, chunk: ChunkNode) -> List[Triple]:
+    def _parse_triples(self, raw: list, chunk: ChunkNode) -> list[Triple]:
         triples = []
         for item in raw:
             predicate = item.get("predicate", "")
@@ -169,25 +168,25 @@ class HybridExtractor:
         self._llm = LLMExtractor() if use_llm else None
 
     def extract_all(
-        self, chunks: List[ChunkNode]
-    ) -> Tuple[List[EntityNode], List[Triple], List[Tuple[str, str]]]:
+        self, chunks: list[ChunkNode]
+    ) -> tuple[list[EntityNode], list[Triple], list[tuple[str, str]]]:
         """
         Returns:
             entities: 추출된 EntityNode 목록
             triples: 추출된 Triple 목록
             chunk_links: (entity_id, chunk_id) 연결 목록
         """
-        all_entities: List[EntityNode] = []
-        all_triples: List[Triple] = []
-        chunk_links: List[Tuple[str, str]] = []
+        all_entities: list[EntityNode] = []
+        all_triples: list[Triple] = []
+        chunk_links: list[tuple[str, str]] = []
 
         for chunk in chunks:
             # 규칙 기반 추출 (confidence=1.0, 비자코드·기관명)
             rule_entities = self._rule.extract_entities(chunk)
             rule_triples = self._rule.extract_triples(chunk)
 
-            llm_entities: List[EntityNode] = []
-            llm_triples: List[Triple] = []
+            llm_entities: list[EntityNode] = []
+            llm_triples: list[Triple] = []
 
             if self._llm:
                 # 규칙이 뭔가 잡은 청크만 LLM 실행

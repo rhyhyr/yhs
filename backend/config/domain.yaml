@@ -1,0 +1,45 @@
+# 도메인 상수 — 기관명, 관계 술어, 비자 표기 별칭, 사용자 메시지
+#
+# allowed_predicates 는 LLM 추출기가 만들 수 있는 엣지 타입의 전체 목록이다.
+# 여기에 없는 술어는 인제스트 단계에서 버려진다.
+
+known_institutions:
+- 출입국관리사무소
+- 국민건강보험공단
+- 하이코리아
+- 외국인종합안내센터
+- 동아대학교
+- 국제교류처
+- 법무부
+- 고용노동부
+allowed_predicates:
+- CAN_TRANSITION_TO
+- REQUIRES
+- BLOCKS
+- NEXT_STEP
+- ISSUED_BY
+- RELATED_TO
+- ENABLES_SHORTCUT
+- ENABLED_BY
+- REQUIRED_FOR
+- VALID_FOR
+- AVAILABLE_TO
+- PRECEDED_BY
+- SUBMITTED_TO
+aliases:
+  D2: D-2
+  D4: D-4
+  F5: F-5
+  영주권: F-5
+  어학원비자: D-4
+  일반연수비자: D-4
+  유학비자: D-2
+  어학연수비자: D-4
+  학생비자: D-2
+messages:
+  disclaimer_template: '
+
+
+    ⚠️  이 정보는 [{source_file}] ({doc_version}) 기준입니다. 최신 정보는 하이코리아(hikorea.go.kr) 또는 외국인종합안내센터(1345)에서
+    확인하세요.'
+  no_answer: 죄송합니다. 해당 정보를 찾을 수 없습니다. 외국인종합안내센터(☎ 1345)에 문의하시거나 하이코리아(hikorea.go.kr)를 방문해 주세요.

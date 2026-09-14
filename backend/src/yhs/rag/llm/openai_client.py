@@ -1,5 +1,5 @@
 """
-agent/openai_runtime_client.py
+yhs/rag/llm/openai_client.py
 
 역할:
 - OpenAI API를 통한 런타임 답변 생성 클라이언트.

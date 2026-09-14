@@ -1,5 +1,5 @@
 """
-agent/retrieval/linker.py
+yhs/rag/retrieval/linker.py
 
 역할: 사용자 질문에서 그래프의 Entity 노드를 찾는 Topic Entity 링킹.
       질문 의도를 먼저 분류한 뒤, 의도 앵커 + 임베딩 매칭으로 Entity를 찾는다.
@@ -15,19 +15,18 @@ agent/retrieval/linker.py
 from __future__ import annotations
 
 import logging
-from typing import List
 
 import numpy as np
 
-from yhs.rag.retrieval.translator import get_translator, is_translation_enabled
 from yhs.core.config import (
     ALIASES_MAP,
     EMBEDDING_DIM,
     ENTITY_LINK_COSINE_THRESHOLD,
     ENTITY_LINK_TOP_K,
 )
-from yhs.infra.graph_store import GraphStore
 from yhs.infra.embedder import Embedder
+from yhs.infra.graph_store import GraphStore
+from yhs.rag.retrieval.translator import get_translator, is_translation_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -184,10 +183,10 @@ class EntityLinker:
         return result
 
     # ── Step 1: Alias 매칭 ───────────────────────────────────────────────────
-    def _step1_aliases_match(self, keyword: str) -> List[str]:
+    def _step1_aliases_match(self, keyword: str) -> list[str]:
         """ALIASES_MAP + entity name/alias 비교로 매칭 ID를 반환한다."""
         kw_lower = keyword.lower().strip()
-        matched: List[str] = []
+        matched: list[str] = []
 
         for alias, standard_id in ALIASES_MAP.items():
             if alias.lower() in kw_lower or kw_lower in alias.lower():
@@ -210,7 +209,7 @@ class EntityLinker:
         return matched
 
     # ── Step 2: 임베딩 유사도 매칭 ──────────────────────────────────────────
-    def _step2_embedding_match(self, question: str) -> List[str]:
+    def _step2_embedding_match(self, question: str) -> list[str]:
         self._load_entity_cache()
         if self._entity_embeddings is None or len(self._entity_embeddings) == 0:
             return []
@@ -247,7 +246,7 @@ class EntityLinker:
         logger.debug("의도 분류: %s, 앵커: %s", intents, anchors)
 
         # Step 1: 정규화 질문 + 앵커 각각으로 alias 매칭
-        step1_ids: List[str] = self._step1_aliases_match(normalized)
+        step1_ids: list[str] = self._step1_aliases_match(normalized)
         for anchor in anchors:
             for eid in self._step1_aliases_match(anchor):
                 if eid not in step1_ids:
@@ -260,7 +259,7 @@ class EntityLinker:
 
         # 중복 제거 (step1 우선)
         seen: set[str] = set()
-        all_ids: List[str] = []
+        all_ids: list[str] = []
         for eid in step1_ids + step2_ids:
             if eid not in seen:
                 all_ids.append(eid)
