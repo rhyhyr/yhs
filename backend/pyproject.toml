@@ -69,6 +69,8 @@ packages = ["src/yhs"]
 "config" = "yhs/_config"
 
 [tool.pytest.ini_options]
+# 캐시는 저장소 루트의 .cache/ 로 모은다 (기본값은 backend/.pytest_cache).
+cache_dir = "../.cache/pytest"
 pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "-q"

@@ -24,96 +24,145 @@
 
 ---
 
-## 빠른 시작 (Docker)
+## 처음 실행하기
 
-가장 빠른 길이다. Neo4j·백엔드·프론트가 한 번에 뜬다.
+필요한 건 **Docker Desktop** 하나뿐입니다. Python·Node 를 따로 설치하지 않아도 됩니다.
 
 ```bash
 git clone https://github.com/rhyhyr/yhs.git
 cd yhs
-
-cp .env.example .env
-# .env 를 열어 NEO4J_PASSWORD 와 사용할 LLM 의 API 키를 채운다
-
-docker compose up -d --build
 ```
+
+모든 명령은 `scripts/` 의 실행 스크립트를 통합니다. OS 에 맞는 쪽을 쓰세요.
+어떤 명령을 실제로 실행하는지 매번 출력해 주므로, 익숙해지면 그대로 직접 쓰셔도 됩니다.
+
+| | |
+|---|---|
+| Windows (PowerShell) | `.\scripts\dev.ps1 <명령>` |
+| macOS / Linux / Git Bash | `./scripts/dev.sh <명령>` |
+
+```powershell
+.\scripts\dev.ps1 help     # 전체 명령 목록
+.\scripts\dev.ps1 up       # 스택 기동 (.env 가 없으면 템플릿을 만들어 줍니다)
+```
+
+처음 `up` 을 실행하면 `.env` 가 없다고 알려 주며 `.env.example` 을 복사해 줍니다.
+열어서 최소한 두 개를 채운 뒤 다시 `up` 하세요.
+
+```ini
+NEO4J_PASSWORD=원하는_비밀번호
+OPENAI_API_KEY=sk-...        # RUNTIME_LLM=openai 로 쓸 때
+```
+
+기동 후 접속 주소:
 
 | 주소 | 내용 |
 |---|---|
-| http://localhost:3000 | 프론트엔드 (React) |
-| http://localhost:8000/docs | API 문서 (Swagger) |
+| http://localhost:3000 | 프론트엔드 |
+| http://localhost:8000/docs | API 문서 (Swagger — 여기서 바로 질의해 볼 수 있습니다) |
 | http://localhost:7474 | Neo4j 브라우저 |
 
-처음 한 번은 지식베이스를 만들어야 한다 (`data/sources/` 의 PDF → Neo4j):
+백엔드는 임베딩 모델(BAAI/bge-m3, 약 2GB)을 처음 한 번 내려받느라 **1~3분** 걸립니다.
+`.\scripts\dev.ps1 logs` 로 진행 상황을 볼 수 있고, 준비되면 `/health` 가 `ok` 를 반환합니다.
 
-```bash
-docker compose exec backend yhs --ingest
+### 지식베이스 채우기 (필수)
+
+문서 검색은 Neo4j 에 적재된 지식베이스가 있어야 동작합니다. 비어 있으면
+웹 크롤링으로만 답하고 근거 출처가 나오지 않습니다.
+
+```powershell
+.\scripts\dev.ps1 kb-status    # 현재 적재 상태 확인
+.\scripts\dev.ps1 ingest       # data/sources 의 PDF 35종을 적재
 ```
 
-이미 다른 Neo4j(예: 로컬 Neo4j Desktop)에 만들어 둔 지식베이스가 있다면,
-재인제스트 대신 그대로 옮길 수 있다 — LLM 을 부르지 않으므로 API 비용이 들지 않는다:
+`ingest` 는 PDF 마다 LLM 을 불러 엔티티·관계를 뽑으므로 시간과 API 비용이 듭니다.
+**이미 다른 Neo4j 에 지식베이스를 만들어 두었다면** 재인제스트 대신 그대로 옮기세요 —
+LLM 을 부르지 않아 비용이 0 입니다.
 
-```bash
-docker compose exec -T   -e SRC_URI=neo4j://host.docker.internal:7687 -e SRC_PASSWORD=...   -e DST_URI=neo4j://neo4j:7687               -e DST_PASSWORD=...   backend python - < scripts/copy_graph.py
+```powershell
+.\scripts\dev.ps1 migrate-kb   # 기본 원본: 호스트의 Neo4j (host.docker.internal:7687)
+.\scripts\dev.ps1 migrate-kb neo4j://다른주소:7687
+```
+
+### 전체 명령
+
+```
+도커로 전체 실행
+  up             스택 기동 (CPU torch) — 처음이라면 이것부터
+  up-gpu         스택 기동 (CUDA torch + GPU 할당, NVIDIA 필요)
+  down           스택 정지·정리
+  restart        스택 재기동
+  build          이미지만 빌드
+  logs [서비스]  로그 추적 (기본: backend)
+  ps             컨테이너 상태
+
+지식베이스
+  ingest         data/sources 의 PDF 를 Neo4j 에 적재 (LLM 호출·비용 발생)
+  migrate-kb     다른 Neo4j 의 그래프를 컨테이너로 복사 (LLM 미사용)
+  kb-status      적재 상태 확인 (노드·청크 수)
+
+도커 없이 로컬 개발
+  install        백엔드·프론트 의존성 설치
+  backend        백엔드 개발 서버 (http://localhost:8000)
+  frontend       프론트 개발 서버 (http://localhost:5173)
+  cli            터미널 질의 루프
+
+품질
+  test           백엔드 단위 테스트
+  lint           파이썬 + 프론트 린트
+  fmt            자동 수정 가능한 린트 문제 고치기
+  clean          캐시·빌드 산출물 정리
 ```
 
 ### GPU 로 실행하기
 
-기본 이미지는 CPU 전용 torch 를 쓴다 (어디서나 돌고 3~4GB 가볍다).
-NVIDIA GPU 가 있다면 CUDA 빌드로 바꿔 임베딩과 로컬 LLM 추론을 가속할 수 있다:
+기본 이미지는 CPU 전용 torch 를 씁니다 (어디서나 돌고 가볍습니다).
+NVIDIA GPU 가 있다면 CUDA 빌드로 바꿔 임베딩과 로컬 LLM 추론을 가속할 수 있습니다.
 
-```bash
-make up-gpu
-# = docker compose -f docker-compose.yml -f deploy/docker-compose.gpu.yml up -d --build
-```
-
-먼저 도커에서 GPU 가 보이는지 확인한다:
-
-```bash
+```powershell
+# 먼저 도커에서 GPU 가 보이는지 확인
 docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+
+.\scripts\dev.ps1 up-gpu
 ```
 
-GPU 를 실제로 쓰고 있는지는 백엔드 로그에서 확인한다:
+실제로 GPU 를 쓰고 있는지는 백엔드 로그에서 확인합니다:
 
 ```
 임베딩 모델 로드 완료: BAAI/bge-m3 (device=cuda:0)
 ```
 
-로컬 LLM(Ollama)을 쓰려면 프로파일을 켜고 모델을 받는다:
-
-```bash
-docker compose --profile ollama up -d
-docker compose exec ollama ollama pull exaone3.5:7.8b   # 약 5GB
-```
+`device=cpu` 로 나오면 CPU 이미지로 떠 있는 것입니다.
 
 ---
 
-## 로컬 개발 (도커 없이)
+## 도커 없이 로컬 개발
 
-**백엔드**
+코드를 고치며 개발할 때는 이쪽이 편합니다. Python 3.10+ 와 Node 20+ 가 필요합니다.
+Neo4j 는 여전히 필요하므로 `up` 으로 띄워 두거나 별도 설치본을 쓰세요.
 
-```bash
-cd backend
-pip install -e ".[dev]"
-playwright install chromium        # 크롤러가 JS 렌더링 페이지를 읽을 때 사용
-
-pytest                             # 단위 테스트
-uvicorn yhs.api.main:app --reload  # http://localhost:8000
-yhs --ingest                       # 지식베이스 구축
-yhs --query                        # 터미널 질의 루프
+```powershell
+.\scripts\dev.ps1 install     # 백엔드(editable) + 프론트 의존성
+.\scripts\dev.ps1 backend     # http://localhost:8000  (코드 수정 시 자동 재시작)
+.\scripts\dev.ps1 frontend    # http://localhost:5173
+.\scripts\dev.ps1 cli         # 터미널에서 바로 질의
 ```
 
-**프론트엔드**
+`vite.config.js` 가 `/api` 요청을 `localhost:8000` 으로 프록시하므로 프론트에
+백엔드 주소를 넣을 필요가 없습니다. 백엔드 없이 화면만 보려면 `frontend/.env` 에
+`VITE_USE_MOCK=true` 를 넣으면 mock 데이터로 동작합니다.
+
+스크립트를 거치지 않고 직접 실행하려면:
 
 ```bash
-cd frontend
-npm ci
-npm run dev                        # http://localhost:5173
-```
+cd backend && pip install -e ".[dev]" && playwright install chromium
+uvicorn yhs.api.main:app --reload
+yhs --ingest          # 지식베이스 구축
+yhs --query           # 터미널 질의 루프
+pytest -m "not integration"
 
-`vite.config.js` 가 `/api` 요청을 `localhost:8000` 으로 프록시하므로
-프론트에 백엔드 주소를 넣을 필요가 없다. 백엔드 없이 화면만 보려면
-`frontend/.env` 에 `VITE_USE_MOCK=true` 를 넣으면 된다.
+cd frontend && npm ci && npm run dev
+```
 
 ---
 
@@ -136,7 +185,10 @@ yhs/
 ├── experiments/         평가 러너와 데이터셋 (results/ 는 git 제외)
 ├── deploy/              운영 compose 오버라이드
 ├── docs/                설계 문서, ADR, 실험 프로토콜
-├── scripts/             코퍼스 수집 도구
+├── scripts/
+│   ├── dev.ps1 / dev.sh ★ 모든 실행 명령의 진입점
+│   ├── collect_urls.py  웹 문서 → PDF 코퍼스 수집
+│   └── copy_graph.py    Neo4j 간 그래프 이관
 └── docker-compose.yml
 ```
 
@@ -214,9 +266,19 @@ POST /api/chat
 
 ## 실험 · 평가
 
+평가 러너는 Neo4j 에 지식베이스가 적재돼 있어야 동작한다. 저장소 루트에서 실행한다
+(러너가 `backend/src` 를 경로에 넣어 주므로 `pip install -e backend` 는 없어도 된다).
+
 ```bash
 python experiments/run_eval100_openai.py       # N=100 평가 러너
 python experiments/weight_sweep_optuna.py      # 검색 가중치 Optuna 스윕
+python experiments/zh_eval.py                  # 중국어 번역 on/off 비교
+```
+
+검색 파라미터는 환경변수로 임시 오버라이드할 수 있다 (YAML 을 건드리지 않고 스윕):
+
+```bash
+TOP_K_VECTOR=8 GATE_MIN_TOP_SCORE=0.3 python experiments/run_eval100_openai.py
 ```
 
 데이터셋은 `experiments/eval_sets/`, 결과는 `experiments/results/` 에 쌓인다
@@ -230,6 +292,14 @@ python experiments/weight_sweep_optuna.py      # 검색 가중치 Optuna 스윕
 ```bash
 docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml up -d
 ```
+
+compose 오버라이드 파일은 용도별로 나뉜다.
+
+| 파일 | 용도 |
+|---|---|
+| `docker-compose.yml` | 기본 (개발용, 포트 전부 공개) |
+| `deploy/docker-compose.gpu.yml` | CUDA torch + GPU 할당 |
+| `deploy/docker-compose.prod.yml` | 운영 — 포트 비공개, 재시작 정책, 로그 제한 |
 
 운영 오버라이드는 백엔드·Neo4j 포트를 외부에 열지 않고 nginx(프론트 컨테이너)만
 80 포트로 노출한다. nginx 가 `/api` 를 백엔드로 프록시하므로 프론트와 API 가 같은

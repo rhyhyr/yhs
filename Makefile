@@ -45,4 +45,4 @@ build:  ## 도커 이미지만 빌드
 
 clean:  ## 캐시·빌드 산출물 정리
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
-	rm -rf .pytest_cache .ruff_cache backend/coverage.xml frontend/dist
+	rm -rf .cache .pytest_cache .ruff_cache backend/coverage.xml frontend/dist

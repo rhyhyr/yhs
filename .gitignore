@@ -13,6 +13,7 @@ dist/
 venv/
 .pytest_cache/
 .ruff_cache/
+.cache/          # ruff·pytest 캐시를 여기로 모음 (pyproject 설정)
 .coverage
 coverage.xml
 

@@ -20,21 +20,29 @@ WORKDIR /build
 COPY pyproject.toml README.md ./
 COPY config ./config
 # torch 빌드 선택: cpu(기본) | gpu
-#   cpu — PyTorch CPU 인덱스에서 받는다. 이미지가 3~4GB 작고 어디서나 돈다.
+#   cpu — PyTorch CPU 인덱스. 이미지가 3~4GB 작고 어디서나 돈다.
 #         CI 와 GPU 없는 서버의 기본값.
-#   gpu — 기본 PyPI 의 torch 를 받는다. CUDA 런타임(nvidia-* 휠)이 함께 붙어
-#         이미지가 커지는 대신 임베딩과 로컬 LLM 추론이 GPU 로 돌아간다.
-# GPU 로 빌드하려면:
-#   docker compose -f docker-compose.yml -f deploy/docker-compose.gpu.yml up -d --build
+#   gpu — PyTorch CUDA 인덱스(cu126). 임베딩과 로컬 LLM 추론이 GPU 로 돌아간다.
+#
+# 기본 PyPI 의 torch 를 그냥 받지 않는 이유:
+#   torch 2.14 는 PyPI 에서 cuda-toolkit 13 메타패키지를 extras 째로 끌어와
+#   설치 중 메모리를 크게 먹고(빌드가 OOM 으로 SIGKILL 됨) 이미지도 더 커진다.
+#   PyTorch 전용 인덱스는 필요한 휠만 담은 일관된 세트를 준다.
+#
+# GPU 로 빌드:
+#   make up-gpu
 ARG TORCH_VARIANT=cpu
+ARG TORCH_CPU_INDEX=https://download.pytorch.org/whl/cpu
+ARG TORCH_GPU_INDEX=https://download.pytorch.org/whl/cu126
 
 RUN python -m venv /opt/venv \
  && /opt/venv/bin/pip install --upgrade pip \
  && if [ "$TORCH_VARIANT" = "cpu" ]; then \
-      /opt/venv/bin/pip install --index-url https://download.pytorch.org/whl/cpu "torch"; \
+      TORCH_INDEX="$TORCH_CPU_INDEX"; \
     else \
-      /opt/venv/bin/pip install "torch"; \
+      TORCH_INDEX="$TORCH_GPU_INDEX"; \
     fi \
+ && /opt/venv/bin/pip install --index-url "$TORCH_INDEX" "torch" \
  && mkdir -p src/yhs && touch src/yhs/__init__.py \
  && /opt/venv/bin/pip install .
 
