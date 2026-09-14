@@ -14,17 +14,21 @@ ENV PIP_NO_CACHE_DIR=1 \
 
 WORKDIR /build
 
-# 의존성 목록만 먼저 복사 → 소스가 바뀌어도 이 레이어는 캐시가 살아 있다.
+# 의존성 목록과 설정 YAML 을 먼저 복사한다.
+# config/ 는 pyproject 의 force-include 대상이라 빌드 시점에 반드시 있어야 한다.
+# 소스(src/)는 아직 넣지 않아, 코드만 고쳤을 때 이 레이어 캐시가 살아 있다.
 COPY pyproject.toml README.md ./
+COPY config ./config
 RUN python -m venv /opt/venv \
  && /opt/venv/bin/pip install --upgrade pip \
  && mkdir -p src/yhs && touch src/yhs/__init__.py \
  && /opt/venv/bin/pip install .
 
-# 이제 실제 소스를 넣고 패키지만 다시 설치 (의존성은 이미 충족됨)
+# 이제 실제 소스를 넣고 패키지만 다시 설치 (무거운 의존성은 이미 위에서 설치됨).
+# --force-reinstall 이 없으면 pip 가 "이미 설치됨" 으로 건너뛰어
+# 껍데기 __init__.py 가 그대로 남는다.
 COPY src ./src
-COPY config ./config
-RUN /opt/venv/bin/pip install --no-deps .
+RUN /opt/venv/bin/pip install --no-deps --force-reinstall .
 
 
 # ── 2단계: 런타임 ─────────────────────────────────────────────────────────────
