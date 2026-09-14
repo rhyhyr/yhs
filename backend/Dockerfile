@@ -1,12 +1,16 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # yhs 백엔드 — FastAPI + Graph RAG
 #
-# 멀티스테이지로 나눈 이유:
-#   의존성 설치(느림, 잘 안 바뀜)와 소스 복사(빠름, 자주 바뀜)를 다른 레이어로
-#   두면 코드만 고쳤을 때 pip install 을 다시 돌리지 않는다.
+# 레이어 순서 원칙: 잘 안 바뀌는 것부터, 자주 바뀌는 것은 맨 뒤로.
+#   의존성(느림, 수 GB) → 시스템 패키지 → 브라우저 → 앱 소스(빠름, 자주 바뀜)
+#
+# 특히 앱 설치를 builder 가 아니라 런타임 단계 맨 끝에서 한다.
+# builder 안에서 앱을 설치하면 소스를 한 줄만 고쳐도 /opt/venv 가 바뀌고,
+# 그러면 `COPY --from=builder /opt/venv`(GPU 빌드 기준 13GB)가 통째로
+# 다시 복사된다. 이 순서면 소스 변경 시 마지막 작은 레이어만 다시 만들어진다.
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ── 1단계: 의존성 빌드 ────────────────────────────────────────────────────────
+# ── 1단계: 의존성만 담은 venv 만들기 ──────────────────────────────────────────
 FROM python:3.11-slim AS builder
 
 ENV PIP_NO_CACHE_DIR=1 \
@@ -14,11 +18,12 @@ ENV PIP_NO_CACHE_DIR=1 \
 
 WORKDIR /build
 
-# 의존성 목록과 설정 YAML 을 먼저 복사한다.
+# 의존성 목록과 설정 YAML 만 복사한다. 소스는 넣지 않는다 —
+# 이 단계의 결과물은 "의존성이 설치된 venv" 이고, 소스와 무관해야 한다.
 # config/ 는 pyproject 의 force-include 대상이라 빌드 시점에 반드시 있어야 한다.
-# 소스(src/)는 아직 넣지 않아, 코드만 고쳤을 때 이 레이어 캐시가 살아 있다.
 COPY pyproject.toml README.md ./
 COPY config ./config
+
 # torch 빌드 선택: cpu(기본) | gpu
 #   cpu — PyTorch CPU 인덱스. 이미지가 3~4GB 작고 어디서나 돈다.
 #         CI 와 GPU 없는 서버의 기본값.
@@ -29,12 +34,12 @@ COPY config ./config
 #   설치 중 메모리를 크게 먹고(빌드가 OOM 으로 SIGKILL 됨) 이미지도 더 커진다.
 #   PyTorch 전용 인덱스는 필요한 휠만 담은 일관된 세트를 준다.
 #
-# GPU 로 빌드:
-#   make up-gpu
+# GPU 로 빌드:  ./scripts/dev.sh up-gpu
 ARG TORCH_VARIANT=cpu
 ARG TORCH_CPU_INDEX=https://download.pytorch.org/whl/cpu
 ARG TORCH_GPU_INDEX=https://download.pytorch.org/whl/cu126
 
+# 껍데기 패키지로 의존성만 설치한다 (소스는 런타임 단계에서 넣는다).
 RUN python -m venv /opt/venv \
  && /opt/venv/bin/pip install --upgrade pip \
  && if [ "$TORCH_VARIANT" = "cpu" ]; then \
@@ -45,12 +50,6 @@ RUN python -m venv /opt/venv \
  && /opt/venv/bin/pip install --index-url "$TORCH_INDEX" "torch" \
  && mkdir -p src/yhs && touch src/yhs/__init__.py \
  && /opt/venv/bin/pip install .
-
-# 이제 실제 소스를 넣고 패키지만 다시 설치 (무거운 의존성은 이미 위에서 설치됨).
-# --force-reinstall 이 없으면 pip 가 "이미 설치됨" 으로 건너뛰어
-# 껍데기 __init__.py 가 그대로 남는다.
-COPY src ./src
-RUN /opt/venv/bin/pip install --no-deps --force-reinstall .
 
 
 # ── 2단계: 런타임 ─────────────────────────────────────────────────────────────
@@ -72,11 +71,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libxfixes3 libxrandr2 libgbm1 libasound2 libpango-1.0-0 \
  && rm -rf /var/lib/apt/lists/*
 
+# 여기서부터가 무거운 레이어. 소스와 무관하므로 캐시가 오래 유지된다.
 COPY --from=builder /opt/venv /opt/venv
 
 RUN playwright install chromium \
  && useradd --create-home --uid 10001 app \
  && chown -R app:app /opt/playwright
+
+# ── 앱 소스 (자주 바뀜 — 반드시 맨 뒤) ────────────────────────────────────────
+# 여기만 다시 만들어지므로 소스 수정 후 재빌드가 수 초에 끝난다.
+COPY pyproject.toml README.md /src/
+COPY config /src/config
+COPY src /src/src
+RUN /opt/venv/bin/pip install --no-deps --force-reinstall /src \
+ && rm -rf /src
 
 WORKDIR /app
 USER app

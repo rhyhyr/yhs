@@ -44,6 +44,7 @@ _cfg = load_config("retrieval")
 _CANDIDATE_TOP_K = _cfg["rerank"]["candidate_top_k"]
 _FINAL_TOP_K = _cfg["rerank"]["final_top_k"]
 _MIN_CHUNK_SCORE = _cfg["rerank"]["min_chunk_score"]
+_ROUTED_MIN_SLOTS = _cfg["rerank"].get("routed_min_slots", 0)
 
 # 병합 스코어 가중치
 _W_BASE = _cfg["weights"]["base"]        # 출처 기반 점수 (그래프 홉 점수 or 벡터 cosine)
@@ -134,6 +135,61 @@ def _is_header_chunk(text: str) -> bool:
         if marker_lines >= len(lines) - 1:
             return True
     return False
+
+
+def _dedupe_by_text(chunks: list[dict]) -> list[dict]:
+    """본문이 같은 청크를 하나로 줄인다 (점수 내림차순 입력 전제 → 높은 쪽 유지).
+
+    인제스트를 여러 번 돌리면 같은 본문이 서로 다른 id 로 중복 적재될 수 있고,
+    그러면 top-k 자리를 같은 내용이 나눠 먹어 근거 다양성이 무너진다.
+    (실측: top-6 에 고유 텍스트가 2개뿐인 경우가 있었다.)
+
+    중복 중에 라우팅으로 들어온 것이 있으면 그 표시를 살아남는 쪽에 넘긴다.
+    뒤따르는 라우팅 자리 보장이 내용 기준으로 동작하게 하기 위해서다.
+    """
+    seen_text: dict[str, dict] = {}
+    out: list[dict] = []
+    for chunk in chunks:
+        key = " ".join((chunk.get("text") or "").split())
+        kept = seen_text.get(key)
+        if kept is not None:
+            if chunk.get("_from") == "routed":
+                kept["_from"] = "routed"
+            continue
+        seen_text[key] = chunk
+        out.append(chunk)
+    return out
+
+
+def _apply_routed_quota(ranked: list[dict], top_k: int) -> list[dict]:
+    """라우팅된 청크에 top-k 자리를 최소 몇 개 확보해 준다.
+
+    base_scores.routed 를 아무리 올려도 가중 합산 구조상 top-k 진입이
+    보장되지 않는다(base 가중치가 0.33 이라 기여 상한이 0.33). 질문에
+    라우팅 키워드가 있다는 것은 "이 문서를 봐야 한다"는 명시적 신호이므로,
+    점수 경쟁과 별개로 자리를 확보한다.
+    """
+    if _ROUTED_MIN_SLOTS <= 0:
+        return ranked[:top_k]
+
+    routed = [c for c in ranked if c.get("_from") == "routed"]
+    if not routed:
+        return ranked[:top_k]
+
+    quota = min(_ROUTED_MIN_SLOTS, len(routed), top_k)
+    picked = list(routed[:quota])
+    picked_ids = {c.get("id") for c in picked}
+
+    for chunk in ranked:
+        if len(picked) >= top_k:
+            break
+        if chunk.get("id") not in picked_ids:
+            picked.append(chunk)
+            picked_ids.add(chunk.get("id"))
+
+    picked.sort(key=lambda c: c["_score"], reverse=True)
+    return picked[:top_k]
+
 
 
 class RetrievalEngine:
@@ -320,6 +376,9 @@ class RetrievalEngine:
         ranked = sorted(seen.values(), key=lambda x: x["_score"], reverse=True)
         ranked = [c for c in ranked if c.get("_score", 0.0) >= _MIN_CHUNK_SCORE]
 
+        # 같은 본문이 top-k 자리를 나눠 먹지 않도록 내용 기준으로 한 번 거른다.
+        ranked = _dedupe_by_text(ranked)
+
         if not ranked:
             logger.info(
                 "병합 재랭크 결과가 임계값 미달로 비어 있음 (threshold=%.2f)",
@@ -328,14 +387,16 @@ class RetrievalEngine:
             return []
 
         logger.info(
-            "병합 재랭크: 그래프 %d + 벡터 %d → threshold %.2f 통과 %d개, top %d (best_score=%.3f)",
+            "병합 재랭크: 그래프 %d + 벡터 %d → threshold %.2f 통과 %d개(중복 제거 후), "
+            "top %d (best_score=%.3f, 라우팅 %d개)",
             len(graph_chunks), len(vector_chunks),
             _MIN_CHUNK_SCORE,
             len(ranked),
             min(top_k, len(ranked)),
             ranked[0]["_score"],
+            sum(1 for c in ranked if c.get("_from") == "routed"),
         )
-        return ranked[:top_k]
+        return _apply_routed_quota(ranked, top_k)
 
     # ── 결과 빌더 ────────────────────────────────────────────────────────────
     def _build_result(

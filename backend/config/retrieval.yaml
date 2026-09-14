@@ -10,6 +10,16 @@ rerank:
   candidate_top_k: 10
   final_top_k: 6
   min_chunk_score: 0.3
+  # 라우팅된 청크에 확보해 줄 최소 자리 수.
+  #
+  # base_scores.routed 만으로는 top-k 진입이 보장되지 않는다.
+  # 최종 점수가 0.33*base + 0.53*keyword + 0.14*recency 라서,
+  # base 를 1.0 으로 올려도 기여가 0.33 을 넘지 못하기 때문이다.
+  # 실제로 라우팅 청크 0.40 vs 일반 청크 0.55 로 밀려, 답이 든 문서가
+  # 통째로 탈락하는 일이 있었다.
+  #
+  # 0 으로 두면 이 보장을 끄고 순수 점수순으로만 고른다.
+  routed_min_slots: 2
 weights:
   base: 0.33
   keyword: 0.53

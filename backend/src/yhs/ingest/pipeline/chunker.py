@@ -13,8 +13,8 @@ yhs/ingest/pipeline/chunker.py
 
 from __future__ import annotations
 
+import hashlib
 import re
-import uuid
 
 from yhs.core.config import MAX_CHUNK_TOKENS, MIN_CHUNK_TOKENS
 from yhs.schema.types import ChunkNode, RawDocument
@@ -133,7 +133,18 @@ def chunk_document(doc: RawDocument) -> list[ChunkNode]:
 
 
 def _make_chunk(text: str, section: str, doc: RawDocument) -> ChunkNode:
-    chunk_id = f"chunk_{uuid.uuid4().hex[:12]}"
+    # id 는 내용에서 결정한다 (랜덤 UUID 금지).
+    #
+    # 적재는 graph_store 에서 `MERGE (n:Chunk {id: $id})` 로 이뤄지는데,
+    # id 가 매 실행마다 달라지면 MERGE 가 의미를 잃고 인제스트를 돌릴 때마다
+    # 같은 내용이 통째로 복제된다. 실제로 그렇게 쌓인 적이 있다 —
+    # 342개 청크 중 고유 텍스트가 158개뿐이었고(2~4배 중복), 검색 top-6 이
+    # 사실상 top-2 로 줄어 근거 다양성이 크게 손상됐다.
+    #
+    # 같은 파일·같은 페이지·같은 본문이면 언제 돌려도 같은 id 가 나오므로
+    # 재인제스트가 멱등해진다.
+    fingerprint = f"{doc.source_file}|{doc.source_page}|{text}"
+    chunk_id = "chunk_" + hashlib.sha1(fingerprint.encode("utf-8")).hexdigest()[:12]
     return ChunkNode(
         id=chunk_id,
         text=text,
