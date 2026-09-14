@@ -50,6 +50,35 @@ docker compose up -d --build
 docker compose exec backend yhs --ingest
 ```
 
+이미 다른 Neo4j(예: 로컬 Neo4j Desktop)에 만들어 둔 지식베이스가 있다면,
+재인제스트 대신 그대로 옮길 수 있다 — LLM 을 부르지 않으므로 API 비용이 들지 않는다:
+
+```bash
+docker compose exec -T   -e SRC_URI=neo4j://host.docker.internal:7687 -e SRC_PASSWORD=...   -e DST_URI=neo4j://neo4j:7687               -e DST_PASSWORD=...   backend python - < scripts/copy_graph.py
+```
+
+### GPU 로 실행하기
+
+기본 이미지는 CPU 전용 torch 를 쓴다 (어디서나 돌고 3~4GB 가볍다).
+NVIDIA GPU 가 있다면 CUDA 빌드로 바꿔 임베딩과 로컬 LLM 추론을 가속할 수 있다:
+
+```bash
+make up-gpu
+# = docker compose -f docker-compose.yml -f deploy/docker-compose.gpu.yml up -d --build
+```
+
+먼저 도커에서 GPU 가 보이는지 확인한다:
+
+```bash
+docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+```
+
+GPU 를 실제로 쓰고 있는지는 백엔드 로그에서 확인한다:
+
+```
+임베딩 모델 로드 완료: BAAI/bge-m3 (device=cuda:0)
+```
+
 로컬 LLM(Ollama)을 쓰려면 프로파일을 켜고 모델을 받는다:
 
 ```bash

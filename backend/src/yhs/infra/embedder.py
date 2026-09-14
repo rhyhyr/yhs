@@ -39,7 +39,14 @@ class Embedder:
         try:
             from sentence_transformers import SentenceTransformer
             self._model = SentenceTransformer(self._model_name)
-            logger.info("임베딩 모델 로드 완료: %s", self._model_name)
+            # sentence-transformers 는 CUDA 가 보이면 알아서 GPU 로 올린다.
+            # 어느 장치에 올라갔는지 로그로 남겨 둔다 — CPU 전용 torch 가
+            # 설치된 이미지에서는 GPU 가 있어도 cpu 로 뜨기 때문에,
+            # 성능이 안 나올 때 이 줄이 첫 번째 단서가 된다.
+            logger.info(
+                "임베딩 모델 로드 완료: %s (device=%s)",
+                self._model_name, getattr(self._model, "device", "unknown"),
+            )
         except ImportError:
             raise ImportError("sentence-transformers를 설치하세요: pip install sentence-transformers") from None
 

@@ -19,13 +19,22 @@ WORKDIR /build
 # 소스(src/)는 아직 넣지 않아, 코드만 고쳤을 때 이 레이어 캐시가 살아 있다.
 COPY pyproject.toml README.md ./
 COPY config ./config
-# torch 는 CPU 전용 인덱스에서 먼저 설치한다.
-# 기본 PyPI 의 torch 는 리눅스에서 CUDA 런타임(nvidia-* 휠 수 GB)을 함께
-# 끌어온다. 이 서비스는 임베딩만 CPU 로 돌리므로 전부 낭비다.
-# GPU 추론이 필요해지면 아래 --index-url 줄을 지우면 된다.
+# torch 빌드 선택: cpu(기본) | gpu
+#   cpu — PyTorch CPU 인덱스에서 받는다. 이미지가 3~4GB 작고 어디서나 돈다.
+#         CI 와 GPU 없는 서버의 기본값.
+#   gpu — 기본 PyPI 의 torch 를 받는다. CUDA 런타임(nvidia-* 휠)이 함께 붙어
+#         이미지가 커지는 대신 임베딩과 로컬 LLM 추론이 GPU 로 돌아간다.
+# GPU 로 빌드하려면:
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.gpu.yml up -d --build
+ARG TORCH_VARIANT=cpu
+
 RUN python -m venv /opt/venv \
  && /opt/venv/bin/pip install --upgrade pip \
- && /opt/venv/bin/pip install --index-url https://download.pytorch.org/whl/cpu "torch" \
+ && if [ "$TORCH_VARIANT" = "cpu" ]; then \
+      /opt/venv/bin/pip install --index-url https://download.pytorch.org/whl/cpu "torch"; \
+    else \
+      /opt/venv/bin/pip install "torch"; \
+    fi \
  && mkdir -p src/yhs && touch src/yhs/__init__.py \
  && /opt/venv/bin/pip install .
 

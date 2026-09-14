@@ -1,6 +1,6 @@
 # 자주 쓰는 명령 모음. `make help` 로 목록을 봅니다.
 .DEFAULT_GOAL := help
-.PHONY: help install test lint fmt run ingest front up down logs build clean
+.PHONY: help install test lint fmt run ingest front up up-gpu down logs build clean
 
 help:  ## 사용 가능한 명령을 출력한다
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-12s\033[0m %s\n", $$1, $$2}'
@@ -28,8 +28,11 @@ front:  ## 프론트 개발 서버 (http://localhost:5173)
 ingest:  ## data/sources 의 PDF 를 Neo4j 지식베이스로 적재한다
 	cd backend && yhs --ingest
 
-up:  ## 도커 스택 기동
+up:  ## 도커 스택 기동 (CPU torch)
 	docker compose up -d --build
+
+up-gpu:  ## 도커 스택 기동 (CUDA torch + GPU 할당)
+	docker compose -f docker-compose.yml -f deploy/docker-compose.gpu.yml up -d --build
 
 down:  ## 도커 스택 정리
 	docker compose down

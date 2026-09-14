@@ -1,0 +1,41 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# GPU 오버라이드 (NVIDIA)
+#
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.gpu.yml up -d --build
+#   (= make up-gpu)
+#
+# 기본 스택과의 차이:
+#   - 백엔드 torch 를 CUDA 빌드로 설치한다 (기본은 CPU 전용).
+#   - 백엔드와 Ollama 에 GPU 를 할당한다.
+#
+# 필요 조건:
+#   NVIDIA 드라이버 + Docker Desktop(WSL2) GPU 지원.
+#   아래로 확인:
+#       docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+#
+# GPU 를 실제로 쓰고 있는지는 백엔드 로그의 임베딩 모델 로드 줄에서 보인다:
+#       임베딩 모델 로드 완료: BAAI/bge-m3 (device=cuda:0)
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  backend:
+    build:
+      args:
+        TORCH_VARIANT: gpu
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # RUNTIME_LLM=ollama 로 로컬 LLM 을 쓸 때만 뜨는 서비스지만,
+  # 뜨는 경우에는 GPU 를 주는 편이 압도적으로 빠르다.
+  ollama:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
