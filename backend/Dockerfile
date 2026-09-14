@@ -76,7 +76,16 @@ COPY --from=builder /opt/venv /opt/venv
 
 RUN playwright install chromium \
  && useradd --create-home --uid 10001 app \
- && chown -R app:app /opt/playwright
+ && chown -R app:app /opt/playwright \
+ # HF 캐시 디렉토리를 미리 만들고 app 소유로 둔다.
+ #
+ # compose 가 여기에 named volume 을 붙이는데, 이미지에 디렉토리가 없으면
+ # 도커가 root 소유로 만들어 버린다. 그러면 비특권 사용자로 도는 프로세스가
+ # 모델을 내려받지 못하고 "PermissionError ... Check cache directory
+ # permissions" 로 죽는다. 인제스트에서는 이게 조용한 실패로 나타났다 —
+ # LLM 추출이 전부 실패했는데 규칙 기반 폴백이 동작해 트리플만 0건이 됐다.
+ && mkdir -p /home/app/.cache/huggingface \
+ && chown -R app:app /home/app/.cache
 
 # ── 앱 소스 (자주 바뀜 — 반드시 맨 뒤) ────────────────────────────────────────
 # 여기만 다시 만들어지므로 소스 수정 후 재빌드가 수 초에 끝난다.
