@@ -29,4 +29,7 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -q --spider http://localhost/ || exit 1
+  # localhost 가 아니라 127.0.0.1 을 쓴다. 컨테이너의 localhost 는 ::1 로도
+  # 해석되는데 nginx 는 0.0.0.0:80(IPv4)에만 바인딩하므로, busybox wget 이
+  # IPv6 를 먼저 시도해 Connection refused 로 떨어진다.
+  CMD wget -q --spider http://127.0.0.1/ || exit 1
