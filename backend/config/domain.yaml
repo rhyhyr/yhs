@@ -26,6 +26,16 @@ allowed_predicates:
 - AVAILABLE_TO
 - PRECEDED_BY
 - SUBMITTED_TO
+# ── 절차적 관계 (그래프가 벡터 검색보다 잘하는 영역) ──────────────────
+# 이 프로젝트의 질문은 대부분 '무엇이 먼저인가 / 무엇이 있어야 하는가 /
+# 무엇이 막는가' 형태다. 아래 술어가 그 축을 담당한다.
+- PRECEDES          # A 다음에 B (NEXT_STEP 과 같은 방향, 이름을 명확히)
+- FOLLOWED_BY       # A 뒤에 B 가 온다
+- ENABLES           # A 가 있으면 B 가 가능해진다
+- HAS_CONDITION     # A 에 붙는 조건
+- HAS_EXCEPTION     # A 의 예외
+- APPLIES_TO        # A 가 적용되는 대상
+- ISSUED_TO         # A 가 발급되는 대상 (ISSUED_BY 의 반대편)
 aliases:
   D2: D-2
   D4: D-4

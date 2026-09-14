@@ -16,6 +16,7 @@ import re
 
 from yhs.core.config import ALIASES_MAP, CONFIDENCE_THRESHOLD
 from yhs.infra.graph_store import GraphStore
+from yhs.ingest.stats import STATS
 from yhs.schema.types import (
     ChunkLink,
     ChunkNode,
@@ -80,6 +81,9 @@ class GraphIngestor:
         # LLM 이 준 id → 이름 기반 정규 id 매핑.
         # 엔티티 적재 때 만들고, 트리플·청크링크가 같은 매핑을 따라간다.
         self._id_map: dict[str, str] = {}
+        # 실제로 적재된 엔티티 id. 관계를 저장하기 전에 양 끝이
+        # 여기 있는지 확인한다.
+        self._entity_ids: set[str] = set()
 
     def _resolve(self, raw_id: str) -> str:
         """LLM id 를 정규 id 로 바꾼다. 매핑에 없으면 별칭 정규화만 적용한다."""
@@ -119,7 +123,12 @@ class GraphIngestor:
 
         for entity in seen.values():
             self._store.upsert_entity(entity)
+            self._entity_ids.add(entity.id)
 
+        STATS.merged_entities += len(seen)
+        STATS.dropped_entities += sum(
+            1 for e in entities if not _canonical_id(e.name, e.id)
+        )
         logger.info(
             "Entity %d개 적재 완료 (입력 %d개 → 이름 기준 병합 후 %d개)",
             len(seen), len(entities), len(seen),
@@ -128,15 +137,46 @@ class GraphIngestor:
     def ingest_triples(self, triples: list[Triple]) -> None:
         """
         트리플을 적재한다.
-        - subject_id, object_id에 aliases 정규화 적용
+        - subject_id, object_id 를 정규 id 로 해석
+        - 양 끝 엔티티가 실재하는지 **미리** 확인한다
         - confidence < threshold → review_queue로 격리
+
+        왜 미리 확인하는가:
+            graph_store.upsert_triple 은 `MATCH (a:Entity{id})...MATCH (b...)`
+            로 양 끝을 찾는다. 하나라도 없으면 MATCH 가 0행이 되고 MERGE 가
+            실행되지 않는데, 빈 결과는 예외가 아니라 except 블록도 타지 않는다.
+            즉 관계가 로그 한 줄 없이 사라진다. 실측으로 표본 21청크에서
+            LLM 관계 169개 중 152개(90%)가 이렇게 유실됐다.
         """
         low_conf = 0
         ingested = 0
+        missing = 0
 
         for triple in triples:
             triple.subject_id = self._resolve(triple.subject_id)
             triple.object_id = self._resolve(triple.object_id)
+
+            # 양 끝이 실재하는지 확인. 없으면 건너뛰되 흔적을 남긴다.
+            # 임의로 엔티티를 만들지는 않는다 — LLM 이 지어낸 문자열까지
+            # 노드가 되면 그래프가 쓰레기로 찬다.
+            miss = [
+                nid for nid in (triple.subject_id, triple.object_id)
+                if nid not in self._entity_ids
+            ]
+            if miss:
+                missing += 1
+                STATS.relation_match_failed += 1
+                if len(STATS.match_failed_samples) < 20:
+                    STATS.match_failed_samples.append(
+                        f"{triple.subject_id} -[{triple.predicate}]-> "
+                        f"{triple.object_id}  (없는 엔티티: {', '.join(miss)})"
+                    )
+                logger.warning(
+                    "관계 저장 불가 — 엔티티 없음: %s -[%s]-> %s (없음: %s)",
+                    triple.subject_id, triple.predicate, triple.object_id,
+                    ", ".join(miss),
+                )
+                continue
 
             if triple.confidence < CONFIDENCE_THRESHOLD:
                 low_conf += 1
@@ -145,10 +185,12 @@ class GraphIngestor:
             else:
                 self._store.upsert_triple(triple)
                 ingested += 1
+                STATS.stored_relations += 1
 
         logger.info(
-            "Triple 적재 완료: %d건 적재, %d건 review_queue 격리",
-            ingested, low_conf,
+            "Triple 적재 완료: %d건 적재, %d건 review_queue 격리, "
+            "%d건 엔티티 부재로 건너뜀",
+            ingested, low_conf, missing,
         )
 
     def ingest_chunk_links(self, links: list[tuple[str, str]]) -> None:

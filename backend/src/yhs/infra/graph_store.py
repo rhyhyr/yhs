@@ -155,6 +155,7 @@ class GraphStore:
             """
             MERGE (n:Entity {id: $id})
             SET n.name          = $name,
+                n.type          = $type,
                 n.domain        = $domain,
                 n.aliases       = $aliases,
                 n.summary       = $summary,
@@ -168,6 +169,7 @@ class GraphStore:
             """,
             id=node.id,
             name=node.name,
+            type=getattr(node, "type", "") or "",
             domain=node.domain,
             aliases=node.aliases,
             summary=node.summary,

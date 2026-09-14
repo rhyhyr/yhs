@@ -68,6 +68,11 @@ class EntityNode:
     id: str
     name: str
     domain: str
+    # 그래프 노드 종류. 추출 스키마의 type 필드가 여기로 들어온다.
+    #   PROCEDURE / DOCUMENT / CONDITION / ORGANIZATION / PRODUCT / ENTITY
+    # 절차 관계에 참여할 수 있는 개념인지 가리는 축이라 집계·필터에 쓴다.
+    # 규칙 기반 추출기가 만든 엔티티는 비워 둔다.
+    type: str = ""
     aliases: list[str] = field(default_factory=list)
     summary: str = ""
     valid_from: str | None = None

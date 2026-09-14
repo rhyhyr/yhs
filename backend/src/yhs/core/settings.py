@@ -97,7 +97,13 @@ class Settings(BaseSettings):
     hf_runtime_model: str = "LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct"
     # 지식베이스 추출용 로컬 모델 (LLM_PROVIDER=exaone).
     # VRAM 이 빠듯하면 EXAONE-3.5-2.4B-Instruct 로 낮출 수 있다.
-    kb_llm_model: str = "LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct"
+    # EXAONE 이 아니라 Qwen2.5 를 기본으로 쓰는 이유:
+    #   EXAONE-3.5 는 trust_remote_code 로 자체 모델링 코드를 받아 오는데,
+    #   그 코드가 transformers 4.57 과 맞지 않는다
+    #   (ImportError: cannot import name 'RopeParameters').
+    #   Qwen2.5 는 transformers 가 네이티브로 지원해 버전에 묶이지 않는다.
+    #   VRAM 이 빠듯하면 Qwen2.5-3B-Instruct 로 낮출 수 있다.
+    kb_llm_model: str = "Qwen/Qwen2.5-7B-Instruct"
 
     # ── 파이프라인 ──────────────────────────────────────────────────────
     # 청킹 목표 크기와 오버랩 (토큰).

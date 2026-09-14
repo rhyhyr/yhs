@@ -66,6 +66,10 @@ ENV PATH="/opt/venv/bin:$PATH" \
 # 크롤러가 JS 렌더링 페이지를 읽을 때 사용한다.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       curl \
+      # bitsandbytes 4-bit 양자화가 triton 을 쓰는데, triton 은 커널을 런타임에
+      # JIT 컴파일한다. 컴파일러가 없으면 "Failed to find C compiler" 로 죽고,
+      # 추출기가 그 예외를 삼켜 엔티티·관계 0건이라는 조용한 실패가 된다.
+      gcc g++ \
       libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
       libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
       libxfixes3 libxrandr2 libgbm1 libasound2 libpango-1.0-0 \

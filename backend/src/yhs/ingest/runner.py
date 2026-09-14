@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from yhs.ingest.stats import STATS
+
 logger = logging.getLogger(__name__)
 
 
@@ -41,6 +43,7 @@ def run_ingest(pdf_dir: Path, use_llm: bool = True) -> None:
         logger.warning("PDF 파일이 없습니다: %s", target_dir)
         return
 
+    STATS.reset()
     logger.info("=== 인제스트 시작: %d개 PDF ===", len(pdf_files))
 
     pdf_loader = PDFLoader()
@@ -71,7 +74,13 @@ def run_ingest(pdf_dir: Path, use_llm: bool = True) -> None:
             entities, triples, chunk_links = extractor.extract_all(all_chunks)
             ingestor.ingest_all(all_chunks, entities, triples, chunk_links)
 
-        _print_ingest_summary(store)
+    # 조용한 실패가 조용히 지나가지 않도록 집계를 반드시 출력한다.
+    for line in STATS.summary_lines():
+        print(line)
+    if STATS.has_problems():
+        print("  [주의] 위에 실패/폐기 항목이 있습니다. "
+              "그래프가 빈약해 보인다면 여기부터 확인하세요.")
+    _print_ingest_summary(store)
 
 
 def run_embed_update() -> None:
