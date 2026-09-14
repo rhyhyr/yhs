@@ -35,6 +35,17 @@ require_env_file() {
   fi
 }
 
+require_backend_installed() {
+  # backend/ 아래에서 `python -c "import yhs"` 가 되는지 본다.
+  # 안 되면 editable 설치가 아직 안 된 것이다.
+  if ! ( cd backend && python -c "import yhs" >/dev/null 2>&1 ); then
+    warn "백엔드 패키지가 설치돼 있지 않습니다."
+    echo "    먼저 실행하세요:  ./scripts/dev.sh install"
+    echo "    (도커로만 쓸 거라면 이 명령 대신 ./scripts/dev.sh up 을 쓰세요)"
+    exit 1
+  fi
+}
+
 env_value() {
   [ -f .env ] || return 0
   sed -n "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*//p" .env | head -1 | tr -d '\r'
@@ -152,6 +163,7 @@ case "$cmd" in
     ;;
 
   backend)
+    require_backend_installed
     step "백엔드 개발 서버 (http://localhost:8000/docs)"
     ( cd backend && run python -m uvicorn yhs.api.main:app --reload )
     ;;
@@ -162,6 +174,7 @@ case "$cmd" in
     ;;
 
   cli)
+    require_backend_installed
     step "터미널 질의 루프"
     ( cd backend && run python -m yhs.cli --query )
     ;;

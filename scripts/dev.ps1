@@ -56,6 +56,24 @@ function Require-EnvFile {
     }
 }
 
+function Require-BackendInstalled {
+    # backend/ 아래에서 import yhs 가 되는지 본다.
+    # 안 되면 editable 설치가 아직 안 된 것이다.
+    Push-Location "backend"
+    try {
+        & python -c "import yhs" 2>$null | Out-Null
+        $ok = ($LASTEXITCODE -eq 0)
+    } finally { Pop-Location }
+
+    if (-not $ok) {
+        Write-Host ""
+        Write-Host "  백엔드 패키지가 설치돼 있지 않습니다." -ForegroundColor Yellow
+        Write-Host "    먼저 실행하세요:  .\scripts\dev.ps1 install"
+        Write-Host "    (도커로만 쓸 거라면 이 명령 대신 .\scripts\dev.ps1 up 을 쓰세요)"
+        exit 1
+    }
+}
+
 function Get-EnvValue($name) {
     if (-not (Test-Path ".env")) { return $null }
     foreach ($line in Get-Content ".env" -Encoding UTF8) {
@@ -196,6 +214,7 @@ switch ($Command.ToLower()) {
     }
 
     "backend" {
+        Require-BackendInstalled
         Write-Step "백엔드 개발 서버 (http://localhost:8000/docs)"
         Push-Location "backend"
         try { Invoke-Step "python" @("-m", "uvicorn", "yhs.api.main:app", "--reload") }
@@ -209,6 +228,7 @@ switch ($Command.ToLower()) {
     }
 
     "cli" {
+        Require-BackendInstalled
         Write-Step "터미널 질의 루프"
         Push-Location "backend"
         try { Invoke-Step "python" @("-m", "yhs.cli", "--query") } finally { Pop-Location }
