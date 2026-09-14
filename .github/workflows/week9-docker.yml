@@ -37,7 +37,7 @@ jobs:
             type=sha,prefix=sha-
 
       - name: 빌드 후 GHCR에 푸시
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
