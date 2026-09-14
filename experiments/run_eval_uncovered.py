@@ -4,9 +4,9 @@ experiments/run_eval_uncovered.py
 uncovered 20개만 크롤러 집중 실험
 
 실행: python experiments/run_eval_uncovered.py
-출력: 실험/results/runs_uncovered.jsonl
-      실험/results/scores_uncovered.jsonl
-      실험/results/results_uncovered.md
+출력: experiments/results/runs_uncovered.jsonl
+      experiments/results/scores_uncovered.jsonl
+      experiments/results/results_uncovered.md
 """
 from __future__ import annotations
 
@@ -14,7 +14,9 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)                                   # experiments.* 패키지
+sys.path.insert(0, os.path.join(_ROOT, "backend", "src"))   # yhs.* 패키지
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf-8-sig"):
     import io
@@ -26,17 +28,17 @@ os.environ.setdefault("RUNTIME_LLM", "openai")
 from dotenv import load_dotenv
 load_dotenv()
 
-from agent.agent_runtime import GateThresholds
-from agent.openai_runtime_client import OpenAIRuntimeClient
-from graph_rag.db.graph_store import GraphStore
-from graph_rag.embedding.embedder import Embedder
+from yhs.rag.runtime import GateThresholds
+from yhs.rag.llm.openai_client import OpenAIRuntimeClient
+from yhs.infra.graph_store import GraphStore
+from yhs.infra.embedder import Embedder
 
-from 실험.YHS_eval_questions_v3 import EVAL_QUERIES
+from experiments.eval_sets.eval_questions_v3 import EVAL_QUERIES
 from experiments.run_eval100 import collect_answers, score_answers, aggregate
 
-RUNS_PATH   = "실험/results/runs_uncovered.jsonl"
-SCORES_PATH = "실험/results/scores_uncovered.jsonl"
-RESULTS_PATH = "실험/results/results_uncovered.md"
+RUNS_PATH   = "experiments/results/runs_uncovered.jsonl"
+SCORES_PATH = "experiments/results/scores_uncovered.jsonl"
+RESULTS_PATH = "experiments/results/results_uncovered.md"
 
 
 def write_results_uncovered(runs: list[dict], scores: list[dict]) -> None:

@@ -7,7 +7,7 @@ runs_*.jsonl 파일을 읽어 Claude 채팅에 붙여넣을 수 있는 배치 �
   python experiments/make_claude_judge_prompts.py [runs_파일.jsonl] [--batch-size N]
 
 기본값:
-  runs 파일: 실험/results/runs_v3b.jsonl  (GPT-4o-mini 답변 모델)
+  runs 파일: experiments/results/runs_v3b.jsonl  (GPT-4o-mini 답변 모델)
   batch_size: 10 (Claude 채팅 1회에 보낼 질문 수)
 
 출력:
@@ -25,14 +25,16 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)                                   # experiments.* 패키지
+sys.path.insert(0, os.path.join(_ROOT, "backend", "src"))   # yhs.* 패키지
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf-8-sig"):
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
-DEFAULT_RUNS = "실험/results/runs_v3b.jsonl"
-OUT_DIR = Path("실험/results/claude_judge")
+DEFAULT_RUNS = "experiments/results/runs_v3b.jsonl"
+OUT_DIR = Path("experiments/results/claude_judge")
 
 JUDGE_PROMPT_HEADER = """\
 당신은 엄격한 채점자다. 아래 항목들을 각각 평가하라.

@@ -19,7 +19,9 @@ import os
 import sys
 from time import perf_counter
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)                                   # experiments.* 패키지
+sys.path.insert(0, os.path.join(_ROOT, "backend", "src"))   # yhs.* 패키지
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf-8-sig"):
     import io
@@ -32,8 +34,8 @@ load_dotenv()
 import requests
 from openai import OpenAI
 
-from agent.crawler.web_search_client import WebSearchClient, allowed_sites
-from graph_rag.embedding.embedder import Embedder
+from yhs.rag.crawler.web_search_client import WebSearchClient, allowed_sites
+from yhs.infra.embedder import Embedder
 
 SMOKE_QUERIES = [
     {

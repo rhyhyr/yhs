@@ -33,7 +33,9 @@ import io
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)                                   # experiments.* 패키지
+sys.path.insert(0, os.path.join(_ROOT, "backend", "src"))   # yhs.* 패키지
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf-8-sig"):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
@@ -48,12 +50,12 @@ load_dotenv(os.path.join(_ROOT, ".env"), override=True)
 import optuna
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-import agent.retrieval_engine as re_module
-from agent.retrieval_engine import RetrievalEngine
-from graph_rag.config import DEFAULT_HOP_DEPTH, TOP_K_GRAPH_DEFAULT
-from graph_rag.db.graph_store import GraphStore
-from graph_rag.embedding.embedder import Embedder
-from 실험.YHS_eval_questions_100 import EVAL_QUERIES
+import yhs.rag.engine as re_module
+from yhs.rag.engine import RetrievalEngine
+from yhs.core.config import DEFAULT_HOP_DEPTH, TOP_K_GRAPH_DEFAULT
+from yhs.infra.graph_store import GraphStore
+from yhs.infra.embedder import Embedder
+from experiments.eval_sets.eval_questions_v2 import EVAL_QUERIES
 
 # in_db + complex 만 대상 (DB에 정답 청크가 존재하는 항목)
 TARGET = [q for q in EVAL_QUERIES if q["stratum"] in ("in_db", "complex")]

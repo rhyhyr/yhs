@@ -11,7 +11,9 @@ import os
 import sys
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)                                   # experiments.* 패키지
+sys.path.insert(0, os.path.join(_ROOT, "backend", "src"))   # yhs.* 패키지
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -19,8 +21,8 @@ import requests
 
 NOTION_TOKEN   = os.environ["NOTION_TOKEN"]
 NOTION_PAGE_ID = os.environ["NOTION_PAGE_ID"]
-RUNS_PATH      = "실험/results/runs_uncovered.jsonl"
-SCORES_PATH    = "실험/results/scores_uncovered.jsonl"
+RUNS_PATH      = "experiments/results/runs_uncovered.jsonl"
+SCORES_PATH    = "experiments/results/scores_uncovered.jsonl"
 
 HEADERS = {
     "Authorization": f"Bearer {NOTION_TOKEN}",

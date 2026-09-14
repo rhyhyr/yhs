@@ -1,31 +1,32 @@
-# Ruff configuration for Week 7 CI/CD assignment.
-# Excludes legacy code; lints only new files (tests/) for now.
+# 리포 전역 린터 설정.
+# Python 패키지 정의(의존성·빌드·pytest)는 backend/pyproject.toml 에 있다.
 
 [tool.ruff]
 line-length = 100
 target-version = "py310"
 
 extend-exclude = [
-  "logs/",
-  "pdf/",
   ".venv/",
   "__pycache__/",
   "build/",
+  "data/",
+  "docs/",
+  "logs/",
+  "experiments/results/",
+  "frontend/",
 ]
 
 [tool.ruff.lint]
-# E: pycodestyle errors, F: pyflakes, I: isort
-select = ["E", "F", "I"]
+# E: pycodestyle, F: pyflakes, I: isort, UP: pyupgrade, B: bugbear
+select = ["E", "F", "I", "UP", "B"]
 ignore = [
-  "E501",   # line too long
-  "W292",   # missing newline at end of file
-  "W293",   # whitespace on blank line
+  "E501",   # line too long — line-length는 포매터에 맡긴다
+  "B008",   # FastAPI Depends() 기본값 패턴
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["F401"]
+"backend/tests/*" = ["F401"]
+"experiments/*"   = ["E402"]   # sys.path 설정 후 import 하는 러너 스크립트
 
-[tool.pytest.ini_options]
-markers = [
-    "integration: Ollama 서버와 모델이 설치된 환경에서만 실행되는 통합 테스트",
-]
+[tool.ruff.lint.isort]
+known-first-party = ["yhs"]

@@ -1,6 +1,6 @@
 import json
 import statistics
-from 실험.YHS_eval_questions_100 import EVAL_QUERIES
+from experiments.eval_sets.eval_questions_v2 import EVAL_QUERIES
 
 meta = {q['id']: q for q in EVAL_QUERIES}
 

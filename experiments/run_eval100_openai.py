@@ -16,7 +16,9 @@ import time
 from time import perf_counter
 from typing import Any
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)                                   # experiments.* 패키지
+sys.path.insert(0, os.path.join(_ROOT, "backend", "src"))   # yhs.* 패키지
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf-8-sig"):
     import io
@@ -28,19 +30,19 @@ load_dotenv()
 
 import requests
 
-from agent.agent_runtime import GateThresholds, expand_query, should_use_deep_path
-from agent.crawler.web_search_client import WebSearchClient, allowed_sites
-from agent.openai_runtime_client import OpenAIRuntimeClient
-from agent.retrieval_engine import RetrievalEngine
-from graph_rag.db.graph_store import GraphStore
-from graph_rag.embedding.embedder import Embedder
-from graph_rag.schema.types import ChunkNode, RetrievalResult
+from yhs.rag.runtime import GateThresholds, expand_query, should_use_deep_path
+from yhs.rag.crawler.web_search_client import WebSearchClient, allowed_sites
+from yhs.rag.llm.openai_client import OpenAIRuntimeClient
+from yhs.rag.engine import RetrievalEngine
+from yhs.infra.graph_store import GraphStore
+from yhs.infra.embedder import Embedder
+from yhs.schema.types import ChunkNode, RetrievalResult
 
-from 실험.YHS_eval_questions_v3 import EVAL_QUERIES  # noqa: E402  (v3: cross_hop 58개 포함)
+from experiments.eval_sets.eval_questions_v3 import EVAL_QUERIES  # noqa: E402  (v3: cross_hop 58개 포함)
 
-RUNS_PATH = "실험/results/runs_v3b.jsonl"
-SCORES_PATH = "실험/results/scores_v3b.jsonl"
-RESULTS_PATH = "실험/results/results_v3b.md"
+RUNS_PATH = "experiments/results/runs_v3b.jsonl"
+SCORES_PATH = "experiments/results/scores_v3b.jsonl"
+RESULTS_PATH = "experiments/results/results_v3b.md"
 
 CRAWLER_TIMEOUT = 15
 
@@ -116,7 +118,7 @@ def collect_answers(
 
             if use_deep:
                 path = "deep"
-                from agent.agent_runtime import detect_language
+                from yhs.rag.runtime import detect_language
                 language = detect_language(question)
                 variants = expand_query(question, language)[1:]
                 extra_results: list[RetrievalResult] = []

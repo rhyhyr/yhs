@@ -13,7 +13,9 @@ import io
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _ROOT)                                   # experiments.* 패키지
+sys.path.insert(0, os.path.join(_ROOT, "backend", "src"))   # yhs.* 패키지
 if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf-8-sig"):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
@@ -23,12 +25,12 @@ from dotenv import load_dotenv
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(_ROOT, ".env"), override=True)
 
-import agent.retrieval_engine as re_module
-from agent.agent_runtime import GateThresholds, should_use_deep_path
-from graph_rag.db.graph_store import GraphStore
-from graph_rag.embedding.embedder import Embedder
+import yhs.rag.engine as re_module
+from yhs.rag.runtime import GateThresholds, should_use_deep_path
+from yhs.infra.graph_store import GraphStore
+from yhs.infra.embedder import Embedder
 
-from 실험.YHS_eval_questions_100 import EVAL_QUERIES
+from experiments.eval_sets.eval_questions_v2 import EVAL_QUERIES
 
 # 한국어 in_db + complex (정적 정답이 있는 항목만)
 TARGET_QUERIES = [
@@ -43,7 +45,7 @@ GATE_SCORES      = [0.20, 0.25, 0.30, 0.35]
 
 
 def run_sweep(store, embedder):
-    from agent.retrieval_engine import RetrievalEngine
+    from yhs.rag.engine import RetrievalEngine
 
     results = []
 

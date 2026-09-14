@@ -62,8 +62,8 @@ def check_env() -> None:
 
 # ─── 단계 2: HFRuntimeClient LLM 생성 테스트 ─────────────────────────────────
 def test_llm_generation() -> "HFRuntimeClient":
-    from agent.hf_runtime_client import HFRuntimeClient
-    from graph_rag.schema.types import RetrievalResult
+    from yhs.rag.llm.hf_client import HFRuntimeClient
+    from yhs.schema.types import RetrievalResult
 
     print("=" * 60)
     print("  LLM 생성 테스트 (모델 최초 로드 포함)")
@@ -96,7 +96,7 @@ def test_full_deep_path() -> None:
     print("=" * 60)
 
     try:
-        from graph_rag.db.graph_store import GraphStore
+        from yhs.infra.graph_store import GraphStore
         with GraphStore() as store:
             pass  # 연결 성공 여부만 확인
     except Exception as exc:
@@ -109,11 +109,11 @@ def test_full_deep_path() -> None:
     # 비교형 질문 → Deep Path 강제 유도
     deep_question = "D-2 비자와 D-4 비자의 차이점과 각각 연장 절차를 비교해 주세요."
 
-    from graph_rag.db.graph_store import GraphStore
-    from graph_rag.embedding.embedder import Embedder
-    from agent.hf_runtime_client import HFRuntimeClient
-    from agent.retrieval_engine import RetrievalEngine
-    from agent.agent_runtime import (
+    from yhs.infra.graph_store import GraphStore
+    from yhs.infra.embedder import Embedder
+    from yhs.rag.llm.hf_client import HFRuntimeClient
+    from yhs.rag.engine import RetrievalEngine
+    from yhs.rag.runtime import (
         GateThresholds, detect_language, detect_question_type,
         expand_query, should_use_deep_path, build_answer_prompt,
     )
@@ -144,8 +144,8 @@ def test_full_deep_path() -> None:
         if use_deep:
             t0 = time.perf_counter()
             variants = expand_query(deep_question, lang)[1:]
-            from graph_rag.schema.types import ChunkNode
-            from agent.query_runner import _merge_results
+            from yhs.schema.types import ChunkNode
+            from yhs.rag.query_runner import _merge_results
             extra = []
             for v in variants:
                 r = engine.retrieve(v)
