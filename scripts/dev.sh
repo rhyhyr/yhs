@@ -21,6 +21,8 @@ C_STEP=$'\033[36m'; C_DIM=$'\033[90m'; C_OK=$'\033[32m'; C_WARN=$'\033[33m'; C_O
 
 step()  { printf '\n%s→ %s%s\n' "$C_STEP" "$1" "$C_OFF"; }
 run()   { printf '%s  $ %s%s\n' "$C_DIM" "$*" "$C_OFF"; "$@"; }
+# 비밀번호가 섞인 명령용 — 실행은 하되 화면에는 마스킹해서 보여 준다.
+run_masked() { printf '%s  $ %s%s\n' "$C_DIM" "$1" "$C_OFF"; shift; "$@"; }
 ok()    { printf '%s  %s%s\n' "$C_OK" "$1" "$C_OFF"; }
 warn()  { printf '%s  %s%s\n' "$C_WARN" "$1" "$C_OFF"; }
 
@@ -151,7 +153,8 @@ case "$cmd" in
     step "지식베이스 적재 상태"
     pw="$(env_value NEO4J_PASSWORD)"
     [ -n "$pw" ] || { echo ".env 에 NEO4J_PASSWORD 가 없습니다." >&2; exit 1; }
-    run docker compose exec -T neo4j cypher-shell -u neo4j -p "$pw" \
+    run_masked "docker compose exec -T neo4j cypher-shell -u neo4j -p ***** <cypher>" \
+      docker compose exec -T neo4j cypher-shell -u neo4j -p "$pw" \
       "MATCH (n) RETURN labels(n)[0] AS label, count(*) AS count ORDER BY count DESC"
     ;;
 

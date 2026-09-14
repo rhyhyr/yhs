@@ -34,12 +34,17 @@ function Write-Step($text) {
 }
 
 function Invoke-Step {
-    <# 실행할 명령을 보여 주고 실행한다. 실패하면 즉시 중단. #>
-    param([string]$Exe, [string[]]$Args)
-    Write-Host "  $ $Exe $($Args -join ' ')" -ForegroundColor DarkGray
-    & $Exe @Args
+    <# 실행할 명령을 보여 주고 실행한다. 실패하면 즉시 중단.
+       Display 를 주면 그 문자열만 출력한다 (비밀번호 마스킹용).
+
+       주의: 파라미터 이름으로 $Args 를 쓰면 안 된다. PowerShell 의 자동 변수라
+       바인딩이 어긋나 인자가 빈 배열이 되어 버린다. #>
+    param([string]$Exe, [string[]]$Arguments, [string]$Display)
+    $shown = if ($Display) { $Display } else { "$Exe $($Arguments -join ' ')" }
+    Write-Host "  $ $shown" -ForegroundColor DarkGray
+    & $Exe @Arguments
     if ($LASTEXITCODE -ne 0) {
-        throw "명령이 실패했습니다 (exit $LASTEXITCODE): $Exe $($Args -join ' ')"
+        throw "명령이 실패했습니다 (exit $LASTEXITCODE): $Exe $($Arguments -join ' ')"
     }
 }
 
@@ -197,7 +202,8 @@ switch ($Command.ToLower()) {
         $pw = Get-EnvValue "NEO4J_PASSWORD"
         if (-not $pw) { throw ".env 에 NEO4J_PASSWORD 가 없습니다." }
         $cypher = "MATCH (n) RETURN labels(n)[0] AS label, count(*) AS count ORDER BY count DESC"
-        Invoke-Step "docker" @("compose", "exec", "-T", "neo4j", "cypher-shell", "-u", "neo4j", "-p", $pw, $cypher)
+        Invoke-Step "docker" @("compose", "exec", "-T", "neo4j", "cypher-shell", "-u", "neo4j", "-p", $pw, $cypher) `
+            -Display "docker compose exec -T neo4j cypher-shell -u neo4j -p ***** <cypher>"
     }
 
     "install" {
