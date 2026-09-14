@@ -7,16 +7,13 @@ agent/retrieval/vector_retriever.py
 - 2차: numpy 코사인 유사도 fallback
 
 스코어링:
-  hybrid_score = 0.65 * cosine + 0.25 * keyword_overlap + 0.10 * recency
-
-  keyword_overlap = 0.6 * anchor_hit_rate + 0.4 * term_overlap_rate
-  recency = 1.0 → 0개월, 0.0 → 24개월+
+  순수 코사인 유사도만 반환. 키워드·최신성 혼합은 retrieval_engine._merge_and_rerank()
+  에서 한 번만 수행한다 (여기서 섞으면 engine에서 이중 계산됨).
 """
 
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import List, Optional
 
 import numpy as np
@@ -27,12 +24,7 @@ from graph_rag.embedding.embedder import Embedder
 
 logger = logging.getLogger(__name__)
 
-# 하이브리드 스코어 가중치
-_W_COS = 0.65
-_W_KW  = 0.25
-_W_REC = 0.10
-
-# numpy fallback에서 cosine top-k 이후 재랭크할 후보 배수
+# numpy fallback에서 cosine top-k 후보 배수 (retrieval_engine이 최종 재랭크)
 _CANDIDATE_MULTIPLIER = 3
 
 
@@ -45,47 +37,6 @@ class VectorRetriever:
         self._chunk_meta: List[dict] = []
         self._matrix: Optional[np.ndarray] = None
 
-    # ── 스코어 헬퍼 ──────────────────────────────────────────────────────────
-    def _keyword_overlap_score(
-        self, text: str, question: str, keywords: list[str]
-    ) -> float:
-        """앵커/키워드 히트율 + 질문 단어 겹침을 결합한 점수 (0~1)."""
-        t_lower = text.lower()
-        q_lower = question.lower()
-
-        if keywords:
-            anchor_hits = sum(1 for kw in keywords if kw.lower() in t_lower)
-            anchor_score = min(anchor_hits / len(keywords), 1.0)
-        else:
-            anchor_score = 0.0
-
-        q_terms = {t for t in q_lower.split() if len(t) > 1}
-        t_terms = {t for t in t_lower.split() if len(t) > 1}
-        term_overlap = len(q_terms & t_terms) / max(len(q_terms), 1) if q_terms else 0.0
-
-        return 0.6 * anchor_score + 0.4 * term_overlap
-
-    def _recency_score(self, doc_version: str) -> float:
-        """문서 최신성 점수 (0개월 → 1.0, 24개월+ → 0.0)."""
-        if not doc_version:
-            return 0.5
-        try:
-            parts = doc_version.replace("-", ".").split(".")
-            year, month = int(parts[0]), int(parts[1])
-            doc_date = datetime(year, month, 1)
-            months_old = max(0, (datetime.now() - doc_date).days / 30)
-            return max(0.0, 1.0 - months_old / 24.0)
-        except (ValueError, IndexError):
-            return 0.5
-
-    def _hybrid_score(
-        self, cosine: float, text: str, question: str,
-        keywords: list[str], doc_version: str,
-    ) -> float:
-        kw  = self._keyword_overlap_score(text, question, keywords)
-        rec = self._recency_score(doc_version)
-        return _W_COS * cosine + _W_KW * kw + _W_REC * rec
-
     # ── Neo4j 벡터 검색 ──────────────────────────────────────────────────────
     def _search_neo4j(
         self, question: str, top_k: int, keywords: list[str]
@@ -94,18 +45,14 @@ class VectorRetriever:
         raw = self._store.vector_search_chunks(q_emb, top_k)
         results = []
         for c in raw:
-            cosine = float(c.get("score", 0.0))
-            text = c.get("text", "")
-            doc_ver = c.get("doc_version", "")
-            hybrid = self._hybrid_score(cosine, text, question, keywords, doc_ver)
             results.append({
                 "id": c.get("id", ""),
-                "text": text,
+                "text": c.get("text", ""),
                 "source_file": c.get("source_file", ""),
                 "source_page": c.get("source_page", 0),
                 "section": c.get("section", ""),
-                "doc_version": doc_ver,
-                "score": hybrid,
+                "doc_version": c.get("doc_version", ""),
+                "score": float(c.get("score", 0.0)),  # 순수 코사인
             })
         results.sort(key=lambda x: x["score"], reverse=True)
         return results
@@ -141,26 +88,31 @@ class VectorRetriever:
         q_emb = self._embedder.encode_single(question)
         sims = self._embedder.cosine_similarity(q_emb, self._matrix)
 
-        # cosine 기준으로 후보를 더 뽑은 뒤 하이브리드 스코어로 재랭크
         candidate_k = min(top_k * _CANDIDATE_MULTIPLIER, len(sims))
         top_indices = np.argsort(sims)[::-1][:candidate_k]
 
         results = []
         for idx in top_indices:
-            cosine = float(sims[idx])
-            text = self._chunk_texts[idx]
-            meta = self._chunk_meta[idx]
-            doc_ver = meta.get("doc_version", "")
-            hybrid = self._hybrid_score(cosine, text, question, keywords, doc_ver)
-
-            entry = meta.copy()
+            entry = self._chunk_meta[idx].copy()
             entry["id"] = self._chunk_ids[idx]
-            entry["text"] = text
-            entry["score"] = hybrid
+            entry["text"] = self._chunk_texts[idx]
+            entry["score"] = float(sims[idx])  # 순수 코사인
             results.append(entry)
 
         results.sort(key=lambda x: x["score"], reverse=True)
         return results[:top_k]
+
+    def _get_all_chunks(self) -> List[dict]:
+        """인덱스에 있는 모든 청크를 id/text/meta dict 리스트로 반환한다 (소스 라우팅용)."""
+        if self._matrix is None:
+            self._build_index()
+        results = []
+        for i, cid in enumerate(self._chunk_ids):
+            entry = self._chunk_meta[i].copy()
+            entry["id"] = cid
+            entry["text"] = self._chunk_texts[i]
+            results.append(entry)
+        return results
 
     # ── 캐시 무효화 ──────────────────────────────────────────────────────────
     def invalidate_index(self) -> None:
@@ -176,7 +128,7 @@ class VectorRetriever:
         top_k: int = TOP_K_VECTOR,
         keywords: list[str] | None = None,
     ) -> List[dict]:
-        """하이브리드 스코어(cosine + keyword + recency) 기반 청크 검색."""
+        """코사인 유사도 기반 청크 검색. 키워드·최신성 혼합은 retrieval_engine에서 수행."""
         if keywords is None:
             keywords = []
 

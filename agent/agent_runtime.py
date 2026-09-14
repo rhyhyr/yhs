@@ -73,36 +73,55 @@ def detect_question_type(text: str) -> QuestionType:
     return QuestionType.GENERAL
 
 
-# 원본 쿼리에 '비교/원인/예외' 계열 키워드를 붙인 변형 쿼리 목록을 만든다.
-# deep path에서 여러 각도로 검색할 때 사용한다. 중복은 제거한다.
+# 구어체 → 행정 공식 용어 재표현 쌍 (cross_hop 검색 품질 향상용)
+# 패턴이 질문에 있으면 공식 용어로 교체한 변형 + 공식 용어 단독 키워드를 추가한다.
+_KO_REWRITE_PAIRS: list[tuple[str, str]] = [
+    ("자격 바꾸", "체류자격변경허가"),
+    ("비자 바꾸", "체류자격변경허가"),
+    ("비자 변경", "체류자격변경허가"),
+    ("비자 전환", "체류자격변경허가"),
+    ("D-2로", "D-2 유학 체류자격변경"),
+    ("d-2로", "D-2 유학 체류자격변경"),
+    ("외국인등록증 갱신", "외국인등록증 재발급"),
+    ("등록증 갱신", "외국인등록증 재발급"),
+    ("등록증 새로", "외국인등록증 재발급"),
+    ("보험료 밀리", "건강보험료 체납 비자연장 제한"),
+    ("보험 체납", "건강보험료 체납확인 비자연장"),
+    ("아르바이트", "시간제취업 체류자격외활동"),
+    ("알바", "시간제취업 체류자격외활동"),
+]
+
+
+# 쿼리 변형 생성 — deep path에서 여러 각도로 DB를 검색할 때 사용.
+# cross_hop 대응: 구어체 → 행정 용어 재표현 + 공식 키워드 단독 검색 추가.
 def expand_query(text: str, language: Optional[str] = None) -> list[str]:
     lang = language or detect_language(text)
     base = normalize_query(text)
     variants = [base]
 
     if lang == "ko":
-        variants.extend([
-            f"{base} 비교 차이",
-            f"{base} 원인 이유",
-            f"{base} 예외 제외",
-        ])
+        t_lower = base.lower()
+        for pattern, replacement in _KO_REWRITE_PAIRS:
+            if pattern.lower() in t_lower:
+                rewritten = t_lower.replace(pattern.lower(), replacement)
+                variants.append(normalize_query(rewritten))
+                variants.append(replacement)
     elif lang == "zh":
         variants.extend([
             f"{base} 比较 区别",
-            f"{base} 原因 为什么",
-            f"{base} 例外 除外",
+            f"{base} 申请 程序",
         ])
     else:
         variants.extend([
-            f"{base} comparison difference",
-            f"{base} cause reason",
-            f"{base} exception unless",
+            f"{base} application procedure",
+            f"{base} requirements documents",
         ])
 
     uniq: list[str] = []
     seen: set[str] = set()
     for v in variants:
-        if v not in seen:
+        v = v.strip()
+        if v and v not in seen:
             uniq.append(v)
             seen.add(v)
     return uniq

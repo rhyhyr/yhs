@@ -5,6 +5,7 @@ import json
 import os
 import re
 import time
+import traceback
 import urllib.parse
 from collections import deque
 from typing import Any
@@ -116,6 +117,7 @@ class WebSearchClient:
                     return self._ollama_client._chat("", prompt, max_tokens=2048)
             except Exception as e:
                 print(f"[WARN] Ollama 폴백 실패: {e}", flush=True)
+                traceback.print_exc()
             return ""
         try:
             resp = self.llm.generate_content(
@@ -185,14 +187,17 @@ class WebSearchClient:
                 r.raise_for_status()
                 html = r.text
             except Exception:
+                traceback.print_exc()
                 return "", []
         except Exception as e:
             print(f"[WARN] Playwright 오류({e}) → requests 폴백")
+            traceback.print_exc()
             try:
                 r = self.http.get(url, timeout=CRAWL_FETCH_TIMEOUT)
                 r.raise_for_status()
                 html = r.text
             except Exception:
+                traceback.print_exc()
                 return "", []
 
         soup = BeautifulSoup(html, "html.parser")
@@ -402,6 +407,7 @@ class WebSearchClient:
 
         except Exception as e:
             print(f"[WARN] crawl_page 오류({e}) → fetch_page_text 폴백", flush=True)
+            traceback.print_exc()
             content = self.fetch_page_text(url)
 
         lines = [line.strip() for line in content.split("\n") if line.strip()]
@@ -755,11 +761,14 @@ class WebSearchClient:
             if not title:
                 title = u
             snippet_text = (c or "").replace("\n", " ")[:300]
-            # simple namespace object
             obj = type("SearchSnippet", (), {})()
             setattr(obj, "title", title)
             setattr(obj, "snippet", snippet_text)
             setattr(obj, "url", u)
             snippets.append(obj)
 
+        print(f"[WEB SEARCH] 완료: {len(snippets)}개 스니펫 반환 (query={query[:40]})", flush=True)
+        if snippets:
+            for i, sn in enumerate(snippets):
+                print(f"  snippet[{i}] url={sn.url} | {sn.snippet[:80]}", flush=True)
         return snippets

@@ -17,10 +17,13 @@ _COMPLEX_INDICATORS: list[str] = [
     "필요한가요", "필요합니까", "필요한지", "동시에", "먼저",
     "그리고", "뿐만 아니라", "관련이 있", "어떤 영향", "납부",
     "확인이", "과 함께", "와 함께", "둘 다", "모두 필요",
-    "비교", "차이", "어떻게 달라", "연관", "조건", "조건부", "복합", "또는",
+    "비교", "차이", "어떻게 달라", "연관", "조건부", "복합", "또는",
     # 행동 키워드 — 이게 있으면 단순 FAQ 답변이 아니라 검색이 필요함
     "연장", "해지", "취소", "신청", "방법", "절차", "어떻게", "어디서",
     "서류", "준비", "발급", "변경", "전환", "갱신", "기간",
+    # 시간/날짜 의존 키워드 — 정적 FAQ로 답할 수 없는 질문
+    "이번 학기", "다음 학기", "이번 달", "언제까지", "언제부터",
+    "마감일", "마감", "일정", "공지", "방문예약", "예약",
 ]
 
 
@@ -259,10 +262,11 @@ class FastPathHandler:
 
     def match_with_score(self, question: str) -> tuple[Optional[str], int]:
         """FAQ 답변과 키워드 매칭 점수(일치 키워드 수)를 함께 반환한다."""
-        if _is_complex_question(question):
-            return None, 0
-
         q_lower = question.lower().strip()
+
+        # 복합/시간의존 질문은 정적 FAQ로 답할 수 없음 → 검색으로 넘김
+        if _is_complex_question(q_lower):
+            return None, 0
 
         best_answer: Optional[str] = None
         best_match_count = 0
@@ -275,4 +279,5 @@ class FastPathHandler:
 
         if best_match_count >= 1:
             return best_answer, best_match_count
+
         return None, 0

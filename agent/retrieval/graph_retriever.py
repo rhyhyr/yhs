@@ -107,4 +107,11 @@ class DDEGraphRetriever:
         all_node_ids = list(visited)
         chunks = self._store.get_chunks_for_nodes(all_node_ids)
 
+        for chunk in chunks:
+            source_node_ids = chunk.pop("source_node_ids", None) or []
+            chunk["_graph_score"] = max(
+                (node_scores.get(nid, 0.0) for nid in source_node_ids),
+                default=0.0,
+            )
+
         return final_edges, chunks

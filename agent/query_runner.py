@@ -22,6 +22,7 @@ from agent.faq import FastPathHandler
 from agent.gemini_runtime_client import GeminiRuntimeClient
 from agent.hf_runtime_client import HFRuntimeClient
 from agent.ollama_runtime_client import OllamaRuntimeClient
+from agent.openai_runtime_client import OpenAIRuntimeClient
 from agent.retrieval_engine import RetrievalEngine
 from graph_rag.db.graph_store import GraphStore
 from graph_rag.embedding.embedder import Embedder
@@ -72,6 +73,89 @@ def _merge_results(base: RetrievalResult, extras: list[RetrievalResult]) -> Retr
     )
 
 
+def process_question(
+    question: str,
+    *,
+    llm,
+    engine: RetrievalEngine,
+    web_client: WebSearchClient,
+    faq_handler: FastPathHandler,
+    thresholds: GateThresholds,
+    force_deep: bool = False,
+    force_web: bool = False,
+) -> dict:
+    """단일 질문을 처리하여 결과 dict 반환. run_query_loop과 eval 스크립트가 공유한다."""
+    from time import perf_counter
+    t0 = perf_counter()
+
+    faq_answer, _ = faq_handler.match_with_score(question)
+    if faq_answer:
+        return {
+            "answer": faq_answer, "path": "faq", "method": "faq",
+            "best_score": 1.0, "sources": [], "latency": perf_counter() - t0,
+        }
+
+    language = detect_language(question)
+
+    result = engine.retrieve(question)
+    best_score = max((c.score for c in result.chunks), default=0.0)
+    evidence_count = len(result.chunks)
+    use_deep, _ = should_use_deep_path(question, best_score, evidence_count, thresholds)
+
+    if force_deep:
+        use_deep = True
+
+    external_contexts: list[str] = []
+    path = "fast"
+
+    if use_deep:
+        path = "deep"
+        variants = expand_query(question, language)[1:]
+        extra_results: list[RetrievalResult] = []
+        for variant in variants:
+            v_result = engine.retrieve(variant)
+            if v_result.retrieval_method != "no_answer":
+                extra_results.append(v_result)
+        if extra_results:
+            result = _merge_results(result, extra_results)
+
+        best_after = max((c.score for c in result.chunks), default=0.0)
+        needs_web, _ = should_use_deep_path(question, best_after, len(result.chunks), thresholds)
+
+        if force_web:
+            needs_web = True
+
+        if needs_web:
+            try:
+                snippets = web_client.search_and_collect(question, max_results=3)
+                for sn in snippets:
+                    external_contexts.append(f"[WEB] {sn.title}: {sn.snippet}")
+            except Exception as e:
+                print(f"  [웹 크롤러 오류] {e}")
+
+    context = engine.build_prompt_context(result)
+    if external_contexts:
+        context += "\n\n[외부 검색 결과]\n" + "\n".join(external_contexts)
+
+    if result.retrieval_method == "no_answer" and not external_contexts:
+        answer = insufficient_evidence_message(language)
+    elif llm and context:
+        answer = llm.generate_answer(question, context, result, web_context=bool(external_contexts))
+    elif context:
+        answer = context
+    else:
+        answer = insufficient_evidence_message(language)
+
+    return {
+        "answer": answer,
+        "path": path,
+        "method": result.retrieval_method,
+        "best_score": best_score,
+        "sources": [c.source_file for c in result.chunks],
+        "latency": round(perf_counter() - t0, 3),
+    }
+
+
 def run_query_loop() -> None:
     """대화형 질의 루프를 실행한다.
 
@@ -97,6 +181,9 @@ def run_query_loop() -> None:
         if not llm.is_available():
             logger.warning("Gemini를 사용할 수 없습니다. FAQ 모드로만 동작합니다.")
             llm = None
+    elif runtime_provider == "openai":
+        llm = OpenAIRuntimeClient()
+        logger.info("런타임 LLM: OpenAI (%s)", llm._model)
     else:  # ollama (기본값)
         llm = OllamaRuntimeClient()
         if not llm.is_available():
@@ -112,11 +199,18 @@ def run_query_loop() -> None:
     with GraphStore() as store:
         engine = RetrievalEngine(store, embedder, ollama_client=llm)
 
-        # hf/ollama 모드에서는 WebSearchClient의 LLM 링크 선택 기능을 비활성화한다.
-        # (web_llm=None → 상위 N개 휴리스틱 폴백으로 동작)
         http = requests.Session()
         web_llm = llm if runtime_provider == "gemini" else None
-        web_client = WebSearchClient(http, embedder, web_llm, store._driver, allowed_sites)
+        _openai_api_key = os.environ.get("OPENAI_API_KEY", "")
+        _openai_client = None
+        if _openai_api_key:
+            try:
+                from openai import OpenAI as _OpenAI
+                _openai_client = _OpenAI(api_key=_openai_api_key)
+            except Exception:
+                pass
+        web_client = WebSearchClient(http, embedder, web_llm, store._driver, allowed_sites,
+                                     openai_client=_openai_client)
 
         while True:
             try:
