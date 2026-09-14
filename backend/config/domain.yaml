@@ -36,6 +36,9 @@ allowed_predicates:
 - HAS_EXCEPTION     # A 의 예외
 - APPLIES_TO        # A 가 적용되는 대상
 - ISSUED_TO         # A 가 발급되는 대상 (ISSUED_BY 의 반대편)
+- PRODUCES         # 절차가 만들어 내는 산출물 (외국인등록 → 외국인등록증)
+                   # REQUIRES 의 반대 방향. '이 서류를 받으려면 무슨 절차를
+                   # 밟나'를 역방향 탐색으로 답하기 위해 둔다.
 aliases:
   D2: D-2
   D4: D-4

@@ -15,6 +15,7 @@ import re
 
 from yhs.core.config import ALLOWED_PREDICATES, KNOWN_INSTITUTIONS
 from yhs.ingest.stats import STATS
+from yhs.ingest.validation import validate
 from yhs.schema.types import ChunkNode, EntityNode, Triple
 
 logger = logging.getLogger(__name__)
@@ -209,9 +210,39 @@ class LLMExtractor:
             return [], []
 
         STATS.llm_success_chunks += 1
+        ents, tris = self._parse_and_validate(result, chunk)
+
+        # 관계가 하나도 못 살아남았는데 원래는 있었다면 한 번 더 시도한다.
+        # 로컬 모델은 같은 입력에도 출력이 흔들려서, 재시도로 규칙을
+        # 지킨 출력이 나오는 경우가 있다. 한 번만 한다 — 무한정 돌리면
+        # 인제스트 시간이 감당이 안 된다.
+        raw_rel_count = len(result.get("relations", []) or [])
+        if raw_rel_count and not tris:
+            STATS.chunk_retried += 1
+            logger.info("관계가 모두 폐기되어 재시도 (chunk=%s)", chunk.id)
+            try:
+                retry = client.extract_entities_and_relations(
+                    chunk.text, chunk.source_file
+                )
+            except Exception as exc:
+                logger.warning("재시도 실패 (chunk=%s): %s", chunk.id, exc)
+            else:
+                r_ents, r_tris = self._parse_and_validate(retry, chunk)
+                if r_tris:
+                    STATS.retry_succeeded += 1
+                    return r_ents, r_tris
+
+        return ents, tris
+
+    def _parse_and_validate(
+        self, result: dict, chunk: ChunkNode
+    ) -> tuple[list[EntityNode], list[Triple]]:
+        """파싱 → 검증. json-repair 로 복구한 응답도 반드시 이 경로를 탄다."""
         entities = self._parse_entities(result.get("entities", []), chunk)
         triples = self._parse_triples(result.get("relations", []), chunk)
-        return entities, triples
+        # 프롬프트가 규칙을 어겨도 여기서 막는다.
+        # (설명성 문단의 가짜 절차 관계, 타입 불일치, endpoint 누락 등)
+        return validate(entities, triples, result.get("chunk_type", ""))
 
     def _parse_entities(self, raw: list, chunk: ChunkNode) -> list[EntityNode]:
         entities = []
@@ -280,6 +311,7 @@ class LLMExtractor:
                     predicate=predicate,
                     object_id=str(obj),
                     condition=item.get("condition", ""),
+                    evidence=str(item.get("evidence", "") or "").strip(),
                     confidence=float(item.get("confidence", 0.8)),
                     source=chunk.source_file,
                     source_page=chunk.source_page,

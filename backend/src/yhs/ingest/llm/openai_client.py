@@ -2,14 +2,25 @@
 yhs/ingest/llm/openai_client.py
 
 역할:
-- KB 구축 단계(초기 1회)에만 사용하는 OpenAI API 클라이언트.
-- 엔티티·관계 추출: JSON Schema를 강제하여 스키마 밖 관계 생성을 방지한다.
-- 흐름도 이미지 파싱: OpenAI Vision API를 통해 노드/엣지를 JSON으로 추출한다.
+- KB 구축(인제스트)용 OpenAI API 클라이언트.
+- 엔티티·관계 추출: JSON Schema 를 strict 로 강제한다.
 
-구현 원칙:
-- LLM에 자유 텍스트 출력 허용 금지
-- 반드시 JSON 형식의 구조화 출력만 허용
-- 허용 predicate 7개 외 관계 생성 불가
+왜 KB 구축에 OpenAI 를 쓰는가:
+    로컬 Qwen 은 구조화 출력을 강제할 수단이 없다. 프롬프트로 "relations 의
+    subject/object 는 entities 의 name 과 같아야 한다"고 아무리 써도 모델이
+    지키지 않으면 그대로 통과하고, 검증 단계에서 대량으로 버려진다. 실제
+    12청크 검증에서 관계 130건 중 8건(6%)만 살아남았다 — endpoint 누락
+    81건, 타입 불일치 41건.
+
+    OpenAI 는 strict json_schema 로 디코딩 단계에서 스키마를 강제한다.
+    entity type, predicate, chunk_type 이 enum 으로 고정되고 필수 필드가
+    보장되므로, 검증 단계에서 버릴 것이 크게 줄어든다.
+
+주의:
+    프롬프트는 provider 공용이다 (prompts.EXTRACTION_SYSTEM_PROMPT).
+    여기서 따로 만들지 말 것. 예전에 그렇게 해서 이 파일만 옛 스키마
+    (모델이 id 를 생성, type 4종, evidence 없음)에 멈춰 있었고, provider 를
+    바꾸는 순간 검증이 전부 걸러내는 상태였다.
 """
 
 from __future__ import annotations
@@ -22,69 +33,47 @@ from typing import Any
 
 from openai import OpenAI
 
-from yhs.core.config import ALLOWED_PREDICATES, OPENAI_API_KEY, OPENAI_MODEL
+from yhs.core.config import OPENAI_API_KEY, OPENAI_MODEL
+from yhs.ingest.llm.prompts import EXTRACTION_SYSTEM_PROMPT
+from yhs.ingest.validation import CHUNK_TYPES, ENTITY_TYPES, PREDICATE_TYPES
 
 logger = logging.getLogger(__name__)
 
-# LLM 추출용 JSON Schema (구조화 출력 강제)
-_EXTRACTION_SCHEMA = {
-    "entities": [
-        {
-            "id": "string (엔티티의 표준 명칭과 동일하게 쓸 것. 비자·체류자격은 D-2, F-5 같은 공식 코드를 쓰고, 그 외에는 명칭 그대로. 일련번호를 새로 매기지 말 것)",
-            "name": "string (표준 명칭)",
-            "type": "string (Entity|Procedure|Document|Institution 중 하나)",
-            "domain": "string (visa|health_insurance|part_time|school_admin|daily_life 중 하나)",
-            "summary": "string (1-2문장 요약)",
-            "confidence": "float [0.0-1.0]",
-        }
-    ],
-    "relations": [
-        {
-            "subject_id": "string",
-            "predicate": f"string ({' | '.join(ALLOWED_PREDICATES)} 중 하나만 허용)",
-            "object_id": "string",
-            "condition": "string (조건문이 있으면 여기에 기술, 없으면 빈 문자열)",
-            "confidence": "float [0.0-1.0]",
-            "source_text": "string (근거 원문 발췌, 50자 이내)",
-        }
-    ],
-}
+_SYSTEM_PROMPT = EXTRACTION_SYSTEM_PROMPT
 
-_SYSTEM_PROMPT = f"""당신은 행정 문서에서 엔티티와 관계를 추출하는 전문가입니다.
-
-다음 규칙을 반드시 지켜야 합니다:
-1. 출력은 반드시 아래 JSON 스키마 형식으로만 해야 합니다.
-2. predicate는 반드시 허용 목록({', '.join(ALLOWED_PREDICATES)}) 중 하나여야 합니다.
-3. 조건문("~인 경우", "~이상인 경우")은 별도 노드가 아닌 엣지의 condition 필드에 저장합니다.
-4. confidence는 추출 확실성을 [0.0, 1.0] 범위로 표현합니다.
-5. 추출이 불확실하면 낮은 confidence 값(0.5 미만)으로 포함하세요. 필터링은 시스템이 처리합니다.
-
-출력 JSON 스키마:
-{json.dumps(_EXTRACTION_SCHEMA, ensure_ascii=False, indent=2)}
-
-JSON 이외의 텍스트는 절대 출력하지 마세요."""
-
+# strict json_schema 는 additionalProperties:false 와 모든 속성의 required
+# 명시를 요구한다.
+#
+# enum 은 validation.py 를 그대로 따라간다. 프롬프트 표와 검증 표가 어긋나면
+# 모델이 규칙을 지켜도 코드가 버리게 되므로, 양쪽 모두 validation.py 한 곳만
+# 본다.
 _JSON_SCHEMA = {
     "name": "entity_relation_extraction",
     "strict": True,
     "schema": {
         "type": "object",
         "additionalProperties": False,
+        "required": ["chunk_type", "entities", "relations"],
         "properties": {
+            "chunk_type": {
+                "type": "string",
+                "enum": sorted(CHUNK_TYPES),
+            },
             "entities": {
                 "type": "array",
                 "items": {
                     "type": "object",
                     "additionalProperties": False,
+                    # id 는 받지 않는다. 코드가 name 에서 canonical id 를 만든다
+                    # (ingestor._canonical_id). 모델이 id 를 지어내면 같은
+                    # 개념이 D-1 / Foreign_student 처럼 갈라진다.
+                    "required": ["name", "type", "summary", "confidence"],
                     "properties": {
-                        "id": {"type": "string"},
                         "name": {"type": "string"},
-                        "type": {"type": "string"},
-                        "domain": {"type": "string"},
+                        "type": {"type": "string", "enum": sorted(ENTITY_TYPES)},
                         "summary": {"type": "string"},
                         "confidence": {"type": "number"},
                     },
-                    "required": ["id", "name", "type", "domain", "summary", "confidence"],
                 },
             },
             "relations": {
@@ -92,24 +81,27 @@ _JSON_SCHEMA = {
                 "items": {
                     "type": "object",
                     "additionalProperties": False,
+                    "required": ["subject", "predicate", "object",
+                                 "condition", "evidence", "confidence"],
                     "properties": {
-                        "subject_id": {"type": "string"},
+                        "subject": {"type": "string"},
                         "predicate": {
                             "type": "string",
-                            "enum": ALLOWED_PREDICATES,  # 허용 목록 외 값 원천 차단
+                            "enum": sorted(PREDICATE_TYPES),
                         },
-                        "object_id": {"type": "string"},
+                        "object": {"type": "string"},
                         "condition": {"type": "string"},
+                        # 근거를 못 대는 관계는 validation 에서 버려진다.
+                        "evidence": {"type": "string"},
                         "confidence": {"type": "number"},
-                        "source_text": {"type": "string"},
                     },
-                    "required": ["subject_id", "predicate", "object_id", "condition", "confidence", "source_text"],
                 },
             },
         },
-        "required": ["entities", "relations"],
     },
 }
+
+_EMPTY: dict[str, Any] = {"chunk_type": "", "entities": [], "relations": []}
 
 
 class OpenAIKBClient:
@@ -121,86 +113,91 @@ class OpenAIKBClient:
         self._client = OpenAI(api_key=OPENAI_API_KEY)
         self._model = OPENAI_MODEL
 
+    def _complete(self, messages: list[dict[str, Any]]) -> dict[str, Any]:
+        """strict json_schema 로 한 번 호출하고 파싱한다.
+
+        gpt-5 계열은 max_tokens 를 받지 않고 max_completion_tokens 를 쓴다.
+        추론 토큰이 이 한도를 같이 먹으므로 넉넉히 준다 — 한도에 걸리면
+        content 가 빈 문자열로 돌아오고, 그러면 그 청크가 통째로 사라진다.
+        """
+        response = self._client.chat.completions.create(
+            model=self._model,
+            messages=messages,
+            max_completion_tokens=8000,
+            response_format={"type": "json_schema", "json_schema": _JSON_SCHEMA},
+        )
+        choice = response.choices[0]
+        raw = choice.message.content or ""
+
+        if not raw.strip():
+            # 토큰 한도에 걸려 잘렸거나 안전 필터에 막힌 경우.
+            # 빈 결과를 조용히 돌려주면 "그래프가 빈약하다"로만 보인다.
+            logger.error(
+                "OpenAI 응답이 비어 있음 (finish_reason=%s, usage=%s)",
+                choice.finish_reason, response.usage,
+            )
+            raise ValueError(f"빈 응답 (finish_reason={choice.finish_reason})")
+
+        return json.loads(raw)
+
     def extract_entities_and_relations(
         self, text: str, source_file: str = ""
     ) -> dict[str, Any]:
-        """
-        텍스트에서 엔티티와 관계를 추출한다.
-        Returns: {"entities": [...], "relations": [...]}
+        """텍스트에서 chunk_type·엔티티·관계를 추출한다.
+
+        Returns: {"chunk_type": str, "entities": [...], "relations": [...]}
         """
         user_content = (
             f"[출처: {source_file}]\n\n"
-            f"다음 텍스트에서 엔티티와 관계를 추출하세요:\n\n{text[:3000]}"
+            f"다음 문단을 3단계 절차대로 처리하세요:\n\n{text[:3000]}"
         )
+        messages: list[dict[str, Any]] = [
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "user", "content": user_content},
+        ]
 
         try:
-            response = self._client.chat.completions.create(
-                model=self._model,
-                messages=[
-                    {"role": "system", "content": _SYSTEM_PROMPT},
-                    {"role": "user", "content": user_content},
-                ],
-                temperature=0.2,
-                max_tokens=2048,
-                response_format={"type": "json_schema", "json_schema": _JSON_SCHEMA},
-            )
-            raw = response.choices[0].message.content or "{}"
-            return json.loads(raw)
-
+            return self._complete(messages)
         except json.JSONDecodeError as exc:
+            # strict 스키마에서는 거의 일어나지 않는다. 일어나면 알아야 한다.
             logger.error("OpenAI 응답 JSON 파싱 실패: %s", exc)
-            return {"entities": [], "relations": []}
+            raise
         except Exception as exc:
+            # 여기서 삼키면 LLMExtractor 의 STATS 집계를 지나쳐 버린다.
+            # 실패는 위로 올려 집계에 남긴다.
             logger.error("OpenAI API 오류: %s", exc)
-            return {"entities": [], "relations": []}
+            raise
 
     def parse_flowchart_image(self, image_path: Path) -> dict[str, Any]:
-        """
-        흐름도 이미지에서 노드와 엣지를 추출한다 (OpenAI Vision).
-        Returns: {"entities": [...], "relations": [...]}
+        """흐름도 이미지에서 노드와 엣지를 추출한다 (OpenAI Vision).
+
+        현재 파이프라인에서 호출되는 곳은 없다. 추출 스키마를 바꿀 때 같이
+        갱신해 두어야 나중에 되살릴 때 어긋나지 않는다.
         """
         with open(image_path, "rb") as f:
             image_data = base64.standard_b64encode(f.read()).decode("utf-8")
 
-        suffix = image_path.suffix.lower()
-        media_type_map = {
+        media_type = {
             ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
             ".png": "image/png", ".gif": "image/gif", ".webp": "image/webp",
-        }
-        media_type = media_type_map.get(suffix, "image/png")
+        }.get(image_path.suffix.lower(), "image/png")
 
-        flowchart_prompt = (
-            "이 흐름도에서 노드(개념/상태)와 화살표(관계)를 추출하세요.\n"
-            "각 화살표의 조건문(있으면)도 condition 필드에 포함하세요.\n\n"
-            f"출력 JSON 스키마:\n{json.dumps(_EXTRACTION_SCHEMA, ensure_ascii=False, indent=2)}\n\n"
-            "JSON 이외의 텍스트는 절대 출력하지 마세요."
-        )
+        messages: list[dict[str, Any]] = [
+            {"role": "system", "content": _SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url",
+                     "image_url": {"url": f"data:{media_type};base64,{image_data}"}},
+                    {"type": "text",
+                     "text": "이 흐름도의 노드와 화살표를 위 3단계 절차대로 "
+                             "추출하세요. 화살표의 조건문은 condition 에 넣으세요."},
+                ],
+            },
+        ]
 
         try:
-            response = self._client.chat.completions.create(
-                model=self._model,
-                messages=[
-                    {"role": "system", "content": _SYSTEM_PROMPT},
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:{media_type};base64,{image_data}",
-                                },
-                            },
-                            {"type": "text", "text": flowchart_prompt},
-                        ],
-                    },
-                ],
-                temperature=0.2,
-                max_tokens=2048,
-                response_format={"type": "json_schema", "json_schema": _JSON_SCHEMA},
-            )
-            raw = response.choices[0].message.content or "{}"
-            return json.loads(raw)
-
+            return self._complete(messages)
         except Exception as exc:
             logger.error("흐름도 파싱 실패 (%s): %s", image_path, exc)
-            return {"entities": [], "relations": []}
+            return dict(_EMPTY)

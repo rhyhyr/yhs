@@ -142,6 +142,9 @@ class Triple:
     subject_id: str
     predicate: str          # EdgeType 값
     object_id: str
+    # 이 관계의 근거가 된 원문 구절. 잘못된 관계를 디버깅할 때 쓴다.
+    # 근거를 못 대는 관계는 validation 에서 걸러진다.
+    evidence: str = ""
     confidence: float = 1.0
     source: str = ""
     source_page: int = 0

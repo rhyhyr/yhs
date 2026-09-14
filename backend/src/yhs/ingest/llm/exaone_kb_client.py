@@ -20,7 +20,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from yhs.core.config import ALLOWED_PREDICATES
+from yhs.ingest.llm.prompts import EXTRACTION_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -30,24 +30,9 @@ def _model_name() -> str:
 
     return get_settings().kb_llm_model
 
-_SYSTEM_PROMPT = f"""당신은 행정 문서에서 엔티티와 관계를 추출하는 전문가입니다.
-
-규칙:
-1. 반드시 JSON 형식으로만 출력하세요. 다른 텍스트는 절대 포함하지 마세요.
-2. predicate는 반드시 아래 목록 중 하나여야 합니다:
-   {', '.join(ALLOWED_PREDICATES)}
-3. confidence는 [0.0, 1.0] 범위로 표현하세요.
-4. 추출이 불확실하면 낮은 confidence 값(0.5 미만)으로 포함하세요. 필터링은 시스템이 처리합니다.
-
-출력 형식:
-{{
-  "entities": [
-    {{"id": "표준명칭과 동일 (비자는 D-2 같은 공식 코드, 일련번호 금지)", "name": "표준명칭", "domain": "visa|health_insurance|part_time|school_admin|daily_life", "summary": "1-2문장 요약", "confidence": 0.9}}
-  ],
-  "relations": [
-    {{"subject_id": "주체ID", "predicate": "관계타입", "object_id": "대상ID", "condition": "", "confidence": 0.8}}
-  ]
-}}"""
+# 프롬프트는 provider 공용이다 (yhs/ingest/llm/prompts.py).
+# provider 마다 따로 들고 있으면 반드시 어긋난다.
+_SYSTEM_PROMPT = EXTRACTION_SYSTEM_PROMPT
 
 
 class ExaoneKBClient:
@@ -155,7 +140,18 @@ class ExaoneKBClient:
             if start != -1 and end > start:
                 raw = raw[start:end]
 
-            return json.loads(raw)
+            try:
+                return json.loads(raw)
+            except json.JSONDecodeError:
+                # 로컬 모델은 긴 출력에서 JSON 을 자주 깨뜨린다
+                # (따옴표 누락, 끝 잘림). 통째로 버리기 전에 복구를 시도한다.
+                from json_repair import repair_json
+            
+                from yhs.ingest.stats import STATS
+                fixed = json.loads(repair_json(raw))
+                STATS.json_repaired += 1
+                logger.info('JSON 복구 성공 (%d자)', len(raw))
+                return fixed
 
         except json.JSONDecodeError as exc:
             logger.error("EXAONE JSON 파싱 실패: %s", exc)

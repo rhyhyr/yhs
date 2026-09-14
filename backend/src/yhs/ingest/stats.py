@@ -43,6 +43,26 @@ class IngestStats:
     predicate_rejected: int = 0
     rejected_predicates: Counter = field(default_factory=Counter)
 
+    # ── 검증(validation.py) ─────────────────────────────────────────────
+    chunk_types: Counter = field(default_factory=Counter)
+    entity_type_invalid: int = 0
+    invalid_entity_types: Counter = field(default_factory=Counter)
+    entity_blocked: int = 0
+    entity_block_reasons: Counter = field(default_factory=Counter)
+    entity_name_merged: int = 0
+    relation_orphan_endpoint: int = 0
+    orphan_endpoint_names: Counter = field(default_factory=Counter)
+    relation_descriptive_blocked: int = 0
+    descriptive_blocked_samples: list = field(default_factory=list)
+    relation_type_mismatch: int = 0
+    type_mismatch_samples: list = field(default_factory=list)
+    relation_no_evidence: int = 0
+    chunk_type_unknown: int = 0
+    unknown_chunk_types: Counter = field(default_factory=Counter)
+    json_repaired: int = 0
+    chunk_retried: int = 0
+    retry_succeeded: int = 0
+
     # ── 병합/적재 ───────────────────────────────────────────────────────
     rule_entities: int = 0
     merged_entities: int = 0          # 정규화·중복 제거 후 실제 적재 대상
@@ -93,6 +113,37 @@ class IngestStats:
             top = ", ".join(f"{k}:{v}" for k, v in self.rejected_predicates.most_common(10))
             lines.append(f"    폐기 목록     {top}")
 
+        if self.chunk_types:
+            top = ", ".join(f"{k}:{v}" for k, v in self.chunk_types.most_common())
+            lines.append(f"  문단 유형       {top}")
+
+        lines.append(
+            f"  검증 폐기       엔티티 {self.entity_blocked}"
+            f"(타입무효 {self.entity_type_invalid}, 표기병합 {self.entity_name_merged})"
+            f" / 관계 endpoint누락 {self.relation_orphan_endpoint}"
+            f", 설명문단차단 {self.relation_descriptive_blocked}"
+            f", 타입불일치 {self.relation_type_mismatch}"
+            f", 근거없음 {self.relation_no_evidence}"
+        )
+        if self.chunk_type_unknown:
+            lines.append(
+                f"    chunk_type    목록 밖 {self.chunk_type_unknown}건 "
+                f"{dict(self.unknown_chunk_types)} → descriptive 로 처리")
+        if self.json_repaired or self.chunk_retried:
+            lines.append(
+                f"    복구/재시도   JSON 복구 {self.json_repaired}, "
+                f"청크 재시도 {self.chunk_retried} (성공 {self.retry_succeeded})")
+        if self.entity_block_reasons:
+            lines.append(f"    엔티티 차단   {dict(self.entity_block_reasons)}")
+        if self.type_mismatch_samples:
+            lines.append("    타입 불일치 예시")
+            for s in self.type_mismatch_samples:
+                lines.append(f"      {s}")
+        if self.descriptive_blocked_samples:
+            lines.append("    설명문단 차단 예시")
+            for s in self.descriptive_blocked_samples:
+                lines.append(f"      {s}")
+
         lines += [
             f"  엔티티 유지율   {ent_keep}  (규칙 {self.rule_entities} + "
             f"LLM {self.parsed_entities} → 병합 {self.merged_entities}, "
@@ -114,6 +165,8 @@ class IngestStats:
             or self.relation_parse_failed
             or self.predicate_rejected
             or self.relation_match_failed
+            or self.relation_orphan_endpoint
+            or self.relation_type_mismatch
         )
 
 
