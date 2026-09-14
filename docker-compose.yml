@@ -79,6 +79,11 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       # 설치본에서는 저장소 경로를 알 수 없으므로 명시합니다.
       DATA_DIR: /data
+      # PDF_DIR 도 반드시 절대경로로 덮어쓴다.
+      # .env 의 상대경로(예: data/sources)는 저장소 루트 기준으로 해석되는데,
+      # 컨테이너에는 저장소가 없어 cwd(/app) 기준이 되어 /app/data/sources 를
+      # 가리킨다. 실제 마운트는 /data/sources 라 인제스트가 파일을 못 찾는다.
+      PDF_DIR: /data/sources
       HF_HOME: /home/app/.cache/huggingface
     volumes:
       - ./data:/data                        # 인제스트 코퍼스 + 캐시
