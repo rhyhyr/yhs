@@ -67,7 +67,7 @@ jobs:
 
       # ★ 아티팩트 업로드 — 다음 job에서 받아 쓸 수 있게 저장
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: yhs-build
           path: build/yhs-package.tar.gz

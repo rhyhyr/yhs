@@ -111,7 +111,7 @@ jobs:
             console.log(`Wrote mttr-metrics.json with ${incidents.length} incident(s).`);
 
       - name: Upload MTTR metrics
-        uses: actions/upload-artifact@v4 # v4로 업데이트
+        uses: actions/upload-artifact@v7 # v4로 업데이트
         with:
           name: mttr-metrics
           path: mttr-metrics.json
