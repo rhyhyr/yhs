@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 _EXTRACTION_SCHEMA = {
     "entities": [
         {
-            "id": "string (고유 식별자, 예: D-4)",
+            "id": "string (엔티티의 표준 명칭과 동일하게 쓸 것. 비자·체류자격은 D-2, F-5 같은 공식 코드를 쓰고, 그 외에는 명칭 그대로. 일련번호를 새로 매기지 말 것)",
             "name": "string (표준 명칭)",
             "type": "string (Entity|Procedure|Document|Institution 중 하나)",
             "domain": "string (visa|health_insurance|part_time|school_admin|daily_life 중 하나)",

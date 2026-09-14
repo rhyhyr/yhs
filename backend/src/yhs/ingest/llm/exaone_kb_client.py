@@ -24,7 +24,11 @@ from yhs.core.config import ALLOWED_PREDICATES
 
 logger = logging.getLogger(__name__)
 
-_MODEL_NAME = "LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct"
+def _model_name() -> str:
+    """추출 모델 이름 (KB_LLM_MODEL 환경변수로 교체 가능)."""
+    from yhs.core.settings import get_settings
+
+    return get_settings().kb_llm_model
 
 _SYSTEM_PROMPT = f"""당신은 행정 문서에서 엔티티와 관계를 추출하는 전문가입니다.
 
@@ -38,7 +42,7 @@ _SYSTEM_PROMPT = f"""당신은 행정 문서에서 엔티티와 관계를 추출
 출력 형식:
 {{
   "entities": [
-    {{"id": "고유식별자", "name": "표준명칭", "domain": "visa|health_insurance|part_time|school_admin|daily_life", "summary": "1-2문장 요약", "confidence": 0.9}}
+    {{"id": "표준명칭과 동일 (비자는 D-2 같은 공식 코드, 일련번호 금지)", "name": "표준명칭", "domain": "visa|health_insurance|part_time|school_admin|daily_life", "summary": "1-2문장 요약", "confidence": 0.9}}
   ],
   "relations": [
     {{"subject_id": "주체ID", "predicate": "관계타입", "object_id": "대상ID", "condition": "", "confidence": 0.8}}
@@ -60,9 +64,10 @@ class ExaoneKBClient:
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
-        logger.info("EXAONE 모델 로드 중: %s (최초 1회)", _MODEL_NAME)
+        model_name = _model_name()
+        logger.info("EXAONE 모델 로드 중: %s (최초 1회)", model_name)
         self._tokenizer = AutoTokenizer.from_pretrained(
-            _MODEL_NAME,
+            model_name,
             trust_remote_code=True,
         )
 
@@ -77,14 +82,14 @@ class ExaoneKBClient:
             from transformers import BitsAndBytesConfig
             bnb_config = BitsAndBytesConfig(load_in_4bit=True)
             self._model = AutoModelForCausalLM.from_pretrained(
-                _MODEL_NAME,
+                model_name,
                 quantization_config=bnb_config,
                 device_map="auto",
                 trust_remote_code=True,
             )
         else:
             self._model = AutoModelForCausalLM.from_pretrained(
-                _MODEL_NAME,
+                model_name,
                 torch_dtype=torch.bfloat16,
                 device_map="auto",
                 trust_remote_code=True,

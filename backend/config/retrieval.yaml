@@ -49,6 +49,11 @@ graph:
   always_include_edge_types:
   - BLOCKS
   - ENABLES_SHORTCUT
+  # 탐색에서 제외할 엣지 타입.
+  # RELATED_TO 는 의미가 가장 옅은 포괄 술어인데 팬아웃이 제일 크다
+  # (325개, 엔티티당 3.2). 이걸 따라 걷는 순간 그래프가 거의 전수 스캔이 된다.
+  traversal_exclude_edge_types:
+  - RELATED_TO
 entity_link:
   cosine_threshold: 0.72
   top_k: 3

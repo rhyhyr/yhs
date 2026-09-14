@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import time
@@ -20,6 +21,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 from yhs.core.settings import _override, get_settings, load_config
 from yhs.rag.llm.ollama_client import OllamaRuntimeClient
 
+logger = logging.getLogger(__name__)
+
 # ── 크롤러 설정 (backend/config/crawler.yaml) ─────────────────────────────
 # 값은 YAML 이 기본이고, 환경변수가 설정돼 있으면 그쪽이 이긴다.
 # (실험 스크립트가 스윕을 돌릴 때 환경변수만 바꾸면 되도록)
@@ -32,6 +35,9 @@ CRAWL_MAX_DEPTH     = _override(_cfg["budget"]["max_depth"], _s.crawl_max_depth)
 CRAWL_MAX_PAGES     = _override(_cfg["budget"]["max_pages"], _s.crawl_max_pages)
 CRAWL_FETCH_TIMEOUT = _override(_cfg["budget"]["fetch_timeout_sec"], _s.crawl_fetch_timeout)
 CRAWL_SLEEP_SEC     = _override(_cfg["budget"]["sleep_sec"], _s.crawl_sleep_sec)
+CRAWL_CACHE_TTL_HOURS = _override(
+    _cfg["budget"].get("cache_ttl_hours", 0), _s.crawl_cache_ttl_hours
+)
 
 # 크롤링 허용 도메인 화이트리스트 — 이 밖의 URL 은 절대 방문하지 않는다.
 allowed_sites: list[str] = list(_cfg["allowed_sites"])
@@ -654,14 +660,50 @@ class WebSearchClient:
         out.sort(key=lambda x: x[2], reverse=True)
         return out
 
+    def load_cached_chunks(self, max_age_hours: int | None = None) -> list[tuple[str, str]]:
+        """TTL 안에 수집해 둔 크롤 결과를 돌려준다. 없으면 빈 목록.
+
+        웹 크롤링은 deep path 에서 가장 비싼 단계다(실측 130초). 같은 페이지를
+        매번 다시 긁을 이유가 없어 캐시를 둔다.
+
+        다만 무기한 캐시는 위험하다 — 이 시스템의 존재 이유가 "최신 근거"이므로,
+        낡은 공지를 근거로 내놓으면 캐시가 없는 것만 못하다. 그래서 TTL 을 넘긴
+        항목은 아예 무시하고 다시 크롤한다.
+        """
+        if self.driver is None:
+            return []
+        ttl = max_age_hours if max_age_hours is not None else CRAWL_CACHE_TTL_HOURS
+        if ttl <= 0:
+            return []
+        try:
+            with self.driver.session() as s:
+                rows = s.run(
+                    """
+                    MATCH (src:ExternalSource)-[:HAS_CHUNK]->(ch:ExternalChunk)
+                    WHERE ch.fetched_at >= datetime() - duration({hours: $ttl})
+                      AND any(site IN $sites WHERE src.url STARTS WITH site)
+                    RETURN src.url AS url, ch.text AS text
+                    """,
+                    ttl=ttl, sites=self.ALLOWED_SITES,
+                )
+                return [(r["url"], r["text"]) for r in rows if r["text"]]
+        except Exception as exc:  # pragma: no cover - 캐시 실패는 치명적이지 않다
+            logger.warning("크롤 캐시 조회 실패 (무시하고 새로 크롤): %s", exc)
+            return []
+
     def save_external_chunks(self, url_chunks: list[tuple[str, str]]) -> None:
         """크롤링 결과를 Neo4j ExternalChunk 노드로 저장"""
-        if not url_chunks:
+        if not url_chunks or self.driver is None:
             return
         emb = self.embedder.encode([c for _, c in url_chunks], show_progress_bar=False)
         with self.driver.session() as s:
             for (u, text), e in zip(url_chunks, emb):
-                cid = hashlib.sha1((u + "|" + text[:120]).encode("utf-8")).hexdigest()[:20]
+                # 본문 전체를 해시한다.
+                #
+                # 예전에는 text[:120] 만 해시했는데, 앞 120자가 같고 뒤가 다른
+                # 청크(목록형 페이지에서 흔하다)가 같은 id 를 받아 MERGE 뒤의
+                # SET 으로 서로를 덮어썼다. 유실이 조용히 일어난다.
+                cid = hashlib.sha1((u + "|" + text).encode("utf-8")).hexdigest()[:20]
                 s.run(
                     """
                     MERGE (src:ExternalSource {url: $url})
@@ -738,9 +780,19 @@ class WebSearchClient:
         """
         print(f"[WEB SEARCH] search_and_collect: {query}", flush=True)
 
-        url_chunks = self.crawl_fallback_chunks(query)
-        if not url_chunks:
-            return []
+        # 1) TTL 안의 캐시가 있으면 그대로 쓴다 (크롤은 deep path 에서 가장 비싼 단계).
+        url_chunks = self.load_cached_chunks()
+        if url_chunks:
+            print(f"[WEB SEARCH] 캐시 적중: {len(url_chunks)}개 청크 (크롤 생략)", flush=True)
+        else:
+            url_chunks = self.crawl_fallback_chunks(query)
+            if not url_chunks:
+                return []
+            # 2) 새로 긁었으면 다음 질문을 위해 저장해 둔다.
+            try:
+                self.save_external_chunks(url_chunks)
+            except Exception as exc:  # 저장 실패가 답변을 막으면 안 된다
+                logger.warning("크롤 결과 캐시 저장 실패 (무시): %s", exc)
 
         # Encode query embedding
         try:

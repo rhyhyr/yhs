@@ -6,9 +6,11 @@ yhs/ingest/pipeline/chunker.py
 - 분할 우선순위:
     1순위: 명시적 섹션 헤더 패턴 (유형N, N단계, Q&A, Part N)
     2순위: 연속 두 줄 공백 (문단 경계)
-    3순위: 512 토큰 초과 시 문장 단위 분할
-- 50 토큰 미만 청크는 앞 청크에 병합한다.
-- 출력: (text, section) 튜플 목록
+    3순위: MAX_CHUNK_TOKENS 초과 시 문장 단위 분할
+- 세그먼트를 CHUNK_SIZE 목표치까지 모아 하나의 청크로 만들고,
+  인접 청크 사이에 CHUNK_OVERLAP 만큼 겹침을 둔다.
+- MIN_CHUNK_TOKENS 미만 자투리는 앞 청크에 병합한다.
+- 청크 id 는 (파일·페이지·본문) 해시라 재인제스트가 멱등하다.
 """
 
 from __future__ import annotations
@@ -16,7 +18,12 @@ from __future__ import annotations
 import hashlib
 import re
 
-from yhs.core.config import MAX_CHUNK_TOKENS, MIN_CHUNK_TOKENS
+from yhs.core.config import (
+    CHUNK_OVERLAP,
+    CHUNK_SIZE,
+    MAX_CHUNK_TOKENS,
+    MIN_CHUNK_TOKENS,
+)
 from yhs.schema.types import ChunkNode, RawDocument
 
 # 섹션 헤더 패턴 (분할 기준)
@@ -95,39 +102,93 @@ def _split_raw_text(text: str) -> list[tuple[str, str]]:
     return result
 
 
+def _tail_by_tokens(text: str, n_tokens: int) -> str:
+    """텍스트 끝에서 n_tokens 만큼을 문장 경계에 맞춰 잘라 낸다 (오버랩용)."""
+    if n_tokens <= 0 or not text:
+        return ""
+    sentences = _SENTENCE_SPLIT_RE.split(text)
+    tail: list[str] = []
+    total = 0
+    for sentence in reversed(sentences):
+        st = _token_count(sentence)
+        if total + st > n_tokens and tail:
+            break
+        tail.insert(0, sentence)
+        total += st
+    return " ".join(tail).strip()
+
+
 def chunk_document(doc: RawDocument) -> list[ChunkNode]:
-    """
-    RawDocument 하나를 ChunkNode 목록으로 변환한다.
+    """RawDocument 하나를 ChunkNode 목록으로 변환한다.
+
+    세그먼트(섹션 헤더 → 문단)를 CHUNK_SIZE 목표치까지 모아서 하나의 청크로
+    내보내고, 인접 청크 사이에 CHUNK_OVERLAP 만큼 겹침을 둔다.
+
+    예전에는 문단 하나를 그대로 청크로 만들고 50 토큰 미만만 앞에 붙였다.
+    그 결과 median 157 토큰(bge-m3 한도 8192의 2%)까지 잘게 쪼개졌고,
+    오버랩이 없어 한 절차의 '대상 및 시기'와 '제출 서류'가 서로 다른
+    청크로 갈라져 한쪽만 검색되는 일이 잦았다.
     """
     segments = _split_raw_text(doc.text)
     chunks: list[ChunkNode] = []
-    buffer_text = ""
+
+    buffer: list[str] = []
+    buffer_tokens = 0
+    carried_tokens = 0          # 버퍼 중 앞 청크에서 넘어온 오버랩 분량
     buffer_section = doc.section
 
-    def flush(text: str, section: str) -> None:
-        nonlocal chunks
-        if _token_count(text) > MAX_CHUNK_TOKENS:
-            for sub in _split_by_sentences(text, MAX_CHUNK_TOKENS):
-                if sub.strip():
-                    chunks.append(_make_chunk(sub.strip(), section, doc))
+    def emit() -> None:
+        """현재 버퍼를 청크로 내보내고, 꼬리를 다음 버퍼로 넘긴다."""
+        nonlocal buffer, buffer_tokens, carried_tokens
+        text = "\n".join(buffer).strip()
+        if not text:
+            buffer, buffer_tokens, carried_tokens = [], 0, 0
+            return
+        chunks.append(_make_chunk(text, buffer_section, doc))
+
+        tail = _tail_by_tokens(text, CHUNK_OVERLAP)
+        if tail:
+            buffer = [tail]
+            buffer_tokens = _token_count(tail)
+            carried_tokens = buffer_tokens
         else:
-            if text.strip():
-                chunks.append(_make_chunk(text.strip(), section, doc))
+            buffer, buffer_tokens, carried_tokens = [], 0, 0
 
     for seg_text, section in segments:
-        tc = _token_count(seg_text)
-        if tc < MIN_CHUNK_TOKENS:
-            # 50 토큰 미만 → 앞 버퍼에 병합
-            buffer_text = (buffer_text + "\n" + seg_text).strip() if buffer_text else seg_text
-        else:
-            if buffer_text:
-                flush(buffer_text, buffer_section)
-                buffer_text = ""
-            flush(seg_text, section or doc.section)
-            buffer_section = section or doc.section
+        if section:
+            buffer_section = section
+        seg_tokens = _token_count(seg_text)
 
-    if buffer_text:
-        flush(buffer_text, buffer_section)
+        # 단독으로 상한을 넘는 세그먼트는 문장 단위로 쪼개 바로 내보낸다.
+        if seg_tokens > MAX_CHUNK_TOKENS:
+            if buffer_tokens > carried_tokens:
+                emit()
+            for sub in _split_by_sentences(seg_text, MAX_CHUNK_TOKENS):
+                if sub.strip():
+                    chunks.append(_make_chunk(sub.strip(), buffer_section, doc))
+            buffer, buffer_tokens, carried_tokens = [], 0, 0
+            continue
+
+        # 목표치를 넘기면 지금까지 모은 것을 먼저 내보낸다.
+        if buffer_tokens + seg_tokens > CHUNK_SIZE and buffer_tokens > carried_tokens:
+            emit()
+
+        buffer.append(seg_text)
+        buffer_tokens += seg_tokens
+
+    # 남은 버퍼: 오버랩만 남은 경우는 이미 앞 청크에 담겨 있으므로 버린다.
+    if buffer_tokens > carried_tokens:
+        text = "\n".join(buffer).strip()
+        if text:
+            # 자투리가 최소치에 못 미치면 독립 청크로 두지 않고 앞 청크에 붙인다.
+            # 예전에는 그대로 내보내서 전체의 14%가 50 토큰 미만이었고,
+            # 그중 12개는 30 토큰도 안 되는 사실상 정보가 없는 조각이었다.
+            if chunks and _token_count(text) < MIN_CHUNK_TOKENS:
+                prev = chunks[-1]
+                merged = f"{prev.text}\n{text}".strip()
+                chunks[-1] = _make_chunk(merged, prev.section, doc)
+            else:
+                chunks.append(_make_chunk(text, buffer_section, doc))
 
     return chunks
 

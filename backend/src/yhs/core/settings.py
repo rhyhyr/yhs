@@ -95,8 +95,17 @@ class Settings(BaseSettings):
     ollama_timeout: int = 180
 
     hf_runtime_model: str = "LGAI-EXAONE/EXAONE-3.5-2.4B-Instruct"
+    # 지식베이스 추출용 로컬 모델 (LLM_PROVIDER=exaone).
+    # VRAM 이 빠듯하면 EXAONE-3.5-2.4B-Instruct 로 낮출 수 있다.
+    kb_llm_model: str = "LGAI-EXAONE/EXAONE-3.5-7.8B-Instruct"
 
     # ── 파이프라인 ──────────────────────────────────────────────────────
+    # 청킹 목표 크기와 오버랩 (토큰).
+    # bge-m3 는 8192 토큰까지 받는데 기존 청크는 median 157 토큰으로
+    # 지나치게 잘게 쪼개져 있었고 오버랩도 없어, 한 절차의 '대상'과
+    # '제출 서류'가 다른 청크로 갈라졌다.
+    chunk_size: int = 380
+    chunk_overlap: int = 76
     max_chunk_tokens: int = 512
     min_chunk_tokens: int = 50
     confidence_threshold: float = 0.7
@@ -131,6 +140,7 @@ class Settings(BaseSettings):
     crawl_max_pages: int | None = None
     crawl_fetch_timeout: int | None = None
     crawl_sleep_sec: float | None = None
+    crawl_cache_ttl_hours: int | None = None
 
     @property
     def cors_origins(self) -> list[str]:

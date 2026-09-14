@@ -20,3 +20,8 @@ budget:
   max_pages: 50
   fetch_timeout_sec: 6
   sleep_sec: 0.15
+
+# 크롤 결과 캐시 유지 시간(시간 단위).
+# 0 이면 캐시를 쓰지 않고 매번 새로 크롤한다.
+# 길게 잡을수록 빠르지만 낡은 공지를 근거로 내놓을 위험이 커진다.
+cache_ttl_hours: 168   # 7일

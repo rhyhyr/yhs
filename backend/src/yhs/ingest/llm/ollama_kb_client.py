@@ -45,7 +45,7 @@ _SYSTEM_PROMPT = f"""당신은 행정 문서에서 엔티티와 관계를 추출
 출력 형식:
 {{
   "entities": [
-    {{"id": "고유식별자", "name": "표준명칭", "domain": "visa|health_insurance|part_time|school_admin|daily_life", "summary": "1-2문장 요약", "confidence": 0.9}}
+    {{"id": "표준명칭과 동일 (비자는 D-2 같은 공식 코드, 일련번호 금지)", "name": "표준명칭", "domain": "visa|health_insurance|part_time|school_admin|daily_life", "summary": "1-2문장 요약", "confidence": 0.9}}
   ],
   "relations": [
     {{"subject_id": "주체ID", "predicate": "관계타입", "object_id": "대상ID", "condition": "조건(없으면 빈문자열)", "confidence": 0.8}}

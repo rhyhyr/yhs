@@ -199,9 +199,23 @@ class EntityLinker:
             name = entity.get("name", "")
             aliases = entity.get("aliases") or []
 
-            check_terms = [name] + aliases + [eid]
-            for term in check_terms:
-                if term and (term.lower() in kw_lower or kw_lower in term.lower()):
+            # id 는 정확히 일치할 때만 인정한다.
+            #
+            # 예전에는 양방향 부분 일치였는데, 그러면 'D-2' 라는 키워드가
+            # 'D-20', 'D-21' … 에 전부 걸린다. 실제로 비자 질문 하나가
+            # 엔티티 14개(대부분 검찰청)에 연결돼 그래프 탐색이 엉뚱한
+            # 곳에서 시작됐다.
+            if eid and eid.lower() == kw_lower:
+                if eid not in matched:
+                    matched.append(eid)
+                continue
+
+            # 이름·별칭은 "질문이 그 이름을 포함할 때" 만 인정한다.
+            # 반대 방향(이름이 질문을 포함)은 짧은 토큰이 아무 이름에나
+            # 걸려 노이즈가 크다.
+            for term in [name, *aliases]:
+                t = (term or "").lower().strip()
+                if len(t) >= 2 and t in kw_lower:
                     if eid not in matched:
                         matched.append(eid)
                     break

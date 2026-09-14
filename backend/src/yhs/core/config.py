@@ -64,6 +64,8 @@ OLLAMA_MODEL = _s.ollama_model
 OLLAMA_TIMEOUT = _s.ollama_timeout
 
 # ─── 파이프라인 ───────────────────────────────────────────────────────────────
+CHUNK_SIZE = _s.chunk_size          # 청크 목표 토큰 수
+CHUNK_OVERLAP = _s.chunk_overlap    # 인접 청크 간 겹침 토큰 수
 MAX_CHUNK_TOKENS = _s.max_chunk_tokens
 MIN_CHUNK_TOKENS = _s.min_chunk_tokens
 CONFIDENCE_THRESHOLD = _s.confidence_threshold
@@ -87,6 +89,11 @@ DDE_SCORE_BY_HOP: dict[int, float] = {int(k): float(v) for k, v in _graph["dde_s
 # 거리 무관 강제 포함 엣지 타입
 ALWAYS_INCLUDE_EDGE_TYPES: list[str] = list(_graph["always_include_edge_types"])
 
+# 탐색에서 제외할 엣지 타입 (포괄 술어가 팬아웃을 폭발시키는 것을 막는다)
+TRAVERSAL_EXCLUDE_EDGE_TYPES: list[str] = list(
+    _graph.get("traversal_exclude_edge_types", [])
+)
+
 # ─── 도메인 상수 — backend/config/domain.yaml ────────────────────────────────
 KNOWN_INSTITUTIONS: list[str] = list(_domain["known_institutions"])
 ALLOWED_PREDICATES: list[str] = list(_domain["allowed_predicates"])
@@ -103,11 +110,11 @@ __all__ = [
     "EMBEDDING_MODEL", "EMBEDDING_DIM", "EMBEDDING_BATCH_SIZE",
     "OPENAI_API_KEY", "OPENAI_MODEL", "GEMINI_API_KEY", "GEMINI_MODEL",
     "OLLAMA_BASE_URL", "OLLAMA_MODEL", "OLLAMA_TIMEOUT",
-    "MAX_CHUNK_TOKENS", "MIN_CHUNK_TOKENS", "CONFIDENCE_THRESHOLD",
+    "CHUNK_SIZE", "CHUNK_OVERLAP", "MAX_CHUNK_TOKENS", "MIN_CHUNK_TOKENS", "CONFIDENCE_THRESHOLD",
     "DOC_STALENESS_MONTHS", "FRESHNESS_CHECK_INTERVAL_WEEKS",
     "ENTITY_LINK_COSINE_THRESHOLD", "ENTITY_LINK_TOP_K", "DEFAULT_HOP_DEPTH",
     "TOP_K_GRAPH_DEFAULT", "TOP_K_VECTOR", "MIN_CHUNKS_FROM_GRAPH",
-    "DDE_SCORE_BY_HOP", "ALWAYS_INCLUDE_EDGE_TYPES",
+    "DDE_SCORE_BY_HOP", "ALWAYS_INCLUDE_EDGE_TYPES", "TRAVERSAL_EXCLUDE_EDGE_TYPES",
     "KNOWN_INSTITUTIONS", "ALLOWED_PREDICATES", "ALIASES_MAP",
     "DISCLAIMER_TEMPLATE", "NO_ANSWER_RESPONSE",
 ]

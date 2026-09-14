@@ -20,6 +20,9 @@ dependencies = [
   "sentence-transformers==3.0.1",
   "transformers>=4.40.0",
   "accelerate",
+  # 로컬 LLM 4-bit 양자화 (LLM_PROVIDER=exaone, RUNTIME_LLM=hf).
+  # 없으면 7.8B 모델이 bf16(~15.6GB)으로 떨어져 12GB GPU 에 안 들어간다.
+  "bitsandbytes; platform_system == 'Linux'",
   "sentencepiece",
   "faiss-cpu",
   "numpy",

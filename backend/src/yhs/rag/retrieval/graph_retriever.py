@@ -20,6 +20,7 @@ from yhs.core.config import (
     DDE_SCORE_BY_HOP,
     DEFAULT_HOP_DEPTH,
     TOP_K_GRAPH_DEFAULT,
+    TRAVERSAL_EXCLUDE_EDGE_TYPES,
 )
 from yhs.infra.graph_store import GraphStore
 
@@ -70,6 +71,11 @@ class DDEGraphRetriever:
                 dst_id = neighbor["dst_id"]
                 rel_type = neighbor["rel_type"]
 
+                # 포괄 술어(RELATED_TO 등)는 따라 걷지 않는다.
+                # 의미가 옅은데 팬아웃이 커서 그래프를 전수 스캔으로 만든다.
+                if rel_type in TRAVERSAL_EXCLUDE_EDGE_TYPES:
+                    continue
+
                 src_score = node_scores.get(neighbor["src_id"], 0.0)
                 next_hop = hop + 1
                 dst_score = DDE_SCORE_BY_HOP.get(next_hop, 0.0)
@@ -103,8 +109,22 @@ class DDEGraphRetriever:
             len(visited), len(final_edges), len(forced_edges),
         )
 
-        all_node_ids = list(visited)
-        chunks = self._store.get_chunks_for_nodes(all_node_ids)
+        # 청크는 "선택된 엣지에 등장한 노드" 에서만 가져온다.
+        #
+        # 예전에는 visited 전체에서 가져왔다. 엣지는 top_k 로 걸러 놓고 노드는
+        # 안 걸렀기 때문에, hop=2 만 돌아도 KB 의 69% 가 후보로 쏟아졌다
+        # (엣지 103개 → 청크 236개, 전체 342개 중). 그래프가 좁혀 주는 역할을
+        # 전혀 못 하고 실제 선별은 키워드 점수가 다 하고 있었다.
+        selected_nodes: set[str] = set(entity_ids)
+        for edge in final_edges:
+            selected_nodes.add(edge["src_id"])
+            selected_nodes.add(edge["dst_id"])
+
+        chunks = self._store.get_chunks_for_nodes(list(selected_nodes))
+        logger.info(
+            "그래프 청크 수집: 방문 노드 %d개 중 선택 %d개 → 청크 %d개",
+            len(visited), len(selected_nodes), len(chunks),
+        )
 
         for chunk in chunks:
             source_node_ids = chunk.pop("source_node_ids", None) or []
