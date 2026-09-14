@@ -27,7 +27,10 @@ services:
       - neo4j_data:/data
       - neo4j_logs:/logs
     healthcheck:
-      test: ["CMD-SHELL", "cypher-shell -u neo4j -p $$NEO4J_PASSWORD 'RETURN 1' || exit 1"]
+      # ${...} 는 compose 가 .env 를 읽어 여기서 치환한다.
+      # $$ 로 이스케이프하면 컨테이너 안에서 평가되는데, neo4j 컨테이너에는
+      # NEO4J_PASSWORD 환경변수가 없어 빈 비밀번호로 인증을 시도하게 된다.
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p '${NEO4J_PASSWORD}' 'RETURN 1' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
