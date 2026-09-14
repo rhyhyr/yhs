@@ -1,6 +1,6 @@
 """
 scripts/collect_urls.py
-URL 목록을 웹에서 가져와 텍스트 정제 후 PDF로 변환, db_sources/ 에 저장한다.
+URL 목록을 웹에서 가져와 텍스트 정제 후 PDF로 변환, data/sources/ 에 저장한다.
 사용법: python scripts/collect_urls.py
 """
 
@@ -21,14 +21,52 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 # ── 폰트 등록 ─────────────────────────────────────────────────────────────────
-FONT_PATH = Path("C:/Windows/Fonts/malgun.ttf")
-FONT_BOLD_PATH = Path("C:/Windows/Fonts/malgunbd.ttf")
-pdfmetrics.registerFont(TTFont("Malgun", str(FONT_PATH)))
-pdfmetrics.registerFont(TTFont("MalgunBd", str(FONT_BOLD_PATH)))
+# 한글 PDF 를 만들려면 한글 글리프를 가진 TTF 가 필요하다.
+# OS 마다 경로가 달라서 후보를 순서대로 찾고, 하나도 없으면 reportlab 이
+# 내장한 CID 폰트(HeiseiKakuGo-W5)로 떨어진다 — 모양은 덜 예쁘지만 깨지진 않는다.
+_FONT_CANDIDATES = [
+    # Windows
+    ("Malgun", "MalgunBd", Path("C:/Windows/Fonts/malgun.ttf"), Path("C:/Windows/Fonts/malgunbd.ttf")),
+    # macOS
+    ("AppleGothic", "AppleGothic", Path("/System/Library/Fonts/Supplemental/AppleGothic.ttf"), None),
+    # Linux (fonts-nanum / fonts-noto-cjk)
+    ("NanumGothic", "NanumGothicBold",
+     Path("/usr/share/fonts/truetype/nanum/NanumGothic.ttf"),
+     Path("/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf")),
+    ("NotoSansKR", "NotoSansKR",
+     Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"), None),
+]
+
+
+def _register_korean_font() -> tuple[str, str]:
+    """사용 가능한 한글 폰트를 등록하고 (본문, 볼드) 폰트명을 돌려준다."""
+    for regular, bold, reg_path, bold_path in _FONT_CANDIDATES:
+        if not reg_path.is_file():
+            continue
+        pdfmetrics.registerFont(TTFont(regular, str(reg_path)))
+        if bold_path and bold_path.is_file():
+            pdfmetrics.registerFont(TTFont(bold, str(bold_path)))
+            return regular, bold
+        return regular, regular
+
+    from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+
+    print(
+        "[경고] 한글 TTF 를 찾지 못해 내장 CID 폰트로 대체합니다.",
+        "Linux 라면: sudo apt install fonts-nanum",
+        sep="\n",
+        file=sys.stderr,
+    )
+    pdfmetrics.registerFont(UnicodeCIDFont("HeiseiKakuGo-W5"))
+    return "HeiseiKakuGo-W5", "HeiseiKakuGo-W5"
+
+
+FONT_REGULAR, FONT_BOLD = _register_korean_font()
 
 # ── 경로 ──────────────────────────────────────────────────────────────────────
-OUT_DIR = Path(__file__).parent.parent / "db_sources"
-OUT_DIR.mkdir(exist_ok=True)
+# 인제스트 대상 코퍼스와 같은 위치에 떨군다 (backend 의 PDF_DIR 기본값).
+OUT_DIR = Path(__file__).resolve().parent.parent / "data" / "sources"
+OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 HEADERS = {
     "User-Agent": (
@@ -282,16 +320,16 @@ def make_pdf(filepath: Path, title: str, institution: str, url: str, body: str) 
 
     styles = getSampleStyleSheet()
     h1 = ParagraphStyle(
-        "H1", fontName="MalgunBd", fontSize=14, leading=20, spaceAfter=6,
+        "H1", fontName=FONT_BOLD, fontSize=14, leading=20, spaceAfter=6,
     )
     meta = ParagraphStyle(
-        "Meta", fontName="Malgun", fontSize=9, leading=13, textColor="#555555", spaceAfter=10,
+        "Meta", fontName=FONT_REGULAR, fontSize=9, leading=13, textColor="#555555", spaceAfter=10,
     )
     body_style = ParagraphStyle(
-        "Body", fontName="Malgun", fontSize=10, leading=16, spaceAfter=4,
+        "Body", fontName=FONT_REGULAR, fontSize=10, leading=16, spaceAfter=4,
     )
     h2_style = ParagraphStyle(
-        "H2", fontName="MalgunBd", fontSize=11, leading=16, spaceBefore=8, spaceAfter=4,
+        "H2", fontName=FONT_BOLD, fontSize=11, leading=16, spaceBefore=8, spaceAfter=4,
     )
 
     def safe(text: str) -> str:

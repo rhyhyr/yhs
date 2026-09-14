@@ -103,12 +103,11 @@ yhs/
 │   ├── config/          ★ 코드 밖으로 뺀 튜닝 파라미터 YAML
 │   └── tests/
 ├── frontend/            React + Vite, nginx 로 서빙 (/api 리버스 프록시)
-├── data/
-│   ├── sources/         인제스트 대상 공식 문서 35종
-│   └── raw/             원본·참고 자료
+├── data/sources/        인제스트 대상 공식 문서 35종
 ├── experiments/         평가 러너와 데이터셋 (results/ 는 git 제외)
 ├── deploy/              운영 compose 오버라이드
-├── docs/                설계 문서, ADR, 프로토타입
+├── docs/                설계 문서, ADR, 실험 프로토콜
+├── scripts/             코퍼스 수집 도구
 └── docker-compose.yml
 ```
 

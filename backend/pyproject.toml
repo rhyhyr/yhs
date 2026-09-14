@@ -52,6 +52,7 @@ dev = [
   "pytest-cov",
   "httpx",           # FastAPI TestClient
   "ruff>=0.6",
+  "reportlab",       # scripts/collect_urls.py — 웹 문서를 PDF 코퍼스로 변환
 ]
 
 [project.scripts]

@@ -19,8 +19,13 @@ WORKDIR /build
 # 소스(src/)는 아직 넣지 않아, 코드만 고쳤을 때 이 레이어 캐시가 살아 있다.
 COPY pyproject.toml README.md ./
 COPY config ./config
+# torch 는 CPU 전용 인덱스에서 먼저 설치한다.
+# 기본 PyPI 의 torch 는 리눅스에서 CUDA 런타임(nvidia-* 휠 수 GB)을 함께
+# 끌어온다. 이 서비스는 임베딩만 CPU 로 돌리므로 전부 낭비다.
+# GPU 추론이 필요해지면 아래 --index-url 줄을 지우면 된다.
 RUN python -m venv /opt/venv \
  && /opt/venv/bin/pip install --upgrade pip \
+ && /opt/venv/bin/pip install --index-url https://download.pytorch.org/whl/cpu "torch" \
  && mkdir -p src/yhs && touch src/yhs/__init__.py \
  && /opt/venv/bin/pip install .
 
