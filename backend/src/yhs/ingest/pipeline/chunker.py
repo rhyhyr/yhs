@@ -102,6 +102,40 @@ def _split_raw_text(text: str) -> list[tuple[str, str]]:
     return result
 
 
+class _PageRef:
+    """_make_chunk 가 쓰는 최소 필드만 가진 경량 출처 참조.
+
+    병합으로 새 청크를 만들 때 원본 RawDocument 가 이미 없기 때문에 둔다.
+    """
+
+    __slots__ = ("source_file", "source_page", "language", "doc_version")
+
+    def __init__(self, source_file: str, source_page: int,
+                 language: str, doc_version: str) -> None:
+        self.source_file = source_file
+        self.source_page = source_page
+        self.language = language
+        self.doc_version = doc_version
+
+
+def _hard_split(text: str, max_tokens: int) -> list[str]:
+    """문장 경계가 없어 줄어들지 않는 텍스트를 토큰 단위로 자른다.
+
+    표·목록처럼 마침표가 없는 본문은 문장 분할이 통하지 않는다.
+    임베딩 모델 입력 한도를 넘기지 않도록 두는 마지막 안전장치다.
+    """
+    if _token_count(text) <= max_tokens:
+        return [text]
+    tok = _get_tokenizer()
+    ids = tok.encode(text, add_special_tokens=False)
+    out: list[str] = []
+    for i in range(0, len(ids), max_tokens):
+        piece = tok.decode(ids[i:i + max_tokens]).strip()
+        if piece:
+            out.append(piece)
+    return out
+
+
 def _tail_by_tokens(text: str, n_tokens: int) -> str:
     """텍스트 끝에서 n_tokens 만큼을 문장 경계에 맞춰 잘라 낸다 (오버랩용)."""
     if n_tokens <= 0 or not text:
@@ -119,23 +153,44 @@ def _tail_by_tokens(text: str, n_tokens: int) -> str:
 
 
 def chunk_document(doc: RawDocument) -> list[ChunkNode]:
-    """RawDocument 하나를 ChunkNode 목록으로 변환한다.
+    """RawDocument 하나를 ChunkNode 목록으로 변환한다 (단일 페이지용)."""
+    return chunk_documents([doc])
+
+
+def chunk_documents(docs: list[RawDocument]) -> list[ChunkNode]:
+    """같은 파일에서 나온 페이지들을 **이어서** 청킹한다.
 
     세그먼트(섹션 헤더 → 문단)를 CHUNK_SIZE 목표치까지 모아서 하나의 청크로
     내보내고, 인접 청크 사이에 CHUNK_OVERLAP 만큼 겹침을 둔다.
+
+    페이지마다 따로 청킹하면 안 되는 이유:
+        로더가 페이지 하나를 RawDocument 하나로 준다. 페이지별로 끊어 청킹하면
+        텍스트가 적은 페이지가 그대로 작은 청크가 된다. 실측으로 35개 문서에서
+        9개 청크가 최소치 미만이었고 그중에는 8 토큰짜리도 있었다.
+        페이지 경계를 넘겨 버퍼를 이어 가면 그런 조각이 앞 내용에 흡수된다.
 
     예전에는 문단 하나를 그대로 청크로 만들고 50 토큰 미만만 앞에 붙였다.
     그 결과 median 157 토큰(bge-m3 한도 8192의 2%)까지 잘게 쪼개졌고,
     오버랩이 없어 한 절차의 '대상 및 시기'와 '제출 서류'가 서로 다른
     청크로 갈라져 한쪽만 검색되는 일이 잦았다.
     """
-    segments = _split_raw_text(doc.text)
+    if not docs:
+        return []
+
+    # (세그먼트, 섹션, 출처 문서) 목록을 페이지 순서대로 펼친다.
+    segments: list[tuple[str, str, RawDocument]] = []
+    for d in docs:
+        for seg_text, section in _split_raw_text(d.text):
+            segments.append((seg_text, section, d))
+
+    doc = docs[0]
     chunks: list[ChunkNode] = []
 
     buffer: list[str] = []
     buffer_tokens = 0
     carried_tokens = 0          # 버퍼 중 앞 청크에서 넘어온 오버랩 분량
     buffer_section = doc.section
+    buffer_doc = doc            # 버퍼가 시작된 페이지 (출처 표기에 쓴다)
 
     def emit() -> None:
         """현재 버퍼를 청크로 내보내고, 꼬리를 다음 버퍼로 넘긴다."""
@@ -144,7 +199,11 @@ def chunk_document(doc: RawDocument) -> list[ChunkNode]:
         if not text:
             buffer, buffer_tokens, carried_tokens = [], 0, 0
             return
-        chunks.append(_make_chunk(text, buffer_section, doc))
+        # 어느 경로로 모였든 상한은 지킨다.
+        # 표·기관 목록처럼 문장 경계가 없는 본문은 세그먼트가 작아도
+        # 버퍼에 쌓이면서 상한을 넘길 수 있다(실측 935토큰).
+        for piece in _hard_split(text, MAX_CHUNK_TOKENS):
+            chunks.append(_make_chunk(piece, buffer_section, buffer_doc))
 
         tail = _tail_by_tokens(text, CHUNK_OVERLAP)
         if tail:
@@ -154,18 +213,30 @@ def chunk_document(doc: RawDocument) -> list[ChunkNode]:
         else:
             buffer, buffer_tokens, carried_tokens = [], 0, 0
 
-    for seg_text, section in segments:
+    for seg_text, section, seg_doc in segments:
         if section:
             buffer_section = section
+        # 버퍼가 비어 있으면 이 세그먼트의 페이지가 청크의 출처가 된다.
+        if buffer_tokens == 0:
+            buffer_doc = seg_doc
         seg_tokens = _token_count(seg_text)
 
-        # 단독으로 상한을 넘는 세그먼트는 문장 단위로 쪼개 바로 내보낸다.
-        if seg_tokens > MAX_CHUNK_TOKENS:
+        # 목표치를 단독으로 넘는 세그먼트는 쪼개서 바로 내보낸다.
+        #
+        # 기준을 MAX 가 아니라 CHUNK_SIZE 로 잡는다. MAX 기준으로 하면
+        # 목표치와 MAX 사이 크기(예: 500토큰)의 세그먼트가 통째로 버퍼에
+        # 들어가 오버랩까지 더해지면서 MAX 를 넘겨 버린다(실측 935토큰).
+        if seg_tokens > CHUNK_SIZE:
             if buffer_tokens > carried_tokens:
                 emit()
-            for sub in _split_by_sentences(seg_text, MAX_CHUNK_TOKENS):
-                if sub.strip():
-                    chunks.append(_make_chunk(sub.strip(), buffer_section, doc))
+            for sub in _split_by_sentences(seg_text, CHUNK_SIZE):
+                sub = sub.strip()
+                if not sub:
+                    continue
+                # 문장 경계가 없는 표·목록은 문장 분할로도 안 줄어든다.
+                # 마지막 안전장치로 토큰 단위로 자른다.
+                for piece in _hard_split(sub, MAX_CHUNK_TOKENS):
+                    chunks.append(_make_chunk(piece, buffer_section, seg_doc))
             buffer, buffer_tokens, carried_tokens = [], 0, 0
             continue
 
@@ -186,11 +257,41 @@ def chunk_document(doc: RawDocument) -> list[ChunkNode]:
             if chunks and _token_count(text) < MIN_CHUNK_TOKENS:
                 prev = chunks[-1]
                 merged = f"{prev.text}\n{text}".strip()
-                chunks[-1] = _make_chunk(merged, prev.section, doc)
+                chunks[-1] = _make_chunk(merged, prev.section, buffer_doc)
             else:
-                chunks.append(_make_chunk(text, buffer_section, doc))
+                for piece in _hard_split(text, MAX_CHUNK_TOKENS):
+                    chunks.append(_make_chunk(piece, buffer_section, buffer_doc))
 
-    return chunks
+    # 최종 패스 1: 어떤 경로로든 남은 최소치 미만 조각을 앞 청크에 흡수시킨다.
+    merged: list[ChunkNode] = []
+    for chunk in chunks:
+        if (merged
+                and _token_count(chunk.text) < MIN_CHUNK_TOKENS
+                and merged[-1].source_file == chunk.source_file):
+            prev = merged[-1]
+            # 본문이 바뀌면 id 도 다시 계산해야 한다.
+            # id 는 (파일·페이지·본문) 해시이므로, 내용을 바꾸면서 예전 id 를
+            # 유지하면 "같은 id = 같은 내용" 불변식이 깨지고 재인제스트 멱등성도
+            # 함께 무너진다.
+            merged[-1] = _make_chunk(
+                (prev.text + "\n" + chunk.text).strip(),
+                prev.section,
+                _PageRef(prev.source_file, prev.source_page, prev.language, prev.doc_version),
+            )
+        else:
+            merged.append(chunk)
+
+    # 최종 패스 2: id 가 같으면 (파일·페이지·본문)이 전부 같다는 뜻 —
+    # 즉 내용이 완전히 같은 청크다. 하나만 남긴다.
+    seen: set[str] = set()
+    unique: list[ChunkNode] = []
+    for chunk in merged:
+        if chunk.id in seen:
+            continue
+        seen.add(chunk.id)
+        unique.append(chunk)
+
+    return unique
 
 
 def _make_chunk(text: str, section: str, doc: RawDocument) -> ChunkNode:

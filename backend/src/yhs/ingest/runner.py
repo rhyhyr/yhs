@@ -28,7 +28,7 @@ def run_ingest(pdf_dir: Path, use_llm: bool = True) -> None:
     from yhs.core.config import PDF_DIR
     from yhs.infra.embedder import Embedder
     from yhs.infra.graph_store import GraphStore
-    from yhs.ingest.pipeline.chunker import chunk_document
+    from yhs.ingest.pipeline.chunker import chunk_documents
     from yhs.ingest.pipeline.cleaner import clean_text
     from yhs.ingest.pipeline.extractor import HybridExtractor
     from yhs.ingest.pipeline.ingestor import GraphIngestor
@@ -58,10 +58,9 @@ def run_ingest(pdf_dir: Path, use_llm: bool = True) -> None:
             for doc in raw_docs:
                 doc.text = clean_text(doc.text)
 
-            all_chunks = []
-            for doc in raw_docs:
-                chunks = chunk_document(doc)
-                all_chunks.extend(chunks)
+            # 같은 파일의 페이지들을 이어서 청킹한다.
+            # 페이지마다 끊으면 텍스트가 적은 페이지가 그대로 작은 청크가 된다.
+            all_chunks = chunk_documents(raw_docs)
             logger.info("청킹 완료: %d개 Chunk", len(all_chunks))
 
             texts = [c.text for c in all_chunks]
