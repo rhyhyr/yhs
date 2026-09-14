@@ -10,10 +10,10 @@
 
 ## 현재 코드와의 연결
 
-- [agent/agent_runtime.py](../agent_runtime.py): 질의 라우팅과 외부 검색 진입점에서 크롤러를 호출한다.
-- [graph_rag/pipeline/loader.py](../../graph_rag/pipeline/loader.py): PDF와 단일 URL 문서 로딩을 담당한다.
-- [graph_rag/scheduler/freshness.py](../../graph_rag/scheduler/freshness.py): 등록된 URL의 변경 감지와 재검토 플래그를 담당한다.
-- [graph_rag/pipeline/ingestor.py](../../graph_rag/pipeline/ingestor.py): 수집된 청크를 그래프 DB에 적재한다.
+- [backend/src/yhs/rag/runtime.py](../agent_runtime.py): 질의 라우팅과 외부 검색 진입점에서 크롤러를 호출한다.
+- [backend/src/yhs/ingest/pipeline/loader.py](../../backend/src/yhs/ingest/pipeline/loader.py): PDF와 단일 URL 문서 로딩을 담당한다.
+- [backend/src/yhs/infra/freshness.py](../../backend/src/yhs/infra/freshness.py): 등록된 URL의 변경 감지와 재검토 플래그를 담당한다.
+- [backend/src/yhs/ingest/pipeline/ingestor.py](../../backend/src/yhs/ingest/pipeline/ingestor.py): 수집된 청크를 그래프 DB에 적재한다.
 
 ## 책임 분리 기준
 

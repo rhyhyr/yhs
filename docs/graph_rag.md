@@ -25,7 +25,7 @@
 
 ### 1) 인제스트: 지식 구축
 
-main.py ingest 모드에서 아래 순서로 실행됩니다.
+backend/src/yhs/cli.py ingest 모드에서 아래 순서로 실행됩니다.
 
 PDFLoader -> clean_text -> chunk_document -> HybridExtractor -> GraphIngestor -> Embedder
 
@@ -42,7 +42,7 @@ PDF 추출 - OpenAI GPT-4o - 유료
 
 ## 폴더별 역할
 
-- main.py
+- backend/src/yhs/cli.py
   - 실행 진입점 (ingest, query, embed-update, freshness)
 - config.py
   - 경로, 모델, 임계값 등 공통 설정
@@ -68,16 +68,16 @@ PDF 추출 - OpenAI GPT-4o - 유료
 
 ```bash
 # PDF 인제스트 실행
-python main.py --ingest
+yhs --ingest
 
 # 임베딩 누락분만 업데이트
-python main.py --embed-update
+python backend/src/yhs/cli.py --embed-update
 ```
 
 옵션 예시:
 
 ```bash
-python main.py --ingest --pdf-dir ./pdf --with-scheduler
+yhs --ingest --pdf-dir ./pdf --with-scheduler
 ```
 
 ---

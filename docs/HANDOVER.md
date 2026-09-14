@@ -18,7 +18,7 @@
 pdf/                        ← 원본 PDF 문서 (입력)
   └─ *.pdf
 
-graph_rag/                  ← 핵심 RAG 엔진 (인제스트 + DB + 검색 기반)
+backend/src/yhs/                  ← 핵심 RAG 엔진 (인제스트 + DB + 검색 기반)
   ├─ config.py              ← 모든 설정값 (Neo4j URI, 모델명, 임계값 등)
   ├─ schema/types.py        ← 데이터 모델 정의 (ChunkNode, EntityNode, Triple…)
   ├─ db/graph_store.py      ← Neo4j 연결 및 CRUD
@@ -35,7 +35,7 @@ graph_rag/                  ← 핵심 RAG 엔진 (인제스트 + DB + 검색 �
   ├─ fast_path/             ← 간단 쿼리 빠른 경로
   └─ scheduler/freshness.py ← 6개월 이상 경과 문서 갱신 알림
 
-agent/                      ← 질의응답 에이전트 (런타임)
+backend/src/yhs/rag/                      ← 질의응답 에이전트 (런타임)
   ├─ query_runner.py        ← 대화 루프 (main 진입점)
   ├─ agent_runtime.py       ← 언어 감지, Fast/Deep Path 판단, 프롬프트 조립
   ├─ retrieval_engine.py    ← 검색 오케스트레이터 (그래프 + 벡터 병합)
@@ -50,7 +50,7 @@ agent/                      ← 질의응답 에이전트 (런타임)
   └─ crawler/
       └─ web_search_client.py ← 근거 부족 시 웹 검색 fallback
 
-main.py                     ← python main.py 로 질의 루프 실행
+backend/src/yhs/cli.py                     ← python backend/src/yhs/cli.py 로 질의 루프 실행
 ```
 
 ---
@@ -98,7 +98,7 @@ MIN_CHUNKS_FOR_ANSWER=2
 MIN_BEST_SCORE=0.40
 ```
 
-`graph_rag/config.py`가 시작 시 `.env`를 자동으로 읽는다. python-dotenv 패키지 없이 자체 파싱한다.
+`backend/src/yhs/core/config.py`가 시작 시 `.env`를 자동으로 읽는다. python-dotenv 패키지 없이 자체 파싱한다.
 
 ---
 
@@ -133,14 +133,14 @@ install_windows.bat
 5. neo4j 드라이버 5.20.0 설치
 6. google-generativeai, pdfplumber, numpy, scikit-learn 설치
 
-> **왜 별도 bat 파일인가?** PyTorch는 Windows에서 requirements.txt 한 번에 설치하면 버전 충돌이 잦다. CPU 전용 wheel URL을 명시해서 설치하기 위해 분리해 두었다.
+> **왜 별도 bat 파일인가?** PyTorch는 Windows에서 backend/pyproject.toml 한 번에 설치하면 버전 충돌이 잦다. CPU 전용 wheel URL을 명시해서 설치하기 위해 분리해 두었다.
 
 ---
 
 ### 5. 나머지 패키지 설치
 
 ```bash
-pip install -r requirements.txt
+pip install -r backend/pyproject.toml
 ```
 
 주요 패키지: `neo4j`, `google-generativeai`, `pdfplumber`, `sentence-transformers`, `requests`, `beautifulsoup4`, `faiss-cpu`, `openai`, `langchain-*`
@@ -168,7 +168,7 @@ run_ingest(Path("pdf/"))
 ### 질의 루프 실행
 
 ```bash
-python main.py
+python backend/src/yhs/cli.py
 ```
 
 터미널에서 대화형으로 질문을 입력한다. `quit` 또는 `exit`로 종료.
@@ -234,24 +234,24 @@ python main.py
 
 ## 주요 모듈 상세
 
-### `graph_rag/config.py`
+### `backend/src/yhs/core/config.py`
 모든 설정의 단일 진입점. `.env`를 읽어 환경변수를 채운 뒤 상수로 노출한다. 임계값이나 모델명을 바꿀 때 여기를 수정하거나 `.env`에서 오버라이드한다.
 
-### `graph_rag/db/graph_store.py`
+### `backend/src/yhs/infra/graph_store.py`
 Neo4j 연결을 관리한다. Context manager(`with GraphStore() as store`)로 사용한다. 스키마 초기화(제약·인덱스), 노드/엣지 upsert, 네이티브 벡터 인덱스 검색, confidence 낮은 트리플 격리(`review_queue.json`)를 담당한다.
 
-### `graph_rag/pipeline/extractor.py`
+### `backend/src/yhs/ingest/pipeline/extractor.py`
 규칙 기반(정규식으로 비자코드·기관명 추출, confidence=1.0)과 LLM 기반(OpenAI로 구조화 JSON 추출, confidence=0.7~0.9)을 합친 하이브리드 추출기. 허용 predicate는 `ALLOWED_PREDICATES` 7개로 고정되어 있다.
 
-### `agent/retrieval_engine.py`
+### `backend/src/yhs/rag/engine.py`
 그래프 검색과 벡터 검색 결과를 합산 스코어로 재정렬하는 오케스트레이터.
 - `_W_BASE * base_score + _W_KW * keyword_overlap + _W_REC * recency`
 - 같은 Chunk가 양쪽에서 나오면 더 높은 점수를 사용한다.
 
-### `agent/agent_runtime.py`
+### `backend/src/yhs/rag/runtime.py`
 언어 감지, 질문 유형 분류, Fast/Deep 경로 판정, LLM 프롬프트 조립 함수 모음. 로직만 있고 I/O는 없어서 단독으로 테스트하기 쉽다.
 
-### `graph_rag/schema/types.py`
+### `backend/src/yhs/schema/types.py`
 모든 레이어가 공유하는 데이터 모델. DB 레이어와 파이프라인 레이어 사이의 계약이다. 새 노드 타입이나 엣지 타입을 추가할 때 여기에 먼저 추가한다.
 
 ---

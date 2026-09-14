@@ -14,7 +14,8 @@
 | `_dryrun_샘플/` | 드라이런(목) 출력 예시 — 실제 결과 아님. 무시해도 됨 |
 
 ## 실행 메모
-- **실제 실험은 레포 루트에서 실행** (`agent/`, `graph_rag/` import 때문).
+- **실제 실험은 레포 루트에서 실행** (`experiments.*` 패키지 import 때문).
+  러너가 `backend/src` 를 sys.path 에 넣어 주므로 `pip install -e backend` 없이도 동작한다.
   예: 루트에서 `python -m 실험.eval_harness` 또는 러너를 `experiments/`에 두고 실행.
 - 드라이런(스택 없이 하니스 점검)은 이 폴더 안에서: `python eval_harness.py dry`
 - 확정안: 답변=EXAONE / 심판=gpt-4o-mini / N=100 / A안(단일 측정).
