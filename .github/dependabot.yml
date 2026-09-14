@@ -1,8 +1,8 @@
 version: 2
 updates:
-  # Python 의존성 (requirements.txt)
+  # Python 백엔드
   - package-ecosystem: pip
-    directory: "/"
+    directory: "/backend"
     schedule:
       interval: weekly
       day: monday
@@ -10,15 +10,25 @@ updates:
     open-pull-requests-limit: 5
     groups:
       dev-tools:
-        patterns: ["pytest*", "ruff*"]   # 개발 도구는 묶어서 한 PR로
+        patterns: ["pytest*", "ruff*"]   # 개발 도구는 묶어서 한 PR 로
     labels: ["dependencies", "python"]
 
-  # npm 의존성 (npm-package/)
+  # React 프론트엔드
   - package-ecosystem: npm
-    directory: "/npm-package"
+    directory: "/frontend"
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
     labels: ["dependencies", "npm"]
+
+  # 도커 베이스 이미지
+  - package-ecosystem: docker
+    directories:
+      - "/backend"
+      - "/frontend"
+    schedule:
+      interval: weekly
+    labels: ["dependencies", "docker"]
 
   # GitHub Actions 버전
   - package-ecosystem: github-actions

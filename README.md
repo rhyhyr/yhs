@@ -1,154 +1,216 @@
-# Global Campus Visa Navigator RAG
+# YHS — 동아대학교 외국인 유학생 AI 에이전트
 
-> 외국인 유학생 비자·학사 안내 근거중심 도우미
+> 유학생 비자·학사·생활 행정 질문에 **근거 문서를 함께 제시**하는 Graph RAG 챗봇
 
-## 프로젝트 개요
+[![CI](https://github.com/rhyhyr/yhs/actions/workflows/ci.yml/badge.svg)](https://github.com/rhyhyr/yhs/actions/workflows/ci.yml)
 
-| 항목 | 내용 |
+---
+
+## 무엇을 하는 프로젝트인가
+
+외국인 유학생은 대학 안내, 체류자격(비자), 출입국 신고 의무를 서로 다른 기관의
+문서에서 각각 확인해야 한다. 문서마다 표현이 달라 단순 검색으로는 맞는 조항을
+찾기 어렵고, 잘못된 이해가 곧바로 행정 불이익으로 이어진다.
+
+이 프로젝트는 답변 자체보다 **"근거 문서와 조항을 정확히 찾아 제시하는 것"** 을
+목표로 한다. 근거가 부족하면 단정하지 않고 1345·하이코리아 안내로 넘긴다.
+
+| | |
 |---|---|
-| **프로젝트명** | Global Campus Visa Navigator RAG |
-| **문제 정의** | 유학생 비자·학사 정보가 여러 문서에 분산되어 있어 정확한 조항을 빠르게 찾기 어려움 |
-| **핵심 기능** | ① 하이브리드 질의응답 ② 정책 문서 인덱싱 파이프라인 ③ 리스크 최소화 응답 정책 |
-| **기술 스택** | Python, Gemini/OpenAI, Neo4j, SentenceTransformers, pdfplumber |
-| **마일스톤** | 16주 (W1~W16), 아래 표 참고 |
+| **검색** | Neo4j 그래프(자격·전환·의무 관계) + BAAI/bge-m3 벡터(문맥 의미) 하이브리드 |
+| **경로 분기** | fast path(단일 문서 즉답) / deep path(쿼리 확장 + 멀티 문서 + 웹 크롤링) |
+| **코퍼스** | 하이코리아·출입국·NHIS·동아대 등 공식 문서 35종 |
+| **LLM** | OpenAI / Gemini / Ollama(EXAONE) / HuggingFace — 설정으로 교체 |
 
-## 문제 정의
+---
 
-외국인 유학생은 대학 안내, 체류자격(비자), 출입국 신고 의무를 서로 다른 문서에서 확인해야 한다. 문서마다 표현 방식이 달라 단순 검색으로는 맞는 조항을 빠르게 찾기 어렵고, 잘못된 이해는 행정 불이익으로 이어질 수 있다.
+## 빠른 시작 (Docker)
 
-이 프로젝트는 답변 자체보다 **"근거 문서와 조항을 정확히 찾아 제시"** 하는 것을 핵심으로 한다.
-
-## 핵심 기능
-
-**1. 비자·학사 하이브리드 질의응답**
-벡터 검색(문맥 의미) + 그래프 검색(자격/전환/의무 관계)을 결합하고, 답변에 근거 문서명·조항·인용 스니펫을 포함한다.
-
-**2. 정책 문서 중심 인덱싱 파이프라인**
-PDF 로딩, 청킹, 임베딩, 조항 단위 메타데이터 추출을 자동화하며 개정일/시행일 기준으로 최신 버전을 우선 노출한다.
-
-**3. 리스크 최소화 응답 정책**
-근거 부족 시 단정 답변을 금지하고, 민원 채널(하이코리아/1345) 안내를 자동 첨부하며 회귀 질문셋으로 정확도와 근거 충실도를 자동 점검한다.
-
-## 기술 스택
-
-| 분류 | 기술 |
-|---|---|
-| Language | Python 3.11+ |
-| LLM | Gemini / OpenAI / Ollama |
-| Retrieval | SentenceTransformers, Hybrid (Vector + Graph) |
-| Graph DB | Neo4j |
-| Data Processing | pdfplumber, custom chunker/extractor |
-| DevOps | Git, GitHub Actions |
-
-## 16주 마일스톤
-
-| 기간 | 목표 |
-|---|---|
-| W1-2 | 질문 시나리오 60개 수집, 성공 지표 정의 |
-| W3-4 | PDF 코퍼스 분류, 메타데이터 스키마 설계 |
-| W5-6 | 인덱싱 파이프라인 구현 및 초기 코퍼스 적재 |
-| W7-8 | 하이브리드 검색 MVP + 중간 데모 |
-| W9-10 | Fast/Deep 라우팅 고도화 |
-| W11-12 | 회귀 테스트 자동화, SLA 추적 |
-| W13-14 | 운영 안정화, 발표 시연 시나리오 |
-| W15 | 성능 튜닝, 문서화 |
-| W16 | 최종 발표 및 데모 |
-
-## 시작하기 (처음 pull한 경우)
-
-### 1. Ollama 설치 및 EXAONE 모델 다운로드
+가장 빠른 길이다. Neo4j·백엔드·프론트가 한 번에 뜬다.
 
 ```bash
-# Ollama 설치 (https://ollama.com/download)
-# macOS
-brew install ollama
+git clone https://github.com/rhyhyr/yhs.git
+cd yhs
 
-# Windows — 위 링크에서 설치 파일 다운로드
-
-# EXAONE 모델 다운로드 (~5GB, 최초 1회)
-ollama pull exaone3.5:7.8b
-
-# Ollama 서버 실행 (터미널 하나 점유)
-ollama serve
-```
-
-### 2. 환경변수 설정
-
-```bash
 cp .env.example .env
-# .env 파일을 열어 NEO4J_PASSWORD 등 필요한 값을 채운다
+# .env 를 열어 NEO4J_PASSWORD 와 사용할 LLM 의 API 키를 채운다
+
+docker compose up -d --build
 ```
 
-### 3. 의존성 설치 및 실행
+| 주소 | 내용 |
+|---|---|
+| http://localhost:3000 | 프론트엔드 (React) |
+| http://localhost:8000/docs | API 문서 (Swagger) |
+| http://localhost:7474 | Neo4j 브라우저 |
+
+처음 한 번은 지식베이스를 만들어야 한다 (`data/sources/` 의 PDF → Neo4j):
 
 ```bash
-pip install -r requirements.txt
-
-# KB 구축 (PDF → Neo4j 인제스트)
-python main.py --ingest
-
-# 질의 루프 실행
-python main.py --query
+docker compose exec backend yhs --ingest
 ```
 
-### Docker로 실행하는 경우
+로컬 LLM(Ollama)을 쓰려면 프로파일을 켜고 모델을 받는다:
 
 ```bash
-# 첫 실행 — Ollama 컨테이너가 뜬 뒤 모델을 직접 pull해야 한다
-docker compose up -d
-
-# EXAONE 모델 pull (최초 1회, ollama 컨테이너 내부에서 실행)
-docker compose exec ollama ollama pull exaone3.5:7.8b  # ~5GB
-
-# 이후부터는 그냥 기동하면 됨 (모델은 ollama_data 볼륨에 저장됨)
-docker compose up
-```
-
-### LLM 공급자 전환 (선택사항)
-
-| 목적 | .env 설정 |
-|------|-----------|
-| Ollama EXAONE (기본) | `LLM_PROVIDER=ollama` / `RUNTIME_LLM=ollama` |
-| Gemini API | `LLM_PROVIDER=gemini` / `RUNTIME_LLM=gemini` + `GEMINI_API_KEY=...` |
-| OpenAI API | `LLM_PROVIDER=openai` + `OPENAI_API_KEY=...` |
-
----
-
-## 폴더 구조
-
-- [agent/](agent): 질의, 인제스트, 검색, LLM 연동
-- [graph_rag/](graph_rag): Neo4j 저장소, 임베딩, 파이프라인
-- [docs/](docs): 설명 문서와 결과 기록
-- [pdf/](pdf): 입력 PDF 자료
-- [requirements.txt](requirements.txt): 의존성 목록
-
-## 실행
-
-기존 단일 `main.py` 진입점은 제거되었습니다. 실제 실행은 `agent/`와 `graph_rag/` 패키지 기반 진입점에서 구성합니다.
-
-## 환경변수
-
-```env
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=YOUR_PASSWORD
-PDF_DIR=C:\path\to\pdf
-GEMINI_API_KEY=YOUR_GEMINI_API_KEY
-GEMINI_MODEL=gemini-3.0-flash
-GATE_MIN_TOP_SCORE=0.25
-GATE_MIN_EVIDENCE=2
-ENABLE_EXTERNAL_SEARCH=1
-ALLOWED_EXTERNAL_SUFFIXES=go.kr,ac.kr,gov,edu,gov.cn,edu.cn,ac.uk,gov.uk
-LATENCY_LOG_PATH=logs/latency_log.jsonl
-```
-
-## 설치
-
-```powershell
-python -m pip install neo4j google-generativeai pdfplumber numpy scikit-learn sentence-transformers==3.0.1
-python -m pip install --upgrade torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+docker compose --profile ollama up -d
+docker compose exec ollama ollama pull exaone3.5:7.8b   # 약 5GB
 ```
 
 ---
 
-> 📝 이 문서는 작성 과정에서 생성형 AI(Claude)의 도움을 받아 작성되었습니다.
+## 로컬 개발 (도커 없이)
+
+**백엔드**
+
+```bash
+cd backend
+pip install -e ".[dev]"
+playwright install chromium        # 크롤러가 JS 렌더링 페이지를 읽을 때 사용
+
+pytest                             # 단위 테스트
+uvicorn yhs.api.main:app --reload  # http://localhost:8000
+yhs --ingest                       # 지식베이스 구축
+yhs --query                        # 터미널 질의 루프
+```
+
+**프론트엔드**
+
+```bash
+cd frontend
+npm ci
+npm run dev                        # http://localhost:5173
+```
+
+`vite.config.js` 가 `/api` 요청을 `localhost:8000` 으로 프록시하므로
+프론트에 백엔드 주소를 넣을 필요가 없다. 백엔드 없이 화면만 보려면
+`frontend/.env` 에 `VITE_USE_MOCK=true` 를 넣으면 된다.
+
+---
+
+## 저장소 구조
+
+```
+yhs/
+├── backend/
+│   ├── src/yhs/
+│   │   ├── core/        설정 단일 진입점 (환경변수 + YAML)
+│   │   ├── schema/      도메인 타입 (노드·엣지·검색 결과)
+│   │   ├── infra/       외부 시스템 어댑터 (Neo4j, 임베딩 모델)
+│   │   ├── ingest/      PDF → 그래프 KB 구축 파이프라인
+│   │   ├── rag/         질의 시점 검색·생성 (그래프 + 벡터 + 웹)
+│   │   └── api/         FastAPI (routes / schemas / service / deps)
+│   ├── config/          ★ 코드 밖으로 뺀 튜닝 파라미터 YAML
+│   └── tests/
+├── frontend/            React + Vite, nginx 로 서빙 (/api 리버스 프록시)
+├── data/
+│   ├── sources/         인제스트 대상 공식 문서 35종
+│   └── raw/             원본·참고 자료
+├── experiments/         평가 러너와 데이터셋 (results/ 는 git 제외)
+├── deploy/              운영 compose 오버라이드
+├── docs/                설계 문서, ADR, 프로토타입
+└── docker-compose.yml
+```
+
+---
+
+## 설정은 어디에 있나
+
+값의 성격에 따라 두 곳으로 나뉜다. **겹치면 환경변수가 이긴다.**
+
+| | 위치 | 담는 것 | git |
+|---|---|---|---|
+| 환경 | `.env` | 비밀키, 접속 주소, 실행 모드 | 제외 |
+| 튜닝 | `backend/config/*.yaml` | 가중치, 임계값, 라우팅 표, FAQ 문안 | 추적 |
+
+```
+backend/config/
+├── retrieval.yaml   재랭크 가중치·top_k·게이트 문턱값
+├── routing.yaml     키워드 → 소스 파일 강제 라우팅 41개
+├── crawler.yaml     허용 사이트 화이트리스트, 크롤 예산
+├── faq.yaml         FAQ 20개, 복합질문 지시어 54개
+└── domain.yaml      기관명, 관계 술어, 비자 별칭, 메시지 문안
+```
+
+검색 품질을 손보고 싶으면 코드가 아니라 `retrieval.yaml` 을 고친다.
+문서를 교체했다면 `routing.yaml` 의 파일명만 맞춰 주면 된다
+(CI 가 실재 여부를 검사한다).
+
+환경변수로 일시적으로 덮어쓰는 건 실험 스윕용이다:
+
+```bash
+TOP_K_VECTOR=8 GATE_MIN_TOP_SCORE=0.3 python experiments/run_eval100_openai.py
+```
+
+---
+
+## API
+
+| 메서드 | 경로 | 설명 |
+|---|---|---|
+| `GET` | `/health` | 헬스체크 (`starting` / `ok`) |
+| `POST` | `/api/chat` | 질의응답 — 근거 출처 포함 |
+| `POST` | `/query` | 구버전 계약 (deprecated) |
+
+```http
+POST /api/chat
+{ "channelId": "visa", "message": "비자 연장 언제부터 신청하나요?", "history": [] }
+
+200 OK
+{
+  "answer": "D-2 비자 체류기간 연장은 만료일 4개월 전부터...",
+  "sources": [
+    { "id": "chunk-...", "label": "하이코리아 체류기간연장허가",
+      "detail": "p.2 · 2025.06", "url": "", "score": 0.87 }
+  ],
+  "tags": [],
+  "path": "fast"
+}
+```
+
+---
+
+## LLM 공급자 전환
+
+| 목적 | `.env` 설정 |
+|---|---|
+| OpenAI | `RUNTIME_LLM=openai` + `OPENAI_API_KEY=...` |
+| Gemini | `RUNTIME_LLM=gemini` + `GEMINI_API_KEY=...` |
+| Ollama (로컬) | `RUNTIME_LLM=ollama` + `docker compose --profile ollama up -d` |
+| HuggingFace (로컬) | `RUNTIME_LLM=hf` |
+
+`LLM_PROVIDER` 는 지식베이스 구축(인제스트)용, `RUNTIME_LLM` 은 답변 생성용으로
+따로 고를 수 있다.
+
+---
+
+## 실험 · 평가
+
+```bash
+python experiments/run_eval100_openai.py       # N=100 평가 러너
+python experiments/weight_sweep_optuna.py      # 검색 가중치 Optuna 스윕
+```
+
+데이터셋은 `experiments/eval_sets/`, 결과는 `experiments/results/` 에 쌓인다
+(결과는 용량이 커서 git 에서 제외된다). 평가 프로토콜은
+[docs/experiments/](docs/experiments/) 참고.
+
+---
+
+## 배포
+
+```bash
+docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml up -d
+```
+
+운영 오버라이드는 백엔드·Neo4j 포트를 외부에 열지 않고 nginx(프론트 컨테이너)만
+80 포트로 노출한다. nginx 가 `/api` 를 백엔드로 프록시하므로 프론트와 API 가 같은
+오리진이 되고, CORS 설정이 필요 없다.
+
+`main` 에 머지되면 CD 워크플로우가 이미지를 GHCR 에 올린다.
+
+---
+
+## 라이선스
+
+[MIT](LICENSE)

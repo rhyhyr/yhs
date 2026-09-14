@@ -42,7 +42,7 @@
  *   }
  */
 
-import { BASE_URL } from './config';
+import { BASE_URL, USE_MOCK } from './config';
 import { pickMockResponse, createMessage } from '../data/mockMessages';
 
 // ── 내부 상수 ────────────────────────────────────────────────────────────
@@ -111,11 +111,44 @@ function detectSuggestedChannel(message) {
 }
 
 export async function sendMessage({ channelId, message, history }) {
-  // ── mock 응답 (API 미연결 상태)
+  // 채널 추천은 클라이언트에서 판단한다 (백엔드 계약에 없는 UI 전용 기능).
+  const suggestedChannelId = channelId === 'main' ? detectSuggestedChannel(message) : null;
+
+  if (USE_MOCK) {
+    return mockAnswer({ channelId, message, suggestedChannelId });
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ channelId, message, history }),
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+    return {
+      answer            : data.answer  ?? '',
+      sources           : data.sources ?? [],
+      tags              : data.tags    ?? [],
+      path              : data.path    ?? 'fast',
+      suggestedChannelId,
+      // 체크리스트 생성은 아직 프론트 전용 기능이다 (백엔드 계약 없음).
+      checklistId: null,
+    };
+  } catch (err) {
+    // 백엔드가 안 떠 있어도 데모가 죽지 않도록 mock 으로 폴백한다.
+    console.warn('[chat] 백엔드 호출 실패 — mock 응답으로 폴백합니다.', err);
+    return mockAnswer({ channelId, message, suggestedChannelId });
+  }
+}
+
+/** 백엔드 없이 동작할 때 쓰는 mock 응답. */
+async function mockAnswer({ channelId, message, suggestedChannelId }) {
   const { text, sources, checklistId } = pickMockResponse(channelId, message);
   const path = checklistId ? 'deep' : 'fast';
   await delay(path === 'fast' ? FAST_DELAY : DEEP_DELAY);
-  const suggestedChannelId = channelId === 'main' ? detectSuggestedChannel(message) : null;
   return {
     answer: text,
     sources,
@@ -124,28 +157,8 @@ export async function sendMessage({ channelId, message, history }) {
     checklistId: checklistId ?? null,
     path,
   };
-
-  /* ── fetch 교체 예시 (위 mock 삭제 후 아래 주석 해제) ──
-  const res = await fetch(`${BASE_URL}/api/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ channelId, message, history }),
-  });
-
-  if (!res.ok) {
-    const { text, sources } = pickMockResponse(channelId);
-    return { answer: text, sources, tags: [], suggestedChannelId: null };
-  }
-
-  const data = await res.json();
-  return {
-    answer            : data.answer             ?? '',
-    sources           : data.sources            ?? [],
-    tags              : data.tags               ?? [],
-    suggestedChannelId: data.suggestedChannelId ?? null,
-  };
-  */
 }
+
 
 /**
  * Message 객체 생성 헬퍼 (컴포넌트에서 직접 사용 가능)

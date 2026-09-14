@@ -1,143 +1,71 @@
+"""
+yhs/api/main.py
+
+FastAPI 애플리케이션.
+
+    uvicorn yhs.api.main:app --host 0.0.0.0 --port 8000
+
+무거운 리소스(임베딩 모델, Neo4j 드라이버)는 lifespan 에서 한 번만 만들고
+app.state.resources 에 담아 둔다. 라우트는 거기서 꺼내 쓴다.
+"""
+
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
-import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 
+from yhs import __version__
+from yhs.api.deps import AppState
+from yhs.api.routes import chat_router, health_router
 from yhs.core.settings import get_settings
-from yhs.infra.embedder import Embedder
-from yhs.infra.graph_store import GraphStore
-from yhs.rag.crawler.web_search_client import WebSearchClient, allowed_sites
-from yhs.rag.engine import RetrievalEngine
-from yhs.rag.faq import FastPathHandler
-from yhs.rag.runtime import (
-    GateThresholds,
-    detect_language,
-    expand_query,
-    insufficient_evidence_message,
-    should_use_deep_path,
-)
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="동아대 유학생 AI 에이전트")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-class QuestionRequest(BaseModel):
-    question: str
-
-
-class AnswerResponse(BaseModel):
-    answer: str
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    logger.info("리소스 초기화 시작 (임베딩 모델 + Neo4j)")
+    app.state.resources = AppState.create()
+    logger.info("초기화 완료 — 요청을 받을 준비가 됐습니다.")
+    try:
+        yield
+    finally:
+        app.state.resources.close()
+        app.state.resources = None
+        logger.info("리소스 정리 완료")
 
 
-def _build_llm():
-    """RUNTIME_LLM 환경변수에 따라 적절한 LLM 클라이언트를 반환한다."""
-    provider = get_settings().runtime_llm.lower()
-    if provider == "gemini":
-        from yhs.rag.llm.gemini_client import GeminiRuntimeClient
-        client = GeminiRuntimeClient()
-        if not client.is_available():
-            logger.warning("Gemini API 키 없음 — Ollama로 폴백합니다.")
-            provider = "ollama"
-        else:
-            return client
-    if provider == "hf":
-        from yhs.rag.llm.hf_client import HFRuntimeClient
-        return HFRuntimeClient()
-    # 기본값: ollama
-    from yhs.rag.llm.ollama_client import OllamaRuntimeClient
-    client = OllamaRuntimeClient()
-    if not client.is_available():
-        logger.warning("Ollama 서버에 연결할 수 없습니다. 'ollama serve' 실행 여부를 확인하세요.")
-    return client
+def create_app() -> FastAPI:
+    settings = get_settings()
+
+    app = FastAPI(
+        title="동아대 유학생 AI 에이전트",
+        version=__version__,
+        lifespan=lifespan,
+    )
+
+    # 운영에서는 nginx 가 프론트와 /api 를 같은 오리진으로 묶으므로 CORS 가
+    # 필요 없다. 개발 중 vite dev 서버(:5173)에서 직접 호출할 때를 위해
+    # 허용 오리진을 설정으로 받는다.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["*"],
+    )
+
+    app.include_router(health_router)
+    app.include_router(chat_router)
+    return app
 
 
-# 서버 시작/종료 시 리소스 관리 (GraphStore 연결 유지)
-embedder = Embedder()
-faq_handler = FastPathHandler()
-llm = _build_llm()
-thresholds = GateThresholds.from_config()
-http_session = requests.Session()
-_store: GraphStore | None = None
-_engine = None
-_web_client = None
-
-
-@app.on_event("startup")
-def startup():
-    global _store, _engine, _web_client
-    _store = GraphStore()
-    _store.__enter__()
-    _engine = RetrievalEngine(_store, embedder, ollama_client=llm)
-    _web_client = WebSearchClient(http_session, embedder, llm, _store._driver, allowed_sites, openai_client=None)
-    logger.info("startup complete")
-
-
-@app.on_event("shutdown")
-def shutdown():
-    if _store:
-        _store.__exit__(None, None, None)
-    http_session.close()
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
-
-@app.post("/query", response_model=AnswerResponse)
-def query(body: QuestionRequest):
-    question = body.question.strip()
-    if not question:
-        return AnswerResponse(answer="질문을 입력해주세요.")
-
-    faq_answer = faq_handler.match(question)
-    if faq_answer:
-        return AnswerResponse(answer=faq_answer)
-
-    language = detect_language(question)
-
-    result = _engine.retrieve(question)
-    best_score = max((c.score for c in result.chunks), default=0.0)
-    use_deep, _ = should_use_deep_path(question, best_score, len(result.chunks), thresholds)
-
-    external_contexts: list[str] = []
-
-    if use_deep:
-        variants = expand_query(question, language)[1:]
-        extra_results = [r for v in variants for r in [_engine.retrieve(v)] if r.retrieval_method != "no_answer"]
-        if extra_results:
-            from yhs.rag.query_runner import _merge_results
-            result = _merge_results(result, extra_results)
-
-        best_after = max((c.score for c in result.chunks), default=0.0)
-        needs_web, _ = should_use_deep_path(question, best_after, len(result.chunks), thresholds)
-        if needs_web:
-            snippets = _web_client.search_and_collect(question, max_results=3)
-            external_contexts = [f"[WEB] {sn.title}: {sn.snippet}" for sn in snippets]
-
-    if result.retrieval_method == "no_answer" and not external_contexts:
-        return AnswerResponse(answer=insufficient_evidence_message(language))
-
-    context = _engine.build_prompt_context(result)
-    if external_contexts:
-        context += "\n\n[외부 검색 결과]\n" + "\n".join(external_contexts)
-
-    if llm and llm.is_available():
-        answer = llm.generate_answer(question, context, result, web_context=bool(external_contexts))
-    else:
-        answer = context
-
-    return AnswerResponse(answer=answer)
+app = create_app()

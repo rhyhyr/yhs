@@ -27,16 +27,23 @@ import yaml
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# 이 파일: <repo>/backend/src/yhs/core/settings.py
+# 소스 트리에서 실행할 때 이 파일의 위치는
+#   <repo>/backend/src/yhs/core/settings.py
 #   parents[0]=core [1]=yhs [2]=src [3]=backend [4]=<repo>
+# 휠로 설치된 경우(도커 이미지)에는 site-packages 아래이므로 위 가정이 깨진다.
+# backend/pyproject.toml 이 실제로 있는지로 두 경우를 구분한다.
 _HERE = Path(__file__).resolve()
-PACKAGE_DIR = _HERE.parents[1]
-BACKEND_DIR = _HERE.parents[3]
-REPO_ROOT = _HERE.parents[4]
+PACKAGE_DIR = _HERE.parents[1]                       # .../yhs
 
-# 휠로 설치된 경우 설정 YAML 은 패키지 안(yhs/_config)에 동봉된다.
-_BUNDLED_CONFIG = PACKAGE_DIR / "_config"
+_maybe_backend = _HERE.parents[3] if len(_HERE.parents) > 3 else PACKAGE_DIR
+_IS_SOURCE_TREE = (_maybe_backend / "pyproject.toml").is_file()
+
+BACKEND_DIR = _maybe_backend if _IS_SOURCE_TREE else PACKAGE_DIR
+REPO_ROOT = _HERE.parents[4] if _IS_SOURCE_TREE else Path.cwd()
+
+# 설정 YAML: 소스 트리면 backend/config, 설치본이면 패키지에 동봉된 yhs/_config.
 _SOURCE_CONFIG = BACKEND_DIR / "config"
+_BUNDLED_CONFIG = PACKAGE_DIR / "_config"
 DEFAULT_CONFIG_DIR = _SOURCE_CONFIG if _SOURCE_CONFIG.is_dir() else _BUNDLED_CONFIG
 
 
@@ -99,6 +106,15 @@ class Settings(BaseSettings):
     # ── 기능 토글 ───────────────────────────────────────────────────────
     enable_zh_translation: bool = True
 
+    # ── API ─────────────────────────────────────────────────────────────
+    # 운영에서는 nginx 가 프론트와 /api 를 같은 오리진으로 묶으므로 CORS 가
+    # 필요 없다. 여기 값은 vite dev 서버에서 직접 호출할 때만 쓰인다.
+    # 쉼표로 구분해 여러 개를 줄 수 있다. "*" 는 모든 오리진 허용 (개발 전용).
+    cors_origins_raw: str = Field(
+        default="http://localhost:5173,http://localhost:3000",
+        validation_alias=AliasChoices("CORS_ORIGINS", "cors_origins_raw"),
+    )
+
     # ── YAML 튜닝값을 덮어쓰는 환경변수 (실험 스윕용) ───────────────────
     # None 이면 YAML 값을 그대로 쓴다.
     top_k_vector: int | None = None
@@ -115,6 +131,10 @@ class Settings(BaseSettings):
     crawl_max_pages: int | None = None
     crawl_fetch_timeout: int | None = None
     crawl_sleep_sec: float | None = None
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins_raw.split(",") if o.strip()]
 
     # ── 파생 경로 ───────────────────────────────────────────────────────
     @property
