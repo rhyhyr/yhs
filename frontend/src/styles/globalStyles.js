@@ -1,3 +1,4 @@
+export const globalStyles = `
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
   *, *::before, *::after {
@@ -35,29 +36,73 @@
     --topbar-h: 52px;
   }
 
-  html, body, #root {
+  html, body {
     width: 100%;
     min-height: 100vh;
-    margin: 0;
-    background: #ffffff;
+    background: #1A1A1A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-family: 'Noto Sans KR', system-ui, sans-serif;
-    overflow-x: hidden;
+    overflow: auto;
+    padding: 60px 24px;
   }
 
-  body {
-    display: block;
+  #root {
+    display: contents;
+  }
+
+  /* ── 아이폰 15 물리 바디 ── */
+  .phone-wrapper {
+    position: relative;
+    background: #1C1C1E;
+    border-radius: 54px;
+    padding: 14px 10px;
+    box-shadow:
+      0 0 0 1px #48484A,
+      0 0 0 2px #1C1C1E,
+      0 0 0 3px #3A3A3C,
+      0 60px 120px rgba(0,0,0,.85),
+      inset 0 1px 0 rgba(255,255,255,.08);
+    flex-shrink: 0;
+  }
+
+  /* 왼쪽 — 무음 스위치 + 볼륨 업/다운 */
+  .phone-wrapper::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 108px;
+    width: 4px;
+    height: 32px;
+    background: #2C2C2E;
+    border-radius: 2px 0 0 2px;
+    box-shadow:
+      0 50px 0 #2C2C2E,
+      0 98px 0 4px #2C2C2E,
+      0 98px 0 4px #2C2C2E;
+  }
+
+  /* 오른쪽 — 전원 버튼 */
+  .phone-wrapper::after {
+    content: '';
+    position: absolute;
+    right: -4px;
+    top: 168px;
+    width: 4px;
+    height: 72px;
+    background: #2C2C2E;
+    border-radius: 0 2px 2px 0;
   }
 
   .iphone {
     position: relative;
-    width: 100%;
-    max-width: 475px;
-    height: 100vh;
-    min-height: 100vh;
-    margin: 0 auto;
+    width: var(--w);
+    height: var(--h);
     background: var(--c-surface);
-    border-radius: 0;
-    box-shadow: none;
+    border-radius: var(--radius-phone);
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.06);
     overflow: hidden;
     -webkit-font-smoothing: antialiased;
   }
@@ -293,6 +338,17 @@
 
   .ch-item:active { background: #F5F4F0; }
 
+  .ch-item--urgent {
+    border-left: 3px solid var(--c-red);
+    background: #FFF9F9;
+  }
+
+  .ch-item--urgent:active { background: var(--c-red-l); }
+
+  .sec-lbl--warn { color: var(--c-red); }
+
+  .sec-lbl--blue { color: var(--c-accent); }
+
   .ch-icon {
     width: 44px;
     height: 44px;
@@ -391,6 +447,18 @@
     color: var(--c-accent);
   }
 
+  /* 채팅에서 생성된 체크리스트 퀵액션 버튼 */
+  .qa-btn-checklist {
+    background: var(--c-accent-l);
+    border-color: var(--c-accent-m);
+    color: var(--c-accent);
+    font-weight: 600;
+  }
+
+  .qa-btn-checklist:active {
+    background: #D4E2FA;
+  }
+
   .chat-area {
     padding: 10px 14px;
     display: flex;
@@ -427,6 +495,18 @@
     max-width: 252px;
   }
 
+  .path-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 8px;
+    letter-spacing: 0.4px;
+    align-self: flex-start;
+  }
+  .path-badge--fast { background: #E4F5ED; color: #1A8C5B; }
+  .path-badge--deep { background: #EEEBFB; color: #5B45C2; }
+
   .msg-user { display: flex; justify-content: flex-end; }
 
   .bubble-user {
@@ -452,6 +532,140 @@
     padding: 3px 8px;
     border-radius: 10px;
     font-weight: 500;
+  }
+
+  /* ── 구조화 메시지 렌더링 (ChatMessage) ─────────────────────── */
+
+  .msg-spacer { height: 6px; }
+
+  .msg-line { margin: 1px 0; }
+
+  .msg-section {
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--c-t1);
+    margin: 8px 0 3px;
+  }
+
+  .msg-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 3px 0;
+  }
+
+  .msg-step-num {
+    min-width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--c-accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .msg-bullet {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 2px 0;
+    color: var(--c-t2);
+    font-size: 13px;
+  }
+
+  .msg-bullet-dot {
+    color: var(--c-accent);
+    font-size: 14px;
+    line-height: 1.55;
+    flex-shrink: 0;
+  }
+
+  /* ── 체크리스트 제안 CTA 카드 ──────────────────────────────────── */
+
+  .checklist-cta-card {
+    margin: 8px 0 4px;
+    background: var(--c-surface);
+    border: 1.5px solid var(--c-accent-m);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .checklist-cta-icon {
+    font-size: 22px;
+    line-height: 1;
+  }
+
+  .checklist-cta-body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .checklist-cta-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--c-t1);
+  }
+
+  .checklist-cta-desc {
+    font-size: 12px;
+    color: var(--c-t2);
+    line-height: 1.5;
+  }
+
+  .checklist-cta-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .checklist-cta-yes {
+    flex: 1;
+    background: var(--c-accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 9px 0;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .checklist-cta-no {
+    flex: 1;
+    background: var(--c-bg);
+    color: var(--c-t2);
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+    padding: 9px 0;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .msg-tags {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .msg-tag {
+    background: var(--c-accent-l);
+    color: var(--c-accent);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
   }
 
   .chat-input-bar {
@@ -1405,3 +1619,1093 @@
   }
 
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── SourceModal ── */
+  .source-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, .45);
+    z-index: 500;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .source-modal-sheet {
+    width: 100%;
+    background: var(--c-surface);
+    border-radius: 20px 20px 0 0;
+    padding: 12px 16px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: slideUp .22s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+
+  .source-modal-handle {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--c-border-s);
+    align-self: center;
+    margin-bottom: 4px;
+  }
+
+  .source-modal-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--c-t1);
+  }
+
+  .source-modal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .source-modal-item {
+    padding: 10px 12px;
+    background: var(--c-bg);
+    border-radius: 10px;
+  }
+
+  .source-modal-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--c-t1);
+  }
+
+  .source-modal-detail {
+    font-size: 12px;
+    color: var(--c-t2);
+    margin-top: 3px;
+  }
+
+  .source-modal-close {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 12px;
+    background: var(--c-bg);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--c-t1);
+    cursor: pointer;
+  }
+
+  .kd-source { cursor: pointer; }
+  .kd-source:active { opacity: .7; }
+
+  /* ── 채널 카드 ── */
+  .channel-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .channel-text {
+    flex: 1;
+    text-align: left;
+  }
+
+  .channel-title {
+    font-weight: 600;
+  }
+
+  .channel-desc {
+    font-size: 14px;
+    color: #666;
+  }
+
+  /* ── 홈 — 빈 채널 상태 UI ── */
+  .empty-channel-card {
+    margin: 6px 14px 8px;
+    padding: 20px 16px 18px;
+    background: var(--c-bg);
+    border: 1.5px dashed var(--c-border-s);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .empty-channel-cta {
+    width: 100%;
+    padding: 11px;
+    background: var(--c-accent);
+    color: #fff;
+    border: none;
+    border-radius: 11px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+
+  .empty-channel-cta:active { opacity: .85; }
+
+  /* ── 홈 — ghost(예시) 채널 ── */
+  .ghost-ch-item {
+    opacity: 0.42;
+    pointer-events: auto;
+    filter: grayscale(20%);
+  }
+
+  .ghost-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 8px;
+    background: var(--c-border);
+    color: var(--c-t3);
+    border: 1px dashed var(--c-border-s);
+  }
+
+  /* ── 메인 채팅 — 웰컴 카드 ── */
+  .main-welcome-card {
+    margin: 16px 14px 8px;
+    padding: 22px 18px 20px;
+    background: linear-gradient(135deg, #EEF2FF 0%, #F5F4F0 100%);
+    border: 1.5px solid var(--c-accent-m);
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+  }
+
+  .mwc-emoji {
+    font-size: 32px;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+
+  .mwc-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--c-t1);
+    letter-spacing: -.3px;
+  }
+
+  .mwc-desc {
+    font-size: 13px;
+    color: var(--c-t2);
+    line-height: 1.65;
+  }
+
+  .mwc-btn {
+    margin-top: 6px;
+    width: 100%;
+    padding: 13px;
+    background: var(--c-accent);
+    color: #fff;
+    border: none;
+    border-radius: 13px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+
+  .mwc-btn:active { opacity: .85; }
+
+  /* ── 메인 채팅 — 카테고리 단축칩 ── */
+  .main-shortcut-chip {
+    flex-shrink: 0;
+    position: relative;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border: 1.5px solid var(--c-border-s);
+    border-radius: 20px;
+    background: var(--c-surface);
+    color: var(--c-t1);
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: inherit;
+    transition: all .15s;
+  }
+
+  .main-shortcut-chip:active {
+    background: var(--c-accent-l);
+    border-color: var(--c-accent-m);
+    color: var(--c-accent);
+  }
+
+  .main-shortcut-chip.created {
+    background: var(--c-accent-l);
+    border-color: var(--c-accent-m);
+    color: var(--c-accent);
+    font-weight: 600;
+  }
+
+  .chip-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--c-accent);
+    margin-left: 5px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+  }
+
+  .main-shortcut-chip.suggested {
+    background: var(--c-accent-l);
+    border-color: var(--c-accent);
+    color: var(--c-accent);
+    font-weight: 600;
+    animation: chip-pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes chip-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(33, 85, 205, 0.25); }
+    50%       { box-shadow: 0 0 0 6px rgba(33, 85, 205, 0); }
+  }
+
+  .suggestion-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 8px;
+    padding: 13px 14px;
+    background: var(--c-accent-l);
+    border: 1.5px solid var(--c-accent-m);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .suggestion-card:active { opacity: .78; }
+  .suggestion-card-text {
+    flex: 1;
+    font-size: 13px;
+    color: var(--c-accent);
+    font-weight: 500;
+    line-height: 1.45;
+  }
+  .suggestion-card-arrow {
+    font-size: 20px;
+    color: var(--c-accent-m);
+  }
+
+  /* ── 메인 채팅 — 채널 생성 모달 ── */
+  .channel-modal-sheet {
+    width: 100%;
+    background: var(--c-surface);
+    border-radius: 24px 24px 0 0;
+    padding: 14px 16px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: slideUp .22s ease;
+  }
+
+  .channel-modal-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 13px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+
+  .channel-modal-btn:active { opacity: .82; }
+
+  .channel-modal-btn.primary {
+    background: var(--c-accent);
+    color: #fff;
+  }
+
+  .channel-modal-btn.secondary {
+    background: var(--c-bg);
+    color: var(--c-t2);
+    font-weight: 500;
+  }
+
+  /* ── 이미지 공통 (향후 이미지 추가 대비) ── */
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     반응형 레이아웃
+     데스크톱  ≥ 1024px : 현재 상태 유지 (아이폰 목업 + 어두운 배경)
+     태블릿   ≤  768px : 상하 여백 축소, 폰 프레임 반경 축소
+     모바일   ≤  480px : 폰 프레임 제거, 전체화면 앱 모드
+  ═══════════════════════════════════════════════════════════ */
+
+  /* 태블릿 (≤ 768px) */
+  @media (max-width: 768px) {
+    html, body {
+      padding: 24px 16px;
+    }
+
+    .phone-wrapper {
+      border-radius: 44px;
+    }
+
+    /* 말풍선 너비를 뷰포트 기반으로 유연화 */
+    .bubble-ai,
+    .bubble-user {
+      max-width: min(252px, calc(100vw - 80px));
+    }
+  }
+
+  /* 모바일 (≤ 480px) — 폰 프레임 제거, 전체화면 앱 모드 */
+  @media (max-width: 480px) {
+    html, body {
+      padding: 0;
+      background: var(--c-surface);
+      display: block;
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow: hidden;
+    }
+
+    /* 폰 외형 껍데기 제거 */
+    .phone-wrapper {
+      border-radius: 0;
+      padding: 0;
+      background: transparent;
+      box-shadow: none;
+      width: 100%;
+      display: block;
+    }
+
+    /* 가짜 측면 버튼 숨김 */
+    .phone-wrapper::before,
+    .phone-wrapper::after {
+      display: none;
+    }
+
+    /* 아이폰 화면 → 전체화면 */
+    .iphone {
+      width: 100%;
+      max-width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    /* 말풍선 너비 뷰포트 기반으로 전환 */
+    .bubble-ai,
+    .bubble-user {
+      max-width: calc(100vw - 80px);
+    }
+
+    /* 토스트 메시지가 화면 밖으로 나가지 않도록 */
+    .toast {
+      max-width: calc(100% - 32px);
+      white-space: normal;
+      text-align: center;
+    }
+
+    /* 카드류 좌우 넘침 방지 */
+    .step-card,
+    .k-card,
+    .ans-wrap,
+    .visa-card,
+    .cta-card,
+    .result-card,
+    .kd-list-block,
+    .related-q {
+      max-width: 100%;
+    }
+
+    /* 채팅 입력창이 좁은 화면에서도 한 줄로 유지 */
+    .chat-input-bar {
+      padding: 8px 12px 10px;
+    }
+
+    /* 칩 행 — 좁은 화면에서 가로 스크롤 허용 (줄바꿈 없이) */
+    .qa-scroll,
+    .filter-row {
+      padding-bottom: 8px;
+    }
+
+    /* 온보딩 히어로 패딩 축소 */
+    .ob-hero {
+      padding: 28px 16px 16px;
+    }
+  }
+
+  /* ── 캘린더 페이지 ─────────────────────────────────────── */
+
+  .cal-nav-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .cal-today-btn {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1.5px solid var(--c-border);
+    background: var(--c-surface);
+    color: var(--c-accent);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .1s;
+    line-height: 1;
+  }
+
+  .cal-today-btn:active { background: var(--c-bg); }
+
+  .cal-nav-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1.5px solid var(--c-border);
+    background: var(--c-surface);
+    color: var(--c-t2);
+    cursor: pointer;
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+    transition: background .1s;
+    line-height: 1;
+  }
+
+  .cal-nav-btn:active { background: var(--c-bg); }
+
+  .cal-month-label {
+    padding: 14px 16px 8px;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--c-t1);
+    letter-spacing: -.5px;
+  }
+
+  .cal-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    padding: 0 10px 4px;
+  }
+
+  .cal-weekday {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--c-t3);
+    padding: 4px 0 6px;
+  }
+
+  .cal-weekday.sun { color: #D13B3B99; }
+  .cal-weekday.sat { color: #2155CD88; }
+
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    padding: 0 10px 8px;
+    gap: 1px 0;
+  }
+
+  .cal-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3px 2px 5px;
+    cursor: pointer;
+    border-radius: 10px;
+    min-height: 48px;
+    transition: background .1s;
+  }
+
+  .cal-cell:active { background: var(--c-bg); }
+
+  .cal-cell.other-month { cursor: default; opacity: .38; }
+  .cal-cell.other-month:active { background: transparent; }
+
+  .cal-date {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--c-t1);
+    transition: all .1s;
+  }
+
+  .cal-cell.today .cal-date {
+    background: var(--c-accent);
+    color: #fff;
+    font-weight: 700;
+  }
+
+  .cal-cell.selected:not(.today) .cal-date {
+    background: var(--c-t1);
+    color: #fff;
+    font-weight: 700;
+  }
+
+  .cal-cell.today.selected .cal-date {
+    background: var(--c-accent);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 0 0 3px var(--c-accent-m);
+  }
+
+  .cal-dots {
+    display: flex;
+    gap: 3px;
+    margin-top: 4px;
+    align-items: center;
+    height: 6px;
+  }
+
+  .cal-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .cal-divider {
+    height: 1px;
+    background: var(--c-border);
+    margin: 4px 16px 0;
+  }
+
+  .cal-events-section {
+    padding: 14px 14px 28px;
+  }
+
+  .cal-events-hdr {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    margin-bottom: 12px;
+  }
+
+  .cal-events-date {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--c-t1);
+    letter-spacing: -.3px;
+  }
+
+  .cal-events-dow {
+    font-size: 13px;
+    color: var(--c-t3);
+    font-weight: 500;
+  }
+
+  .cal-events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .cal-event-card {
+    display: flex;
+    border: 1.5px solid var(--c-border);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--c-surface);
+    cursor: pointer;
+    transition: background .1s;
+  }
+
+  .cal-event-card:active { background: var(--c-bg); }
+
+  .cal-event-bar {
+    width: 4px;
+    flex-shrink: 0;
+  }
+
+  .cal-event-body {
+    flex: 1;
+    padding: 12px 13px;
+  }
+
+  .cal-event-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--c-t1);
+    line-height: 1.3;
+  }
+
+  .cal-event-desc {
+    font-size: 12px;
+    color: var(--c-t2);
+    margin-top: 4px;
+    line-height: 1.45;
+  }
+
+  .cal-event-meta {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .cal-event-type {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 8px;
+  }
+
+  .cal-event-completed {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--c-green);
+    background: var(--c-green-l);
+    padding: 3px 9px;
+    border-radius: 8px;
+  }
+
+  .cal-event-source {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--c-t3);
+    background: var(--c-bg);
+    border: 1px solid var(--c-border);
+    padding: 2px 8px;
+    border-radius: 8px;
+  }
+
+  .cal-event-card.completed {
+    opacity: .75;
+  }
+
+  .cal-event-title.done {
+    text-decoration: line-through;
+    color: var(--c-t3);
+  }
+
+  .cal-empty {
+    padding: 32px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    border: 1.5px dashed var(--c-border);
+    border-radius: 14px;
+    background: var(--c-bg);
+  }
+
+  .cal-empty-icon {
+    font-size: 28px;
+    margin-bottom: 4px;
+    opacity: .6;
+  }
+
+  .cal-empty-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--c-t2);
+  }
+
+  .cal-empty-sub {
+    font-size: 12px;
+    color: var(--c-t3);
+    text-align: center;
+    line-height: 1.55;
+    max-width: 220px;
+  }
+
+  .cal-event-source.chat {
+    color: var(--c-accent);
+    background: var(--c-accent-l);
+    border-color: var(--c-accent-m);
+  }
+
+  /* ── 채팅 체크리스트 확인 카드 ────────────────────────────── */
+
+  .cl-confirm {
+    margin: 4px 0 8px;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1.5px solid var(--c-accent-m);
+    background: var(--c-accent-l);
+  }
+
+  .cl-confirm-top {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 8px;
+  }
+
+  .cl-confirm-icon { font-size: 18px; }
+
+  .cl-confirm-chip {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 8px;
+  }
+
+  .cl-confirm-body {
+    font-size: 13px;
+    color: var(--c-t1);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .cl-confirm-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .cl-confirm-yes {
+    flex: 1;
+    padding: 9px;
+    border-radius: 10px;
+    background: var(--c-accent);
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity .1s;
+  }
+
+  .cl-confirm-yes:active { opacity: .85; }
+
+  .cl-confirm-no {
+    padding: 9px 18px;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--c-t3);
+    font-size: 14px;
+    font-weight: 500;
+    border: 1.5px solid var(--c-border);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .1s;
+  }
+
+  .cl-confirm-no:active { background: var(--c-bg); }
+
+  /* 연동 완료 후 리다이렉트 카드 — 초록 계열 */
+  .cl-redirect-confirm {
+    border-color: #A8D5C0;
+    background: var(--c-green-l);
+  }
+
+  .cl-redirect-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-green);
+    background: #fff;
+    padding: 3px 9px;
+    border-radius: 8px;
+    border: 1px solid #A8D5C0;
+  }
+
+  /* 캘린더 연동 카드 — 파란 accent 계열 */
+  .cl-cal-confirm {
+    border-color: var(--c-accent-m);
+    background: var(--c-accent-l);
+  }
+
+  .cl-cal-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-accent);
+    background: #fff;
+    padding: 3px 9px;
+    border-radius: 8px;
+    border: 1px solid var(--c-accent-m);
+  }
+
+  /* ── 인라인 체크리스트 카드 ────────────────────────────────── */
+
+  .cl-created-card {
+    margin: 4px 0 8px;
+    border-radius: 16px;
+    border: 1.5px solid var(--c-border);
+    background: var(--c-surface);
+    overflow: hidden;
+  }
+
+  .cl-created-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 14px;
+    background: var(--c-bg);
+    border-bottom: 1px solid var(--c-border);
+  }
+
+  .cl-created-icon { font-size: 16px; }
+
+  .cl-created-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--c-t1);
+  }
+
+  .cl-created-list { padding: 2px 0; }
+
+  .cl-created-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--c-border);
+  }
+
+  .cl-created-item:last-child { border-bottom: none; }
+
+  .cl-created-cb {
+    width: 16px;
+    height: 16px;
+    border-radius: 5px;
+    border: 2px solid var(--c-border-s);
+    flex-shrink: 0;
+  }
+
+  .cl-created-text {
+    flex: 1;
+    font-size: 13px;
+    color: var(--c-t1);
+    line-height: 1.35;
+  }
+
+  .cl-created-date {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .cl-created-footer {
+    padding: 8px 14px;
+    font-size: 11px;
+    color: var(--c-t3);
+    background: var(--c-bg);
+    border-top: 1px solid var(--c-border);
+  }
+
+  /* ── 체크리스트 네비게이션 버튼 카드 ─────────────────────── */
+
+  .cl-nav-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 14px;
+    margin: 4px 0 8px;
+    border-radius: 14px;
+    border: 1.5px solid;
+    cursor: pointer;
+    transition: filter .1s;
+  }
+
+  .cl-nav-card:active { filter: brightness(.96); }
+
+  .cl-nav-icon { font-size: 22px; flex-shrink: 0; }
+
+  .cl-nav-body { flex: 1; min-width: 0; }
+
+  .cl-nav-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -.2px;
+  }
+
+  .cl-nav-sub {
+    font-size: 12px;
+    color: var(--c-t2);
+    margin-top: 2px;
+  }
+
+  .cl-nav-arrow {
+    font-size: 22px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* ── 체크리스트 선택 모달 시트 ────────────────────────────── */
+
+  .cl-sheet {
+    width: 100%;
+    background: var(--c-surface);
+    border-radius: 22px 22px 0 0;
+    padding: 8px 0 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 88%;
+  }
+
+  .cl-sheet-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 6px 16px 12px;
+    gap: 8px;
+  }
+
+  .cl-sheet-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--c-t1);
+    letter-spacing: -.3px;
+    margin-bottom: 3px;
+  }
+
+  .cl-sheet-subtitle {
+    font-size: 12px;
+    color: var(--c-t2);
+  }
+
+  .cl-sheet-all-btn {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-accent);
+    background: var(--c-accent-l);
+    border: none;
+    border-radius: 8px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 2px;
+    white-space: nowrap;
+  }
+
+  .cl-sheet-list {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: none;
+    border-top: 1px solid var(--c-border);
+    padding: 4px 0;
+  }
+
+  .cl-sheet-list::-webkit-scrollbar { display: none; }
+
+  .cl-sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 16px;
+    cursor: pointer;
+    transition: background .1s;
+    border-bottom: 1px solid var(--c-border);
+  }
+
+  .cl-sheet-item:last-child { border-bottom: none; }
+  .cl-sheet-item:active { background: var(--c-bg); }
+  .cl-sheet-item.checked { background: #FAFAF8; }
+
+  .cl-sheet-cb {
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    border: 2px solid var(--c-border-s);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: transparent;
+    transition: all .15s;
+  }
+
+  .cl-sheet-cb.checked {
+    background: var(--c-accent);
+    border-color: var(--c-accent);
+    color: #fff;
+  }
+
+  .cl-sheet-item-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .cl-sheet-item-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--c-t1);
+    line-height: 1.35;
+  }
+
+  .cl-sheet-item.checked .cl-sheet-item-title { color: var(--c-t1); }
+
+  .cl-sheet-item-sub {
+    font-size: 11px;
+    color: var(--c-t3);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cl-sheet-item-date {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 7px;
+  }
+
+  .cl-sheet-footer {
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px 20px;
+    border-top: 1px solid var(--c-border);
+  }
+
+  .cl-sheet-cancel {
+    padding: 12px 18px;
+    border-radius: 12px;
+    background: var(--c-bg);
+    color: var(--c-t2);
+    font-size: 14px;
+    font-weight: 500;
+    border: 1.5px solid var(--c-border);
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .cl-sheet-confirm {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--c-accent);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity .1s;
+  }
+
+  .cl-sheet-confirm:disabled {
+    background: var(--c-border);
+    color: var(--c-t3);
+    cursor: default;
+  }
+
+  .cl-sheet-confirm:not(:disabled):active { opacity: .85; }
+`;
+

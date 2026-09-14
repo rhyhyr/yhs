@@ -77,7 +77,7 @@ function renderContent(text) {
   return nodes;
 }
 
-export default function ChatMessage({ role, children, style }) {
+export default function ChatMessage({ role, children, style, path }) {
   if (role === 'user') {
     return (
       <div className="msg-user">
@@ -88,7 +88,14 @@ export default function ChatMessage({ role, children, style }) {
   return (
     <div className="msg-ai">
       <div className="ai-av">AI</div>
-      <div className="bubble-ai" style={style}>{renderContent(children)}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        {path && (
+          <span className={`path-badge path-badge--${path}`}>
+            {path === 'fast' ? '⚡ FAST' : '🔍 DEEP'}
+          </span>
+        )}
+        <div className="bubble-ai" style={style}>{renderContent(children)}</div>
+      </div>
     </div>
   );
 }

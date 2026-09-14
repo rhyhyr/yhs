@@ -47,8 +47,9 @@ import { pickMockResponse, createMessage } from '../data/mockMessages';
 
 // ── 내부 상수 ────────────────────────────────────────────────────────────
 
-/** mock 응답 딜레이 (ms) — 실제 네트워크 느낌 시뮬레이션 */
-const MOCK_DELAY = 700;
+/** mock 응답 딜레이 (ms) — fast/deep 경로 구분 */
+const FAST_DELAY = 380;
+const DEEP_DELAY = 2100;
 
 // ── API 함수 ─────────────────────────────────────────────────────────────
 
@@ -111,8 +112,9 @@ function detectSuggestedChannel(message) {
 
 export async function sendMessage({ channelId, message, history }) {
   // ── mock 응답 (API 미연결 상태)
-  await delay(MOCK_DELAY);
   const { text, sources, checklistId } = pickMockResponse(channelId, message);
+  const path = checklistId ? 'deep' : 'fast';
+  await delay(path === 'fast' ? FAST_DELAY : DEEP_DELAY);
   const suggestedChannelId = channelId === 'main' ? detectSuggestedChannel(message) : null;
   return {
     answer: text,
@@ -120,6 +122,7 @@ export async function sendMessage({ channelId, message, history }) {
     tags: [],
     suggestedChannelId,
     checklistId: checklistId ?? null,
+    path,
   };
 
   /* ── fetch 교체 예시 (위 mock 삭제 후 아래 주석 해제) ──

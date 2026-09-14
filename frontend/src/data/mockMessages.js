@@ -87,8 +87,12 @@ export const MOCK_ANSWER_POOL = {
     'ARC 재등록 시 기본적으로 필요한 서류는 아래와 같아요.\n\n1. 여권 (유효기간 확인)\n2. 외국인등록증\n3. 재학증명서\n4. 체류지 관련 서류 (필요 시)\n5. 수수료\n\n추가 안내:\n- Hi Korea 온라인 신청 또는 출입국관리사무소 방문 신청 가능해요.\n- 비자 만료 전에 미리 신청하는 것이 중요합니다.\n\n#ARC #재등록 #비자 #HiKorea',
     // [1] 외국인등록증 분실·재발급
     '외국인등록증을 분실했다면 아래 순서로 진행하면 돼요.\n\n1. 분실 사실 확인 후 재발급 신청 준비\n2. 여권, 사진, 재발급 신청서 등 필요 서류 준비\n3. Hi Korea에서 방문 예약\n4. 출입국관리사무소 방문 후 재발급 신청\n5. 새 외국인등록증 수령\n\n주의사항:\n- 분실 후 오래 방치하지 않는 것이 좋아요.\n- 신분 확인이 필요할 수 있으니 여권을 함께 챙겨두세요.\n\n준비할 서류를 체크리스트로 정리해 드릴까요?\n\n#외국인등록증 #분실 #재발급 #출입국',
-    // [2] D-2 비자 연장 절차
+    // [2] D-2 비자 연장 절차 (deep path — 체크리스트 연동)
     'D-2 비자 연장은 보통 아래 순서로 진행돼요.\n\n1. 여권, 외국인등록증, 재학증명서 등 기본 서류 준비\n2. Hi Korea에서 온라인 신청 가능 여부 확인 또는 방문 예약\n3. 출입국관리사무소 방문 또는 온라인 접수\n4. 수수료 납부 및 접수 완료\n5. 처리 결과 확인\n\n주의사항:\n- 비자 만료 전에 미리 신청해야 해요.\n- 학교별로 추가 서류가 필요할 수 있어요.\n\n#D-2 #비자연장 #서류 #HiKorea',
+    // [3] Fast path: D-2 비자 정의 (FAQ 즉답 — 체크리스트 없음)
+    'D-2(유학) 비자는 대한민국 정규 학위과정을 이수하기 위한 비자입니다.\n\n주요 특징:\n- 체류 기간: 재학 기간 (연장 가능)\n- 대상: 전문대학 이상 정규 학위 과정 입학자\n- 취업: 주 20시간 이내 시간제 취업 허가 가능\n\n⚠️ 최신 정보는 하이코리아(hikorea.go.kr)에서 확인하세요.\n\n#D-2비자 #유학비자 #비자정보',
+    // [4] Fast path: 시간제취업 허가 조건 (FAQ 즉답 — 체크리스트 없음)
+    'D-2(유학) 비자 소지 유학생의 시간제 취업 허가 조건이에요.\n\n주요 조건:\n- 학기 중: 주 20시간 이내\n- 방학 중: 시간 제한 없음\n- 법무부 시간제취업 허가 필수 (미허가 취업 시 비자 취소 위험)\n\n신청 방법:\n- Hi Korea(hikorea.go.kr) 온라인 신청 또는 출입국관리사무소 방문\n\n⚠️ D-4 비자는 원칙적으로 취업 불가 (별도 허가 필요)\n\n#시간제취업 #유학생알바 #취업허가',
   ],
   // ── 학교생활 채널 ─────────────────────────────────────────────────────────
   school: [
@@ -126,6 +130,10 @@ export const MOCK_ANSWER_POOL = {
     '이 질문은 등록금 납부와 수강신청이 함께 포함된 학사 일정 질문이에요.\n학교생활 채널에서 일정과 절차를 묶어서 안내해드릴게요.',
     // [5] 유학생 보험 → 병원 & 보험 채널 유도
     '이 질문은 최신 공지 확인이 필요한 내용이에요.\n현재 데이터에 없거나 기준이 바뀔 수 있어서 병원 & 보험 채널에서 최신 정보를 확인하는 흐름으로 안내할게요.',
+    // [6] 시간제취업 허가 조건 → 취업 채널 유도
+    '시간제취업 허가 조건은 취업 & 아르바이트 채널에서 바로 확인할 수 있어요.\n허가 절차와 주의사항을 채널에서 자세히 안내해드릴게요.',
+    // [7] D-2 비자 개념 질문 (fast) → 간단 설명 + 비자 채널 유도
+    'D-2(유학) 비자는 한국 대학교·대학원에서 정규 학위과정을 이수하기 위한 비자예요.\n비자 & 체류 채널에서 특징과 조건을 더 자세히 확인할 수 있어요.',
   ],
 };
 
@@ -143,14 +151,22 @@ const DEMO_PICK_RULES = {
   main: [
     { keywords: ['arc', 'ARC', '재등록'], index: 0 },
     { keywords: ['수강신청', '수강', '준비', '학교'], index: 1 },
-    { keywords: ['비자', '연장', 'D-2', 'd-2', '절차'], index: 2 },
+    // 비자 개념 질문 (fast) — 연장·절차 규칙보다 먼저 체크
+    { keywords: ['비자가 뭐야', '비자가 뭔지', '비자란', '비자 개념', '비자 소개', '비자 뭔가요', 'd-2가 뭐야', '비자가 뭔가'], index: 7 },
+    // 연장·절차는 deep 흐름 → 비자 채널 유도
+    { keywords: ['연장', '절차', '출입국'], index: 2 },
     { keywords: ['외국인등록증', '분실', '재발급'], index: 3 },
     { keywords: ['등록금', '납부', '다음 학기'], index: 4 },
     { keywords: ['보험', '부산대', '최신'], index: 5 },
+    { keywords: ['시간제취업', '알바 허가', '취업 허가', '아르바이트 허가', '시간제 취업'], index: 6 },
   ],
   visa: [
+    // fast path 규칙을 먼저 — 정의·개념·조건 질문은 체크리스트 없이 즉시 응답
+    { keywords: ['비자란', '비자가 뭐야', 'd-2가 뭐야', 'd-2 비자가 뭐야', '비자 뭐야', '비자 뭔가요', '비자가 뭔지', '비자 개념', '비자 소개'], index: 3, checklistId: null },
+    { keywords: ['시간제취업', '알바 허가', '아르바이트 허가', '취업 허가 조건', '시간제 취업'], index: 4, checklistId: null },
     { keywords: ['외국인등록증', '분실', '재발급', 'arc', 'ARC', '재등록'], index: 1, checklistId: 'arc-renew' },
-    { keywords: ['비자', '연장', 'D-2', 'd-2', '서류', '체크리스트'],       index: 2, checklistId: 'visa-extension' },
+    // 절차·서류 요청은 deep path — 체크리스트 연동
+    { keywords: ['연장', '서류', '절차', '체크리스트', '어떻게', '방법'],    index: 2, checklistId: 'visa-extension' },
   ],
   school: [
     { keywords: ['등록금', '납부', '다음 학기'],            index: 1, checklistId: 'school-registration' },
@@ -175,14 +191,20 @@ export function pickMockResponse(channelId, message = '') {
 
   let index       = 0;
   let checklistId = CHANNEL_DEFAULT_CHECKLIST[channelId] ?? null;
+  let ruleMatched = false;
 
   for (const rule of rules) {
     if (rule.keywords.some(kw => lower.includes(kw.toLowerCase()))) {
       index       = rule.index;
-      checklistId = rule.checklistId ?? checklistId;
+      // rule에 checklistId가 명시된 경우(null 포함) 우선 적용
+      checklistId = Object.hasOwn(rule, 'checklistId') ? rule.checklistId : checklistId;
+      ruleMatched = true;
       break;
     }
   }
+
+  // 아무 규칙도 안 걸린 경우 default checklist를 비워서 fast path 취급
+  if (!ruleMatched) checklistId = null;
 
   const text    = pool[index] ?? pool[0];
   const sources = MOCK_SOURCES[channelId] ?? [];
