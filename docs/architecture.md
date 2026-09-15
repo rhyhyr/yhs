@@ -205,10 +205,6 @@ I/O 없이 로직만 있어 단독 테스트가 쉽다.
 터미널 질의 루프(`yhs --query`). `process_question()` 이 FAQ → 검색 → deep path →
 웹 폴백 → LLM 순서를 엮고, `run_query_loop()` 이 그걸 `input()` 루프로 감싼다.
 
-### `feature_flags.py`, `ab_test.py`
-
-환경변수 기반 기능 토글과 해시 기반 A/B 배정. 이벤트는 `logs/ab_events.jsonl` 로 쌓인다.
-
 ---
 
 ## api — FastAPI

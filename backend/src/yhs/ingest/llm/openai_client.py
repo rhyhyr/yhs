@@ -101,8 +101,6 @@ _JSON_SCHEMA = {
     },
 }
 
-_EMPTY: dict[str, Any] = {"chunk_type": "", "entities": [], "relations": []}
-
 
 class OpenAIKBClient:
     """KB 구축용 OpenAI API 클라이언트."""
@@ -200,4 +198,4 @@ class OpenAIKBClient:
             return self._complete(messages)
         except Exception as exc:
             logger.error("흐름도 파싱 실패 (%s): %s", image_path, exc)
-            return dict(_EMPTY)
+            return {"chunk_type": "", "entities": [], "relations": []}

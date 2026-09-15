@@ -15,12 +15,13 @@ yhs/ingest/llm/exaone_kb_client.py
 
 from __future__ import annotations
 
-import json
 import logging
 from pathlib import Path
 from typing import Any
 
+from yhs.ingest.llm.json_repair import parse_json_with_repair
 from yhs.ingest.llm.prompts import EXTRACTION_SYSTEM_PROMPT
+from yhs.ingest.stats import STATS
 
 logger = logging.getLogger(__name__)
 
@@ -140,22 +141,17 @@ class ExaoneKBClient:
             if start != -1 and end > start:
                 raw = raw[start:end]
 
-            try:
-                return json.loads(raw)
-            except json.JSONDecodeError:
-                # 로컬 모델은 긴 출력에서 JSON 을 자주 깨뜨린다
-                # (따옴표 누락, 끝 잘림). 통째로 버리기 전에 복구를 시도한다.
-                from json_repair import repair_json
-            
-                from yhs.ingest.stats import STATS
-                fixed = json.loads(repair_json(raw))
+            # 로컬 모델은 긴 출력에서 JSON 을 자주 깨뜨린다
+            # (따옴표 누락, 끝 잘림). 통째로 버리기 전에 복구를 시도한다.
+            result, repaired = parse_json_with_repair(raw)
+            if result is None:
+                logger.error("EXAONE JSON 파싱 및 복구 모두 실패 — 해당 청크 건너뜀")
+                return {"entities": [], "relations": []}
+            if repaired:
                 STATS.json_repaired += 1
                 logger.info('JSON 복구 성공 (%d자)', len(raw))
-                return fixed
+            return result
 
-        except json.JSONDecodeError as exc:
-            logger.error("EXAONE JSON 파싱 실패: %s", exc)
-            return {"entities": [], "relations": []}
         except Exception as exc:
             import traceback
             logger.error("EXAONE 추출 실패: %s\n%s", exc, traceback.format_exc())

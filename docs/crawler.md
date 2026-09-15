@@ -16,8 +16,6 @@
 - [rag/query_runner.py](../backend/src/yhs/rag/query_runner.py) — 터미널 경로의 호출부.
 - [ingest/pipeline/loader.py](../backend/src/yhs/ingest/pipeline/loader.py) — PDF 와 단일 URL 문서 로딩.
 
-> `infra/freshness.py` 는 빈 스텁이다. 신선도 관리는 이 폴더로 이전됐다.
-
 ## 설정
 
 전부 [crawler.yaml](../backend/config/crawler.yaml) 에 있다.

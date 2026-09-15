@@ -24,6 +24,7 @@ from google import genai
 from google.genai import types
 
 from yhs.core.config import ALLOWED_PREDICATES, GEMINI_API_KEY, GEMINI_MODEL
+from yhs.ingest.llm.json_repair import parse_json_with_repair
 
 logger = logging.getLogger(__name__)
 
@@ -116,22 +117,13 @@ class GeminiKBClient:
             )
             raw = (response.text or "").strip()
 
-            try:
-                return json.loads(raw)
-            except json.JSONDecodeError:
-                pass
-
-            try:
-                from json_repair import repair_json
-                repaired = repair_json(raw)
-                result = json.loads(repaired)
+            result, repaired = parse_json_with_repair(raw)
+            if result is None:
+                logger.error("JSON 파싱 및 복구 모두 실패 — 해당 청크 건너뜀")
+                return {"entities": [], "relations": []}
+            if repaired:
                 logger.warning("JSON 복구 성공 (응답이 잘렸을 가능성 있음)")
-                return result
-            except Exception:
-                pass
-
-            logger.error("JSON 파싱 및 복구 모두 실패 — 해당 청크 건너뜀")
-            return {"entities": [], "relations": []}
+            return result
 
         except Exception as exc:
             logger.error("Gemini API 오류: %s", exc)
@@ -166,11 +158,11 @@ class GeminiKBClient:
                 config=self._config,
             )
             raw = (response.text or "").strip()
-            try:
-                return json.loads(raw)
-            except json.JSONDecodeError:
-                from json_repair import repair_json
-                return json.loads(repair_json(raw))
+            result, _ = parse_json_with_repair(raw)
+            if result is None:
+                logger.error("흐름도 파싱 실패 (%s): JSON 파싱 및 복구 모두 실패", image_path)
+                return {"entities": [], "relations": []}
+            return result
 
         except Exception as exc:
             logger.error("흐름도 파싱 실패 (%s): %s", image_path, exc)
