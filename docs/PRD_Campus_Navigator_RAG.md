@@ -1,5 +1,10 @@
 # PRD: Global Campus Visa Navigator RAG
 
+> **보존 문서 — 2026-04-08 작성 당시의 제품 요구사항이다.** 이후 구현이 앞서 나갔으므로
+> 현재 동작과 다른 부분이 있다. 현재 구조는 [HANDOVER](HANDOVER.md), 현재 파라미터는
+> [backend/config/*.yaml](../backend/config/) 을 본다. 이 문서는 고치지 않는다.
+
+
 ## 1. 문서 정보
 - 버전: v0.2 (PDF 반영 수정본)
 - 작성일: 2026-04-08

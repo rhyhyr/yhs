@@ -1,23 +1,51 @@
-# YHS 실험 폴더
+# 평가 실험
 
-발표용 평가 실험에 필요한 것들을 모아둔 폴더.
+이 폴더는 **문서**만 있다. 실제 코드와 데이터셋은 저장소 루트의
+[experiments/](../../experiments/) 에 있다.
 
-## 파일
-| 파일 | 역할 |
-|------|------|
-| `YHS_실험_실행계획.md` | ★메인★ Claude Code에 주는 실행 프로토콜 (사전점검→워밍업→러너→채점→집계) |
-| `YHS_eval_questions_100.py` | 검증셋 100문항 (질문+gold+출처). `EVAL_QUERIES` |
-| `YHS_eval_metrics.py` | 100문항에 6지표용 태그 부여 + 최신성 쌍. `EVAL`, `FRESHNESS_PAIRS` |
-| `eval_harness.py` | 채점 하니스 골격(드라이런 가능). 실측은 프로토콜대로 러너 작성 권장 |
-| `YHS_eval_questions_seed.py` | 초기 시드 24문항 (참고용, 100의 모태) |
-| `YHS_실험_프로토콜.md` | 이전 상세 프로토콜 (N=40·4단계 버전, 참고용) |
-| `_dryrun_샘플/` | 드라이런(목) 출력 예시 — 실제 결과 아님. 무시해도 됨 |
+| 문서 | 내용 |
+|---|---|
+| [실행계획.md](실행계획.md) | N=100 측정 절차 — 사전점검 → 워밍업 → 러너 → 채점 → 집계 |
+| [프로토콜.md](프로토콜.md) | 질문셋 설계, LLM-as-judge 루브릭, feature flag ablation, 발표 수치 사실관계 정정 |
 
-## 실행 메모
-- **실제 실험은 레포 루트에서 실행** (`experiments.*` 패키지 import 때문).
-  러너가 `backend/src` 를 sys.path 에 넣어 주므로 `pip install -e backend` 없이도 동작한다.
-  예: 루트에서 `python -m 실험.eval_harness` 또는 러너를 `experiments/`에 두고 실행.
-- 드라이런(스택 없이 하니스 점검)은 이 폴더 안에서: `python eval_harness.py dry`
-- 확정안: 답변=EXAONE / 심판=gpt-4o-mini / N=100 / A안(단일 측정).
+## 코드
 
-자세한 절차는 `YHS_실험_실행계획.md` 참고.
+```
+experiments/
+├── eval_sets/            질문셋 (eval_questions_v2.py, v3.py)
+├── run_eval100.py        답변 수집 러너 — Ollama
+├── run_eval100_openai.py 답변 수집 러너 — OpenAI
+├── run_eval_uncovered.py 미수록 질문(크롤러 폴백) 전용
+├── zh_eval.py            중국어 질문 평가
+├── make_judge_prompt.py  LLM-as-judge 프롬프트 생성
+├── metrics.py            지표 계산
+├── show_metrics.py       결과 요약 출력
+├── generate_report.py    리포트 생성
+├── compare_results.py    실행 간 비교
+├── threshold_sweep.py    문턱값 스윕
+├── weight_sweep_optuna.py 재랭크 가중치 Optuna 스윕
+└── results/              실행 결과 (git 제외)
+```
+
+## 실행
+
+저장소 루트에서 돌린다 (`experiments.*` 패키지 import 때문).
+
+```bash
+python experiments/run_eval100_openai.py
+python experiments/weight_sweep_optuna.py
+```
+
+`retrieval.yaml` 의 가중치를 바꿨다면 `weight_sweep_optuna.py` 로 재검증한다.
+일시적으로 값을 덮어쓸 때는 환경변수를 쓴다:
+
+```bash
+TOP_K_VECTOR=8 GATE_MIN_TOP_SCORE=0.3 python experiments/run_eval100_openai.py
+```
+
+## 정직성 규칙
+
+- 발표·보고서에는 **실제 N** 을 그대로 쓴다.
+- stratum 별 N 이 작은 칸은 비율에 실제 개수를 병기한다 — "75% (9/12)".
+- 답변 모델과 심판 모델은 반드시 분리한다.
+- 예전 측정값(Gemini·in-DB 기준)과 새 측정값을 직접 비교하지 않는다.

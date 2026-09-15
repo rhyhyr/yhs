@@ -1,4 +1,12 @@
-# YHS — 문서 작성 채널 개발 문서
+# 문서 작성 채널(document_filling) 기획안
+
+> **상태: 미구현 · 보류.** 2026-09-15 기준 이 기능은 코드에 없다 —
+> `document_filling` 채널도, `python-docx` 의존성도 들어가 있지 않다.
+> 착수할 때 참고할 설계 메모로 남겨 둔다.
+>
+> 아래 "기존 YHS 아키텍처 요약"의 수식(`벡터×0.6 + 키워드×0.4`)과 임계값 0.17 은
+> 작성 당시(2026-06) 값이다. 현재 값은
+> [backend/config/retrieval.yaml](../../backend/config/retrieval.yaml) 에 있다.
 
 > RAG 기반 유학생 맞춤형 생활·행정 AI 어시스턴트 (YHS)  
 > 기존 파이프라인에 **문서 작성 채널(document_filling)** 을 통합하는 작업
