@@ -15,7 +15,7 @@ dependencies = [
   "pydantic-settings>=2.0",
   "PyYAML>=6.0",
   # ── 그래프 DB ──
-  "neo4j==5.20.0",
+  "neo4j==6.3.0",
   # ── 임베딩 / ML ──
   "sentence-transformers==3.0.1",
   "transformers>=4.40.0",
