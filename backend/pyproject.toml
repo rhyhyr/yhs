@@ -17,7 +17,7 @@ dependencies = [
   # ── 그래프 DB ──
   "neo4j==5.20.0",
   # ── 임베딩 / ML ──
-  "sentence-transformers==3.0.1",
+  "sentence-transformers==6.0.1",
   "transformers>=4.40.0",
   "accelerate",
   # 로컬 LLM 4-bit 양자화 (LLM_PROVIDER=exaone, RUNTIME_LLM=hf).
