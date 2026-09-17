@@ -1,0 +1,82 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "yhs"
+version = "2.0.0"
+description = "동아대학교 외국인 유학생 지원 AI 에이전트 (Graph RAG)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+dependencies = [
+  # ── 설정 ──
+  "pydantic-settings>=2.0",
+  "PyYAML>=6.0",
+  # ── 그래프 DB ──
+  "neo4j==5.20.0",
+  # ── 임베딩 / ML ──
+  "sentence-transformers==3.0.1",
+  "transformers>=4.40.0",
+  "accelerate",
+  # 로컬 LLM 4-bit 양자화 (LLM_PROVIDER=exaone, RUNTIME_LLM=hf).
+  # 없으면 7.8B 모델이 bf16(~15.6GB)으로 떨어져 12GB GPU 에 안 들어간다.
+  "bitsandbytes; platform_system == 'Linux'",
+  "sentencepiece",
+  "faiss-cpu",
+  "numpy",
+  "scikit-learn",
+  # ── 문서 처리 ──
+  "pdfplumber",
+  "pypdf",
+  "langchain-community",
+  "langchain-openai",
+  "langchain-text-splitters",
+  # ── LLM 공급자 ──
+  "openai",
+  "google-genai",
+  # ── 크롤러 ──
+  "requests",
+  "beautifulsoup4",
+  "playwright",
+  # ── 유틸 ──
+  "langdetect",
+  "json-repair",
+  # ── API ──
+  "fastapi",
+  "uvicorn[standard]",
+  "python-multipart",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov",
+  "httpx",           # FastAPI TestClient
+  "ruff>=0.6",
+  "reportlab",       # scripts/collect_urls.py — 웹 문서를 PDF 코퍼스로 변환
+]
+
+[project.scripts]
+yhs = "yhs.cli:main"
+
+[project.urls]
+Repository = "https://github.com/rhyhyr/yhs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/yhs"]
+
+# 설정 YAML을 휠에 포함한다 (도커 이미지에서 config/ 를 따로 복사하지 않아도 되도록)
+[tool.hatch.build.targets.wheel.force-include]
+"config" = "yhs/_config"
+
+[tool.pytest.ini_options]
+# 캐시는 저장소 루트의 .cache/ 로 모은다 (기본값은 backend/.pytest_cache).
+cache_dir = "../.cache/pytest"
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+  "integration: Ollama 서버와 모델이 설치된 환경에서만 실행되는 통합 테스트",
+]

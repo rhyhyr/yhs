@@ -1,0 +1,40 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# 운영 오버라이드.
+#
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.prod.yml up -d
+#
+# 기본 스택과의 차이:
+#   - 백엔드/Neo4j 포트를 외부에 열지 않는다 (nginx 만 노출)
+#   - 프론트를 80 포트로 서빙
+#   - 로그 용량 제한, 재시작 정책 강화
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  neo4j:
+    ports: []                 # 외부 노출 차단 — 백엔드만 내부 네트워크로 접근
+    restart: always
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  backend:
+    # CD 가 GHCR 에 올린 이미지를 쓴다. 서버에서 빌드하지 않는다 —
+    # torch 설치만으로 빌드가 OOM 으로 죽는다 (backend/Dockerfile 주석 참고).
+    # 롤백: YHS_TAG=sha-abc1234 docker compose ... up -d
+    image: ghcr.io/rhyhyr/yhs/backend:${YHS_TAG:-main}
+    ports: []                 # nginx 가 프록시하므로 직접 노출하지 않는다
+    restart: always
+    environment:
+      # 같은 오리진으로 묶이므로 CORS 허용 목록을 비운다.
+      CORS_ORIGINS: ""
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  frontend:
+    image: ghcr.io/rhyhyr/yhs/frontend:${YHS_TAG:-main}
+    ports:
+      - "80:80"
+    restart: always
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }

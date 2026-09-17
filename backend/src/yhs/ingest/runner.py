@@ -1,0 +1,124 @@
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+
+from yhs.ingest.stats import STATS
+
+logger = logging.getLogger(__name__)
+
+
+def _print_ingest_summary(store) -> None:
+    rows = store._run(
+        "MATCH (n) RETURN labels(n)[0] AS label, count(*) AS cnt ORDER BY cnt DESC"
+    )
+    rels = store._run(
+        "MATCH ()-[r]->() RETURN type(r) AS rel, count(*) AS cnt ORDER BY cnt DESC"
+    )
+    counts = {r["label"]: r["cnt"] for r in rows}
+    rel_summary = "  ".join(f"{r['rel']}({r['cnt']})" for r in rels if r["rel"] != "FOUND_IN")
+
+    print("\n" + "=" * 60)
+    print("  인제스트 완료")
+    print(f"  청크: {counts.get('Chunk', 0)}개  |  엔티티: {counts.get('Entity', 0)}개")
+    print(f"  관계: {rel_summary}")
+    print("=" * 60 + "\n")
+
+
+def run_ingest(pdf_dir: Path, use_llm: bool = True) -> None:
+    """PDF 디렉토리의 모든 PDF를 처리하여 그래프 DB에 적재한다."""
+    from yhs.core.config import PDF_DIR
+    from yhs.infra.embedder import Embedder
+    from yhs.infra.graph_store import GraphStore
+    from yhs.ingest.pipeline.chunker import chunk_documents
+    from yhs.ingest.pipeline.cleaner import clean_text
+    from yhs.ingest.pipeline.extractor import HybridExtractor
+    from yhs.ingest.pipeline.ingestor import GraphIngestor
+    from yhs.ingest.pipeline.loader import PDFLoader
+
+    target_dir = pdf_dir or PDF_DIR
+    pdf_files = list(target_dir.glob("*.pdf"))
+
+    if not pdf_files:
+        logger.warning("PDF 파일이 없습니다: %s", target_dir)
+        return
+
+    STATS.reset()
+    logger.info("=== 인제스트 시작: %d개 PDF ===", len(pdf_files))
+
+    pdf_loader = PDFLoader()
+    extractor = HybridExtractor(use_llm=use_llm)
+    embedder = Embedder()
+
+    with GraphStore() as store:
+        ingestor = GraphIngestor(store)
+
+        for pdf_path in pdf_files:
+            logger.info("처리 중: %s", pdf_path.name)
+
+            raw_docs = pdf_loader.load(pdf_path)
+
+            for doc in raw_docs:
+                doc.text = clean_text(doc.text)
+
+            # 같은 파일의 페이지들을 이어서 청킹한다.
+            # 페이지마다 끊으면 텍스트가 적은 페이지가 그대로 작은 청크가 된다.
+            all_chunks = chunk_documents(raw_docs)
+            logger.info("청킹 완료: %d개 Chunk", len(all_chunks))
+
+            texts = [c.text for c in all_chunks]
+            embeddings = embedder.encode(texts)
+            for chunk, emb in zip(all_chunks, embeddings):
+                chunk.embedding = emb.tolist()
+
+            entities, triples, chunk_links = extractor.extract_all(all_chunks)
+            ingestor.ingest_all(all_chunks, entities, triples, chunk_links)
+
+    # 조용한 실패가 조용히 지나가지 않도록 집계를 반드시 출력한다.
+    for line in STATS.summary_lines():
+        print(line)
+    if STATS.has_problems():
+        print("  [주의] 위에 실패/폐기 항목이 있습니다. "
+              "그래프가 빈약해 보인다면 여기부터 확인하세요.")
+    _print_ingest_summary(store)
+
+
+def run_embed_update() -> None:
+    """기존 Chunk에 임베딩이 없는 경우 배치로 생성한다."""
+    from yhs.infra.embedder import Embedder
+    from yhs.infra.graph_store import GraphStore
+    from yhs.schema.types import ChunkNode
+
+    embedder = Embedder()
+    with GraphStore() as store:
+        chunks = store.get_all_chunks_with_embeddings()
+        no_embed = [c for c in chunks if not c.get("embedding")]
+        if not no_embed:
+            logger.info("모든 Chunk에 임베딩이 있습니다.")
+            return
+
+        logger.info("임베딩 생성 대상: %d개 Chunk", len(no_embed))
+        texts = [c["text"] for c in no_embed]
+        embeddings = embedder.encode(texts)
+
+        for c_dict, emb in zip(no_embed, embeddings):
+            chunk = ChunkNode(
+                id=c_dict["id"],
+                text=c_dict["text"],
+                source_file=c_dict["source_file"],
+                source_page=c_dict["source_page"],
+                embedding=emb.tolist(),
+            )
+            store.upsert_chunk(chunk)
+
+        logger.info("임베딩 업데이트 완료")
+
+
+if __name__ == "__main__":
+    import sys
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "ingest"
+    if cmd == "embed":
+        run_embed_update()
+    else:
+        run_ingest(None)

@@ -29,7 +29,6 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
-from typing import Optional
 
 # ── 테스트 질문 셋 ────────────────────────────────────────────────────────────
 # 실제 중국인 유학생이 쓸 법한 표현으로 작성
@@ -61,7 +60,7 @@ class EvalResult:
     query_id: str
     query: str
     expected_intent: str
-    translated: Optional[str]        # 번역된 텍스트 (번역 OFF면 None)
+    translated: str | None        # 번역된 텍스트 (번역 OFF면 None)
     intents: list
     entity_count: int
     retrieval_method: str
@@ -76,8 +75,8 @@ def evaluate_one(query_id: str, query: str, expected_intent: str) -> EvalResult:
     질문 하나를 파이프라인에 넣고 결과를 반환한다.
     Neo4j 연결이 없어도 linker 단계(번역 + 의도분류 + entity linking)까지는 측정 가능.
     """
-    from agent.retrieval.linker import _classify_intent, _extract_anchors
-    from agent.retrieval.translator import get_translator, is_translation_enabled
+    from yhs.rag.retrieval.linker import _classify_intent, _extract_anchors
+    from yhs.rag.retrieval.translator import get_translator, is_translation_enabled
 
     start = time.perf_counter()
 
@@ -99,16 +98,16 @@ def evaluate_one(query_id: str, query: str, expected_intent: str) -> EvalResult:
     entity_count = 0
     retrieval_method = "not_tested"
     try:
-        from agent.retrieval_engine import RetrievalEngine
-        from graph_rag.config import (
+        from yhs.core.config import (
             EMBEDDING_MODEL,
             NEO4J_DATABASE,
             NEO4J_PASSWORD,
             NEO4J_URI,
             NEO4J_USER,
         )
-        from graph_rag.db.graph_store import GraphStore
-        from graph_rag.embedding.embedder import Embedder
+        from yhs.infra.embedder import Embedder
+        from yhs.infra.graph_store import GraphStore
+        from yhs.rag.engine import RetrievalEngine
 
         store = GraphStore(NEO4J_URI, NEO4J_USER, NEO4J_PASSWORD, NEO4J_DATABASE)
         embedder = Embedder(EMBEDDING_MODEL)

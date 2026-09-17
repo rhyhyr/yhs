@@ -1,0 +1,58 @@
+# 도메인 상수 — 기관명, 관계 술어, 비자 표기 별칭, 사용자 메시지
+#
+# allowed_predicates 는 LLM 추출기가 만들 수 있는 엣지 타입의 전체 목록이다.
+# 여기에 없는 술어는 인제스트 단계에서 버려진다.
+
+known_institutions:
+- 출입국관리사무소
+- 국민건강보험공단
+- 하이코리아
+- 외국인종합안내센터
+- 동아대학교
+- 국제교류처
+- 법무부
+- 고용노동부
+allowed_predicates:
+- CAN_TRANSITION_TO
+- REQUIRES
+- BLOCKS
+- NEXT_STEP
+- ISSUED_BY
+- RELATED_TO
+- ENABLES_SHORTCUT
+- ENABLED_BY
+- REQUIRED_FOR
+- VALID_FOR
+- AVAILABLE_TO
+- PRECEDED_BY
+- SUBMITTED_TO
+# ── 절차적 관계 (그래프가 벡터 검색보다 잘하는 영역) ──────────────────
+# 이 프로젝트의 질문은 대부분 '무엇이 먼저인가 / 무엇이 있어야 하는가 /
+# 무엇이 막는가' 형태다. 아래 술어가 그 축을 담당한다.
+- PRECEDES          # A 다음에 B (NEXT_STEP 과 같은 방향, 이름을 명확히)
+- FOLLOWED_BY       # A 뒤에 B 가 온다
+- ENABLES           # A 가 있으면 B 가 가능해진다
+- HAS_CONDITION     # A 에 붙는 조건
+- HAS_EXCEPTION     # A 의 예외
+- APPLIES_TO        # A 가 적용되는 대상
+- ISSUED_TO         # A 가 발급되는 대상 (ISSUED_BY 의 반대편)
+- PRODUCES         # 절차가 만들어 내는 산출물 (외국인등록 → 외국인등록증)
+                   # REQUIRES 의 반대 방향. '이 서류를 받으려면 무슨 절차를
+                   # 밟나'를 역방향 탐색으로 답하기 위해 둔다.
+aliases:
+  D2: D-2
+  D4: D-4
+  F5: F-5
+  영주권: F-5
+  어학원비자: D-4
+  일반연수비자: D-4
+  유학비자: D-2
+  어학연수비자: D-4
+  학생비자: D-2
+messages:
+  disclaimer_template: '
+
+
+    ⚠️  이 정보는 [{source_file}] ({doc_version}) 기준입니다. 최신 정보는 하이코리아(hikorea.go.kr) 또는 외국인종합안내센터(1345)에서
+    확인하세요.'
+  no_answer: 죄송합니다. 해당 정보를 찾을 수 없습니다. 외국인종합안내센터(☎ 1345)에 문의하시거나 하이코리아(hikorea.go.kr)를 방문해 주세요.

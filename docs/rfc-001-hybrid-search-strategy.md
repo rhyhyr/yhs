@@ -1,5 +1,10 @@
 # [RFC-001] 하이브리드 검색 전략 결정
 
+> **보존 문서 — 논의 기록.** 여기서 시작한 결정은 [ADR-0001](adr/0001-hybrid-retrieval.md)
+> 로 확정됐고, 가중치는 그 뒤 두 번 바뀌었다(ADR 상단 개정 주석 참조).
+> 이 문서는 고치지 않는다.
+
+
 ## 상태
 
 논의 중 (GitHub Discussions에서 진행)
@@ -30,7 +35,7 @@
 
 ## 참고
 
-- [ADR-0001](../docs/adr/0001-hybrid-retrieval.md)
+- [ADR-0001](adr/0001-hybrid-retrieval.md)
 - [SentenceTransformers](https://www.sbert.net/)
 - [Neo4j Graph RAG](https://neo4j.com/developer/graph-data-science/)
 

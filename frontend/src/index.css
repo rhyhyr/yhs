@@ -1,0 +1,8 @@
+/* 기본 리셋 — app CSS는 globalStyles.js 에서 주입 */
+body {
+  margin: 0;
+}
+
+#root {
+  display: contents;
+}

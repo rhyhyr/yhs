@@ -1,0 +1,29 @@
+# 줄바꿈 규칙.
+#
+# 기본은 각 OS 에 맞게 체크아웃하되, 아래 파일들은 예외를 둔다.
+# 잘못된 줄바꿈이 들어가면 실행 자체가 실패하는 것들이다.
+
+* text=auto
+
+# ── LF 를 반드시 유지해야 하는 것 ───────────────────────────────────────────
+# CRLF 가 섞이면 실행 시 `\r: command not found` 로 죽는다.
+*.sh            text eol=lf
+Dockerfile      text eol=lf
+*.Dockerfile    text eol=lf
+docker-compose*.yml text eol=lf
+Makefile        text eol=lf
+.env.example    text eol=lf
+
+# ── CRLF 가 자연스러운 것 ───────────────────────────────────────────────────
+# Windows PowerShell 5.1 은 BOM 이 없는 .ps1 을 cp949 로 읽어 한글이 깨진다.
+# BOM 은 파일 내용이라 git 이 유지하지만, 줄바꿈은 여기서 못 박아 둔다.
+*.ps1           text eol=crlf
+*.bat           text eol=crlf
+
+# ── 바이너리 (변환 금지) ────────────────────────────────────────────────────
+*.pdf           binary
+*.png           binary
+*.jpg           binary
+*.ttf           binary
+*.ico           binary
+*.docx          binary

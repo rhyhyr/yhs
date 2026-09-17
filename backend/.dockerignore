@@ -1,0 +1,11 @@
+# 빌드 컨텍스트를 최소화한다 — 이미지 크기와 빌드 시간에 직접 영향을 준다.
+**/__pycache__/
+**/*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+tests/
