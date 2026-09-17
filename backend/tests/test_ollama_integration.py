@@ -231,7 +231,12 @@ class TestEnvRouting:
     def test_llm_provider_gemini_loads_gemini_client(self, monkeypatch):
         """LLM_PROVIDER=gemini 시 GeminiKBClient가 선택된다."""
         monkeypatch.setenv("LLM_PROVIDER", "gemini")
-        monkeypatch.setenv("GEMINI_API_KEY", "fake-key-for-test")
+
+        # GEMINI_API_KEY 는 core.config 가 import 시점에 상수로 묶는다.
+        # setenv 로는 이미 묶인 값이 안 바뀌므로 모듈 속성을 직접 갈아끼운다.
+        # (키가 있는 로컬에서는 통과하고 CI 에서만 죽던 원인)
+        from yhs.ingest.llm import gemini_client
+        monkeypatch.setattr(gemini_client, "GEMINI_API_KEY", "fake-key-for-test")
 
         # extractor 모듈 캐시 삭제 후 재로드
         ext_mod = _load_extractor()
