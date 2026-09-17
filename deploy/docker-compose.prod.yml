@@ -17,6 +17,10 @@ services:
       options: { max-size: "10m", max-file: "3" }
 
   backend:
+    # CD 가 GHCR 에 올린 이미지를 쓴다. 서버에서 빌드하지 않는다 —
+    # torch 설치만으로 빌드가 OOM 으로 죽는다 (backend/Dockerfile 주석 참고).
+    # 롤백: YHS_TAG=sha-abc1234 docker compose ... up -d
+    image: ghcr.io/rhyhyr/yhs/backend:${YHS_TAG:-main}
     ports: []                 # nginx 가 프록시하므로 직접 노출하지 않는다
     restart: always
     environment:
@@ -27,6 +31,7 @@ services:
       options: { max-size: "10m", max-file: "3" }
 
   frontend:
+    image: ghcr.io/rhyhyr/yhs/frontend:${YHS_TAG:-main}
     ports:
       - "80:80"
     restart: always
