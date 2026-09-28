@@ -13,7 +13,44 @@
  * - "제목:"    → 볼드 섹션 헤더
  * - 빈 줄      → 간격
  */
-function renderContent(text) {
+function renderInline(text, sources) {
+  if (!sources.length || typeof text !== 'string') return text;
+
+  const citationPattern = /\[([^\]\n]+,\s*(?:p\.?\s*)?\d+\s*(?:페이지)?)\]/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = citationPattern.exec(text)) !== null) {
+    parts.push(text.slice(lastIndex, match.index));
+    const citation = match[1];
+    const pageMatch = citation.match(/(?:p\.?\s*|페이지\s*)(\d+)/i) || citation.match(/(\d+)\s*$/);
+    const page = pageMatch?.[1];
+    const documentName = citation.slice(0, citation.lastIndexOf(',')).trim().replace(/\.pdf$/i, '');
+    const source = sources.find((item) => {
+      const label = (item.label || '').replace(/\.pdf$/i, '');
+      const sourcePage = item.detail?.match(/p\.(\d+)/i)?.[1];
+      return page === sourcePage && (label.includes(documentName) || documentName.includes(label));
+    });
+
+    if (source?.url) {
+      parts.push(
+        <a key={`citation-${match.index}`} href={source.url} target="_blank" rel="noreferrer">
+          [{citation}]
+        </a>
+      );
+    } else {
+      parts.push(`[${citation}]`);
+    }
+    lastIndex = citationPattern.lastIndex;
+  }
+
+  if (!parts.length) return text;
+  parts.push(text.slice(lastIndex));
+  return parts;
+}
+
+function renderContent(text, sources) {
   if (typeof text !== 'string') return text;
 
   const lines = text.split('\n');
@@ -34,7 +71,7 @@ function renderContent(text) {
       nodes.push(
         <div key={k++} className="msg-step">
           <span className="msg-step-num">{numMatch[1]}</span>
-          <span>{numMatch[2]}</span>
+          <span>{renderInline(numMatch[2], sources)}</span>
         </div>
       );
       continue;
@@ -45,7 +82,7 @@ function renderContent(text) {
       nodes.push(
         <div key={k++} className="msg-bullet">
           <span className="msg-bullet-dot">•</span>
-          <span>{t.slice(2)}</span>
+          <span>{renderInline(t.slice(2), sources)}</span>
         </div>
       );
       continue;
@@ -71,13 +108,13 @@ function renderContent(text) {
     }
 
     // 일반 텍스트
-    nodes.push(<p key={k++} className="msg-line">{t}</p>);
+    nodes.push(<p key={k++} className="msg-line">{renderInline(t, sources)}</p>);
   }
 
   return nodes;
 }
 
-export default function ChatMessage({ role, children, style, path }) {
+export default function ChatMessage({ role, children, style, path, sources = [] }) {
   if (role === 'user') {
     return (
       <div className="msg-user">
@@ -94,7 +131,25 @@ export default function ChatMessage({ role, children, style, path }) {
             {path === 'fast' ? '⚡ FAST' : '🔍 DEEP'}
           </span>
         )}
-        <div className="bubble-ai" style={style}>{renderContent(children)}</div>
+        <div className="bubble-ai" style={style}>
+          {renderContent(children, sources)}
+          {sources.length > 0 && (
+            <div className="message-sources">
+              <div className="message-sources-title">출처</div>
+              {sources.map((source) => (
+                <a
+                  key={source.id || source.url || source.label}
+                  className="message-source-link"
+                  href={source.url || undefined}
+                  target={source.url ? '_blank' : undefined}
+                  rel={source.url ? 'noreferrer' : undefined}
+                >
+                  {source.label}{source.detail ? ` · ${source.detail}` : ''}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -148,7 +148,7 @@ export default function ChatScreen() {
               <ChatMessage role="ai">{WELCOME_MSG}</ChatMessage>
             )}
             {messages.map(msg => (
-              <ChatMessage key={msg.id} role={msg.role}>
+              <ChatMessage key={msg.id} role={msg.role} sources={msg.sources}>
                 {msg.text}
               </ChatMessage>
             ))}

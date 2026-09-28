@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from urllib.parse import quote
 
 from yhs.api.deps import AppState
 from yhs.api.schemas import Source
@@ -59,6 +60,8 @@ def _chunk_to_source(chunk: ChunkNode) -> Source:
         id=chunk.id,
         label=_pretty_label(chunk.source_file),
         detail=" · ".join(detail_parts),
+        url=f"/sources/{quote(chunk.source_file, safe='')}"
+        + (f"#page={chunk.source_page}" if chunk.source_page else ""),
         score=round(chunk.score, 4),
     )
 

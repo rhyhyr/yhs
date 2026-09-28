@@ -17,6 +17,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from yhs import __version__
 from yhs.api.deps import AppState
@@ -62,6 +63,8 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["*"],
     )
+
+    app.mount("/sources", StaticFiles(directory=settings.sources_dir), name="sources")
 
     app.include_router(health_router)
     app.include_router(chat_router)

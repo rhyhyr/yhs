@@ -16,6 +16,10 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_DEV_API_TARGET || 'http://localhost:8000',
           changeOrigin: true,
         },
+        '/sources': {
+          target: env.VITE_DEV_API_TARGET || 'http://localhost:8000',
+          changeOrigin: true,
+        },
       },
     },
   }
