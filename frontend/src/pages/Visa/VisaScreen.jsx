@@ -138,7 +138,7 @@ export default function VisaScreen() {
             <ChatMessage role="ai">{channel?.welcomeMsg}</ChatMessage>
           )}
           {messages.map(msg => (
-            <ChatMessage key={msg.id} role={msg.role} path={msg.path}>{msg.text}</ChatMessage>
+            <ChatMessage key={msg.id} role={msg.role} path={msg.path} sources={msg.sources}>{msg.text}</ChatMessage>
           ))}
           {isLoading && <ChatMessage role="ai">…</ChatMessage>}
 

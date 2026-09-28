@@ -31,7 +31,7 @@ function renderInline(text, sources) {
       const label = (item.label || '').replace(/\.pdf$/i, '');
       const sourcePage = item.detail?.match(/p\.(\d+)/i)?.[1];
       return page === sourcePage && (label.includes(documentName) || documentName.includes(label));
-    });
+    }) || sources.find((item) => item.detail?.match(/p\.(\d+)/i)?.[1] === page);
 
     if (source?.url) {
       parts.push(
@@ -122,6 +122,7 @@ export default function ChatMessage({ role, children, style, path, sources = [] 
       </div>
     );
   }
+  const pdfSources = sources.filter((source) => source.url?.startsWith('/sources/'));
   return (
     <div className="msg-ai">
       <div className="ai-av">AI</div>
@@ -132,11 +133,11 @@ export default function ChatMessage({ role, children, style, path, sources = [] 
           </span>
         )}
         <div className="bubble-ai" style={style}>
-          {renderContent(children, sources)}
-          {sources.length > 0 && (
+          {renderContent(children, pdfSources)}
+          {pdfSources.length > 0 && (
             <div className="message-sources">
               <div className="message-sources-title">출처</div>
-              {sources.map((source) => (
+              {pdfSources.map((source) => (
                 <a
                   key={source.id || source.url || source.label}
                   className="message-source-link"

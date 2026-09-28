@@ -28,13 +28,15 @@
 
 // ── Mock Source 샘플 ───────────────────────────────────────────────────────
 
+const pdfUrl = (filename) => `/sources/${encodeURIComponent(filename)}`;
+
 export const MOCK_SOURCES = {
   visa: [
     {
       id: 'src-visa-1',
       label: '법무부 출입국관리법 시행규칙 (2024)',
       detail: '제76조 – 체류자격 변경·연장 절차 및 제출서류',
-      url: '',
+      url: pdfUrl('07_동아대_국제교류과_VISA정보.pdf'),
     },
     {
       id: 'src-visa-2',
@@ -48,7 +50,7 @@ export const MOCK_SOURCES = {
       id: 'src-school-1',
       label: '부산대학교 학사운영규정',
       detail: '제12조 – 수강신청 및 변경 절차',
-      url: '',
+      url: pdfUrl('25_동아대_등록안내_2026_1.pdf'),
     },
   ],
   job: [
@@ -56,7 +58,7 @@ export const MOCK_SOURCES = {
       id: 'src-job-1',
       label: '출입국관리법 시행령 제23조',
       detail: '유학생 시간제 취업 허가 기준 (주 20시간)',
-      url: '',
+      url: pdfUrl('02_하이코리아_체류자격외활동_시간제취업.pdf'),
     },
   ],
   house: [
@@ -64,7 +66,7 @@ export const MOCK_SOURCES = {
       id: 'src-house-1',
       label: '주택임대차보호법 제3조',
       detail: '전입신고 및 확정일자 요건',
-      url: '',
+      url: pdfUrl('08_동아대_기숙사.pdf'),
     },
   ],
   insurance: [
@@ -72,7 +74,7 @@ export const MOCK_SOURCES = {
       id: 'src-insurance-1',
       label: '국민건강보험법 시행령',
       detail: '외국인 유학생 건강보험 의무가입 기준 (6개월 이상 체류)',
-      url: 'https://www.nhis.or.kr',
+      url: pdfUrl('20_동아대_국제교류과_보험안내.pdf'),
     },
   ],
   main: [],

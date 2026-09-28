@@ -107,7 +107,7 @@ export default function SchoolScreen() {
             <ChatMessage role="ai">{channel?.welcomeMsg}</ChatMessage>
           )}
           {messages.map(msg => (
-            <ChatMessage key={msg.id} role={msg.role}>{msg.text}</ChatMessage>
+            <ChatMessage key={msg.id} role={msg.role} sources={msg.sources}>{msg.text}</ChatMessage>
           ))}
           {isLoading && <ChatMessage role="ai">…</ChatMessage>}
 
