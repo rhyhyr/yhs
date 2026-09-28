@@ -12,12 +12,14 @@ import { CHECKLIST_SCREEN } from '../../data/mockChecklistData';
 import CalendarLinkCard from '../../components/Chat/CalendarLinkCard';
 import CalendarRedirectCard from '../../components/Chat/CalendarRedirectCard';
 import ChecklistSelectModal from '../../components/Chat/ChecklistSelectModal';
+import { useI18n } from '../../i18n';
 
 const CHANNEL_ID = 'school';
 
 export default function SchoolScreen() {
   const { navigate, back, showToast, addChatChecklistToCalendar } = useApp();
   const { messages, isLoading, handleSend } = useChatChannel(CHANNEL_ID);
+  const { t, localizeChannel } = useI18n();
   const bottomRef = useRef(null);
 
   const [stage, setStage]                           = useState('idle');
@@ -26,7 +28,7 @@ export default function SchoolScreen() {
   const [showRedirect, setShowRedirect]             = useState(false);
   const [linkedEarliestDate, setLinkedEarliestDate] = useState(null);
 
-  const channel      = getChannel(CHANNEL_ID);
+  const channel      = localizeChannel(getChannel(CHANNEL_ID));
   const quickActions = channel?.quickActions ?? [];
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages.length]);
@@ -56,7 +58,7 @@ export default function SchoolScreen() {
     addChatChecklistToCalendar(events);
     const earliest = Object.keys(events).sort()[0] ?? null;
     setLinkedEarliestDate(earliest);
-    showToast('📅 연동되었습니다!');
+    showToast(t('toast.calendarLinked'));
     setShowModal(false);
     setShowRedirect(true);
   }
@@ -80,8 +82,8 @@ export default function SchoolScreen() {
       <div className="slim-header">
         <div className="tb-back" onClick={back}><BackIcon /></div>
         <div className="slim-ch-icon" style={{ background: 'var(--c-green-l)' }}>🏫</div>
-        <div className="slim-ch-name">학교생활</div>
-        <div className="slim-rag">RAG 활성</div>
+        <div className="slim-ch-name">{channel.name}</div>
+        <div className="slim-rag">{t('common.ragActive')}</div>
       </div>
 
       <div className="qa-scroll">
@@ -90,7 +92,7 @@ export default function SchoolScreen() {
             className="qa-btn qa-btn-checklist"
             onClick={() => navigate(CHECKLIST_SCREEN[activeChecklistId])}
           >
-            📋 체크리스트
+            {t('channel.checklist')}
           </button>
         )}
         {quickActions.map(action => (
@@ -140,7 +142,7 @@ export default function SchoolScreen() {
 
       <ChatInput
         inputId="school-input"
-        placeholder={channel?.placeholder ?? '학교생활 관련 질문하기...'}
+        placeholder={channel.placeholder}
         onSend={handleSend}
         disabled={isLoading}
       />

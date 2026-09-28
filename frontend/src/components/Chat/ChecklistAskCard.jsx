@@ -1,10 +1,12 @@
 import { getMockChecklist } from '../../data/mockChecklistData';
+import { useI18n } from '../../i18n';
 
 /**
  * 1단계: "체크리스트를 만들까요?" 확인 카드
  */
 export default function ChecklistAskCard({ checklistId, onConfirm, onDismiss }) {
-  const checklist = getMockChecklist(checklistId);
+  const { t, localizeChecklist } = useI18n();
+  const checklist = localizeChecklist(getMockChecklist(checklistId));
   if (!checklist) return null;
 
   return (
@@ -17,11 +19,11 @@ export default function ChecklistAskCard({ checklistId, onConfirm, onDismiss }) 
         </span>
       </div>
       <div className="cl-confirm-body">
-        이 내용으로 체크리스트를 만들까요?
+        {t('checklist.askBody')}
       </div>
       <div className="cl-confirm-actions">
-        <button className="cl-confirm-yes" onClick={onConfirm}>만들기</button>
-        <button className="cl-confirm-no"  onClick={onDismiss}>아니요</button>
+        <button className="cl-confirm-yes" onClick={onConfirm}>{t('checklist.make')}</button>
+        <button className="cl-confirm-no"  onClick={onDismiss}>{t('common.no')}</button>
       </div>
     </div>
   );

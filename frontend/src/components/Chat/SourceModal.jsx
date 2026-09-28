@@ -7,13 +7,16 @@
  *   onClose  : () => void
  *   sources  : Array<{ label: string, detail: string }>
  */
+import { useI18n } from '../../i18n';
+
 export default function SourceModal({ isOpen, onClose, sources = [] }) {
+  const { t } = useI18n();
   if (!isOpen) return null;
   return (
     <div className="source-modal-overlay" onClick={onClose}>
       <div className="source-modal-sheet" onClick={e => e.stopPropagation()}>
         <div className="source-modal-handle" />
-        <div className="source-modal-title">📎 출처</div>
+        <div className="source-modal-title">{t('source.title')}</div>
         <div className="source-modal-list">
           {sources.map((src, i) => (
             <div key={i} className="source-modal-item">
@@ -22,7 +25,7 @@ export default function SourceModal({ isOpen, onClose, sources = [] }) {
             </div>
           ))}
         </div>
-        <button className="source-modal-close" onClick={onClose}>닫기</button>
+        <button className="source-modal-close" onClick={onClose}>{t('common.close')}</button>
       </div>
     </div>
   );

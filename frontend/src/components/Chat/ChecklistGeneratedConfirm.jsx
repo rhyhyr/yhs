@@ -1,4 +1,5 @@
 import { getMockChecklist } from '../../data/mockChecklistData';
+import { useI18n } from '../../i18n';
 
 /**
  * AI 응답 이후 채팅 영역 하단에 표시되는 캘린더 연동 확인 카드
@@ -9,7 +10,8 @@ import { getMockChecklist } from '../../data/mockChecklistData';
  *   onDismiss   — "아니요" 클릭 시 콜백
  */
 export default function ChecklistGeneratedConfirm({ checklistId, onConfirm, onDismiss }) {
-  const checklist = getMockChecklist(checklistId);
+  const { t, localizeChecklist } = useI18n();
+  const checklist = localizeChecklist(getMockChecklist(checklistId));
   if (!checklist) return null;
 
   return (
@@ -20,13 +22,12 @@ export default function ChecklistGeneratedConfirm({ checklistId, onConfirm, onDi
           {checklist.title}
         </span>
       </div>
-      <div className="cl-confirm-body">
-        체크리스트가 생성되었습니다.<br />
-        이 내용을 캘린더에 연동하시겠습니까?
+      <div className="cl-confirm-body" style={{ whiteSpace: 'pre-line' }}>
+        {t('checklist.generatedBody')}
       </div>
       <div className="cl-confirm-actions">
-        <button className="cl-confirm-yes" onClick={onConfirm}>네</button>
-        <button className="cl-confirm-no"  onClick={onDismiss}>아니요</button>
+        <button className="cl-confirm-yes" onClick={onConfirm}>{t('common.yes')}</button>
+        <button className="cl-confirm-no"  onClick={onDismiss}>{t('common.no')}</button>
       </div>
     </div>
   );

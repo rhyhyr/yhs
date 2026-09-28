@@ -1,7 +1,9 @@
 import { useApp } from '../../hooks/useApp';
+import { useI18n } from '../../i18n';
 
 export default function BridgeScreen() {
   const { navigate } = useApp();
+  const { t } = useI18n();
 
   return (
     <div style={{
@@ -27,8 +29,9 @@ export default function BridgeScreen() {
         letterSpacing: '-.4px',
         lineHeight: 1.4,
         marginBottom: '14px',
+        whiteSpace: 'pre-line',
       }}>
-        이제 궁금한 것을<br />바로 물어볼 수 있어요
+        {t('bridge.title')}
       </div>
 
       {/* 설명 */}
@@ -38,10 +41,9 @@ export default function BridgeScreen() {
         textAlign: 'center',
         lineHeight: 1.75,
         marginBottom: '32px',
+        whiteSpace: 'pre-line',
       }}>
-        비자, 학교생활, 주거, 아르바이트 등<br />
-        궁금한 내용을 메인채팅에서 바로 시작할 수 있어요.<br />
-        질문을 시작하면 필요한 채널도 함께 만들어드릴게요.
+        {t('bridge.desc')}
       </div>
 
       {/* 기능 힌트 카드 3개 */}
@@ -53,9 +55,9 @@ export default function BridgeScreen() {
         marginBottom: '32px',
       }}>
         {[
-          { icon: '🛂', label: '비자 & 체류 관련 질문' },
-          { icon: '🏫', label: '학교생활, 수강신청, 기숙사' },
-          { icon: '💼', label: '취업 허가, 아르바이트 규정' },
+          { icon: '🛂', label: t('bridge.hint1') },
+          { icon: '🏫', label: t('bridge.hint2') },
+          { icon: '💼', label: t('bridge.hint3') },
         ].map(({ icon, label }) => (
           <div key={label} style={{
             display: 'flex',
@@ -92,7 +94,7 @@ export default function BridgeScreen() {
           letterSpacing: '-.2px',
         }}
       >
-        메인채팅 시작하기 →
+        {t('bridge.start')}
       </button>
 
       {/* 보조 버튼 */}
@@ -111,7 +113,7 @@ export default function BridgeScreen() {
           cursor: 'pointer',
         }}
       >
-        홈 먼저 보기
+        {t('bridge.home')}
       </button>
     </div>
   );

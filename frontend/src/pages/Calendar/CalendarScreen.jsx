@@ -3,11 +3,11 @@ import { useApp } from '../../hooks/useApp';
 import { getCalendarEvents, mergeEvents } from '../../api/calendar';
 import { formatDateKey } from '../../api/mockData';
 import BottomNav from '../../components/Common/BottomNav';
-
-const WEEK_KO = ['일', '월', '화', '수', '목', '금', '토'];
+import { useI18n } from '../../i18n';
 
 export default function CalendarScreen() {
   const { showToast, chatCalendarItems, navParams } = useApp();
+  const { t, fmt } = useI18n();
   const [calDate, setCalDate]             = useState(new Date());
   const [selectedDateKey, setSelectedDateKey] = useState(null);
   const [apiEvents, setApiEvents]         = useState({});
@@ -63,7 +63,10 @@ export default function CalendarScreen() {
 
   const selectedEvents = events[resolvedSelected] || [];
   const [selY, selM, selD] = resolvedSelected.split('-').map(Number);
-  const selDow = WEEK_KO[new Date(selY, selM - 1, selD).getDay()];
+  const selDate = new Date(selY, selM - 1, selD);
+  // 2023-01-01 은 일요일 — 요일 머리글을 현재 언어로 만들기 위한 기준일
+  const weekLabels = Array.from({ length: 7 }, (_, i) =>
+    fmt(new Date(2023, 0, 1 + i), { weekday: 'short' }));
 
   const firstWeekday  = new Date(year, month, 1).getDay();
   const daysInMonth   = new Date(year, month + 1, 0).getDate();
@@ -90,20 +93,20 @@ export default function CalendarScreen() {
   return (
     <>
       <div className="topbar">
-        <div className="tb-title" style={{ flex: 1 }}>캘린더</div>
+        <div className="tb-title" style={{ flex: 1 }}>{t('calendar.title')}</div>
         <div className="cal-nav-group">
-          <button className="cal-today-btn" onClick={goToday}>오늘</button>
+          <button className="cal-today-btn" onClick={goToday}>{t('calendar.today')}</button>
           <button className="cal-nav-btn" onClick={() => changeMonth(-1)}>‹</button>
           <button className="cal-nav-btn" onClick={() => changeMonth(1)}>›</button>
         </div>
       </div>
 
       <div className="scroll-area">
-        <div className="cal-month-label">{year}년 {month + 1}월</div>
+        <div className="cal-month-label">{fmt(new Date(year, month, 1), { year: 'numeric', month: 'long' })}</div>
 
         <div className="cal-weekdays">
-          {WEEK_KO.map((d, i) => (
-            <div key={d} className={`cal-weekday${i === 0 ? ' sun' : i === 6 ? ' sat' : ''}`}>{d}</div>
+          {weekLabels.map((d, i) => (
+            <div key={i} className={`cal-weekday${i === 0 ? ' sun' : i === 6 ? ' sat' : ''}`}>{d}</div>
           ))}
         </div>
 
@@ -139,17 +142,17 @@ export default function CalendarScreen() {
 
         <div className="cal-events-section">
           <div className="cal-events-hdr">
-            <span className="cal-events-date">{selM}월 {selD}일</span>
-            <span className="cal-events-dow">{selDow}요일</span>
+            <span className="cal-events-date">{fmt(selDate, { month: 'long', day: 'numeric' })}</span>
+            <span className="cal-events-dow">{fmt(selDate, { weekday: 'long' })}</span>
           </div>
 
           <div className="cal-events-list">
             {selectedEvents.length === 0 ? (
               <div className="cal-empty">
                 <div className="cal-empty-icon">📋</div>
-                <div className="cal-empty-text">등록된 일정이 없어요</div>
-                <div className="cal-empty-sub">
-                  채팅에서 체크리스트를 만들고<br />캘린더에 연동해 보세요
+                <div className="cal-empty-text">{t('calendar.emptyTitle')}</div>
+                <div className="cal-empty-sub" style={{ whiteSpace: 'pre-line' }}>
+                  {t('calendar.emptySub')}
                 </div>
               </div>
             ) : (
@@ -157,7 +160,7 @@ export default function CalendarScreen() {
                 <EventCard
                   key={i}
                   event={evt}
-                  onPress={() => showToast('채팅에서 등록한 일정이에요')}
+                  onPress={() => showToast(t('calendar.fromChat'))}
                 />
               ))
             )}
@@ -171,6 +174,13 @@ export default function CalendarScreen() {
 }
 
 function EventCard({ event, onPress }) {
+  const { t, tx } = useI18n();
+  // 채팅 체크리스트에서 온 일정은 항목 id 로 번역본을 찾아, 언어를 바꾸면 함께 바뀐다
+  const base = `checklists.${event.checklistId}`;
+  const linked = event.source === 'chat-checklist';
+  const title = linked ? tx(`${base}.items.${event.checklistItemId}.text`, event.title) : event.title;
+  const desc  = linked && event.desc ? tx(`${base}.items.${event.checklistItemId}.sub`, event.desc) : event.desc;
+  const type  = linked ? tx(`${base}.type`, event.type) : event.type;
   const dotColor  = event.isCompleted ? 'var(--c-t3)' : event.color;
   const typeStyle = {
     color:      event.isCompleted ? 'var(--c-t3)' : event.color,
@@ -180,14 +190,14 @@ function EventCard({ event, onPress }) {
     <div className={`cal-event-card${event.isCompleted ? ' completed' : ''}`} onClick={onPress}>
       <div className="cal-event-bar" style={{ background: dotColor }} />
       <div className="cal-event-body">
-        <div className={`cal-event-title${event.isCompleted ? ' done' : ''}`}>{event.title}</div>
-        {event.desc && <div className="cal-event-desc">{event.desc}</div>}
+        <div className={`cal-event-title${event.isCompleted ? ' done' : ''}`}>{title}</div>
+        {desc && <div className="cal-event-desc">{desc}</div>}
         <div className="cal-event-meta">
-          <span className="cal-event-type" style={typeStyle}>{event.type}</span>
+          <span className="cal-event-type" style={typeStyle}>{type}</span>
           {event.source === 'chat-checklist' && (
-            <span className="cal-event-source chat">💬 채팅</span>
+            <span className="cal-event-source chat">{t('calendar.chatBadge')}</span>
           )}
-          {event.isCompleted && <span className="cal-event-completed">완료</span>}
+          {event.isCompleted && <span className="cal-event-completed">{t('calendar.done')}</span>}
         </div>
       </div>
     </div>

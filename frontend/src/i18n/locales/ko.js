@@ -1,0 +1,262 @@
+/**
+ * 한국어 (기본 언어)
+ *
+ * 여기에는 화면에 직접 쓰이는 UI 문구만 둔다.
+ * 체크리스트·채널·mock 응답처럼 데이터 파일에 이미 한국어가 들어 있는 것은
+ * 데이터 파일이 원문이고, 다른 언어 파일(en.js 등)이 같은 키로 덮어쓴다.
+ * 문자열 안의 {name} 은 t(key, { name }) 로 치환된다.
+ */
+export default {
+  meta: { code: 'ko', name: '한국어', nativeName: '한국어', tag: 'ko-KR' },
+
+  common: {
+    ragActive: 'RAG 활성',
+    yes: '네',
+    no: '아니요',
+    close: '닫기',
+    cancel: '취소',
+    example: '예시',
+    gradeN: '{n}학년',
+    thinking: '…',
+  },
+
+  nav: { home: '홈', chat: '채팅', calendar: '캘린더', history: '기록', profile: '내정보' },
+
+  splash: { tagline: '당신의 유학생 생활을 안내합니다' },
+
+  toast: {
+    notifSoon: '알림 화면으로 이동합니다',
+    allStepsDone: '🎉 모든 단계를 완료했습니다!',
+    schoolDone: '🎉 수강신청 준비가 모두 완료됐어요!',
+    arcDone: '🎉 재발급 준비가 모두 완료됐어요!',
+    filterApplied: '{name} 필터가 적용됐습니다',
+    relatedLoading: '관련 질문을 불러옵니다',
+    calendarLinked: '📅 연동되었습니다!',
+  },
+
+  tags: {
+    d2: '#D-2', extend: '#연장', docs: '#서류', immigration: '#출입국', period: '#기간',
+  },
+
+  time: { today: '오늘', justNow: '방금', daysAgo: '{n}일 전', weeksAgo: '{n}주 전' },
+
+  home: {
+    notifSoon: '알림 화면은 준비 중입니다',
+    greeting: '안녕하세요, {name}!',
+    greetingFallback: '반갑습니다',
+    urgentLabel: '🚨 지금 확인할 것',
+    urgentTitle: '비자 만료 임박',
+    urgentPreview: 'D-87 — 지금 바로 연장 서류를 준비하세요',
+    itemIsExample: '이 항목은 예시입니다',
+    myChannels: '📂 내 채널',
+    tapToOpen: '탭해서 채널로 이동하세요',
+    emptyTitle: '아직 생성된 채널이 없어요',
+    emptyDesc: '메인채팅에서 궁금한 분야를 선택하면\n채널이 생성돼요.',
+    startInMain: '💬 메인채팅에서 시작하기',
+    belowAreExamples: '아래는 예시입니다',
+    channelIsExample: '이 채널은 예시입니다',
+    newChannel: '새 채널 만들기',
+    newChannelSub: '메인채팅에서 분야를 선택해요',
+    ghost: {
+      visa: '비자 연장, 체류기간, 외국인등록 관련 질문',
+      school: '수강신청, 학사일정, 기숙사, 장학금',
+      job: '시간제 취업허가, 인턴십, 알바 규정',
+      house: '전월세 계약, 관리비, 이사 주의사항',
+      insurance: '건강보험 가입, 병원 이용, 보험 혜택',
+    },
+  },
+
+  chat: {
+    subtitle: '모든 채널에 질문하기',
+    cat: {
+      visa: 'ARC 재등록 · 서류 · 신청 절차',
+      job: '허가 절차 · 필요 서류 · 주의사항',
+      school: '수강신청 · 학사일정 · 정정기간',
+      house: '전월세 · 전입신고 · 계약 주의사항',
+    },
+    welcomeTitle: '무엇이 궁금해서 오셨나요?',
+    welcomeDesc: '비자, 학교, 주거, 아르바이트처럼\n궁금한 주제를 골라 바로 시작할 수 있어요.',
+    welcomeBtn: '💬 메인채팅으로 가기',
+    createdSection: '✅ 방금 생성된 채널',
+    createdPreview: '전문 채널에서 더 자세한 답변을 받아보세요',
+    viewInChannel: '채널에서 자세히 보기',
+    channelCreated: '{name} 채널이 생성되었어요 🎉',
+    createTitle: '{name} 채널을 생성할까요?',
+    createDesc: '더 자세하고 전문적인 답변을\n받아보실 수 있어요.',
+    createBtn: '채널 생성하기',
+    later: '나중에',
+    error: '응답을 불러오는 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.',
+  },
+
+  channel: {
+    chatTab: '💬 채팅',
+    knowledgeTab: '📚 지식 카드',
+    searchInChannel: '채널 내 대화 검색...',
+    checklist: '📋 체크리스트',
+  },
+
+  visa: {
+    expires: '🗓 {type} 만료',
+    alarmOn: '🔔 알림 설정됨',
+    backToChannel: '비자 채널',
+  },
+
+  calendar: {
+    title: '캘린더',
+    today: '오늘',
+    emptyTitle: '등록된 일정이 없어요',
+    emptySub: '채팅에서 체크리스트를 만들고\n캘린더에 연동해 보세요',
+    fromChat: '채팅에서 등록한 일정이에요',
+    chatBadge: '💬 채팅',
+    done: '완료',
+  },
+
+  guide: {
+    progress: '{done} / {total} 단계 완료',
+    groupProgress: '{done}/{total} 완료',
+    docsPrep: '📁 서류 준비',
+    apply: '📋 신청',
+    regPrep: '📅 등록 준비',
+    courseReg: '📋 수강신청',
+    autoSave: '✅ 체크 상태는 자동 저장됩니다. 앱을 닫아도 유지돼요.',
+    visaTitle: 'D-2 비자 연장 절차',
+    arcTitle: '외국인등록증 재발급 절차',
+    schoolTitle: '수강신청 & 등록 준비',
+    officeBasis: '출입국관리사무소 방문 기준',
+    schoolBasis: '학교 포털 기준 · 학기 시작 전 확인',
+    schoolChannel: '학교생활 채널',
+    moreNotes: '⚠️ 주의사항 더 보기',
+    notesLoading: '주의사항을 불러옵니다',
+    hikoreaLink: '🌐 Hi Korea 온라인 신청 바로가기',
+    hikoreaToast: 'Hi Korea 안내 페이지로 이동합니다',
+    portalToast: '학교 포털로 이동합니다',
+    portalLink: '🏫 학교 포털 바로가기',
+  },
+
+  checklist: {
+    createdTitle: '{title} 체크리스트',
+    total: '총 {n}개 항목',
+    navTitle: '체크리스트',
+    navSub: '{title} · {n}개 항목',
+    askBody: '이 내용으로 체크리스트를 만들까요?',
+    make: '만들기',
+    generatedBody: '체크리스트가 생성되었습니다.\n이 내용을 캘린더에 연동하시겠습니까?',
+    selectSubtitle: '캘린더에 연동할 항목을 선택해 주세요',
+    selectAll: '모두 선택',
+    deselectAll: '모두 해제',
+    linkN: '{n}개 항목 연동',
+    selectPrompt: '항목을 선택해 주세요',
+  },
+
+  calendarLink: {
+    label: '캘린더 연동',
+    body: '이 일정을 캘린더에 연동하시겠습니까?',
+    doneLabel: '연동 완료',
+    goBody: '캘린더로 바로 이동하시겠어요?',
+  },
+
+  source: { title: '📎 출처' },
+
+  kb: {
+    channelLabel: '{name} 채널',
+    originalQ: 'Q. 원본 질문',
+    answerBody: 'D-2 비자 연장에 필요한 서류입니다. 출입국관리사무소 방문 신청 또는 Hi Korea 온라인 신청 모두 가능합니다.',
+    requiredDocs: '📋 필요 서류',
+    docs: [
+      '여권 원본 + 사본 1부 (유효기간 6개월 이상)',
+      '외국인등록증 원본',
+      '재학증명서 (영문)',
+      '수수료 60,000원',
+    ],
+    sourceLine: '📎 출처: {a} · {b}',
+    sources: [
+      { label: '법무부 출입국관리법 시행규칙 (2024)', detail: '제76조 – 체류자격 변경·연장 절차 및 제출서류' },
+      { label: 'Hi Korea 외국인 안내', detail: 'www.hikorea.go.kr · 비자 연장 온라인 신청 가이드' },
+    ],
+    actionGuide: '⚡ Action Guide',
+    ctaTitle: '비자 연장 절차 보기',
+    ctaSub: '6단계 체크리스트 · 진행 현황 추적',
+    related: '🔗 관련 질문',
+    q1: { q: '비자 연장하려면 뭐가 필요해요?', preview: 'D-2 비자 연장 서류입니다. ① 여권 원본 ② 외국인등록증 ③ 재학증명서 (영문)...' },
+    q2: { q: '비자 연장 신청 기간이 언제예요?', preview: '만료일 4개월 전부터 신청 가능합니다. 늦어도 만료 1개월 전에는...' },
+    q3: { q: 'Hi Korea에서 온라인 신청이 가능한가요?', preview: '네, Hi Korea(www.hikorea.go.kr)에서 온라인으로 비자 연장 신청이 가능합니다...' },
+  },
+
+  search: {
+    title: '답변 기록',
+    subtitle: 'AI가 답변한 기록을 검색해요',
+    // 배너는 가운데 "채팅 탭" 만 굵게 표시하므로 세 조각으로 나눈다
+    bannerPre: '💡 새 질문은',
+    bannerBold: '채팅 탭',
+    bannerPost: '에서 할 수 있어요',
+    toChat: '채팅으로 →',
+    placeholder: '저장된 답변 검색...',
+    filterAll: '전체',
+    filter: { all: '전체', visa: '🛂 비자', school: '🏫 학교', job: '💼 취업', house: '🏠 주거' },
+    resultCount: '저장된 답변 {n}건',
+    aiAnswer: 'AI 답변',
+    viewAnswer: '답변 보기 ›',
+  },
+
+  profile: {
+    title: '내 정보',
+    noSchool: '학교 정보 없음',
+    noName: '이름 없음',
+    visaInfo: '🛂 비자 정보',
+    visaType: '비자 유형',
+    expiry: '만료일',
+    expiryHint: '비자 채널에서 입력해주세요',
+    editVisa: '비자 정보 수정',
+    editVisaToast: '비자 정보 수정 화면으로 이동합니다',
+    notifSection: '알림 설정',
+    visaNotif: '비자 & 체류 알림',
+    visaNotifSub: '만료 90일·30일·7일 전',
+    houseNotif: '주거 계약 알림',
+    houseNotifSub: '만료 60일 전',
+    insNotif: '보험료 납부 알림',
+    insNotifSub: '납부일 5일 전',
+    notifOff: '알림이 꺼졌습니다',
+    notifOn: '알림이 켜졌습니다',
+    appSection: '앱 설정',
+    language: '언어',
+    languageSheetTitle: '언어 선택',
+    editProfile: '개인정보 수정',
+    editProfileSub: '이름, 학교, 학과',
+    logout: '로그아웃',
+  },
+
+  onboarding: {
+    tagline: '한국 유학 생활, 더 쉽게\n비자·학교·생활 모두 안내해드려요',
+    basicInfo: '기본 정보 입력',
+    basicNote: '국적·학교·비자 유형만 입력하면 바로 시작할 수 있어요',
+    name: '이름',
+    namePh: '이름을 입력하세요',
+    nationality: '국적',
+    nationalityPh: '예: 중국, 베트남, 미국',
+    school: '학교',
+    schoolPh: '예: 부산대학교',
+    department: '학과',
+    departmentPh: '예: 컴퓨터공학과',
+    grade: '학년',
+    visaType: '비자 유형',
+    visaNote: '📅 비자 만료일은 비자 채널에서 대화할 때 입력할 수 있어요',
+    languages: '사용 언어',
+    start: '시작하기 →',
+    footnote: '국적·학교·비자 유형만으로 맞춤 채널이 자동 생성됩니다',
+    required: '이름, 학교, 비자 유형을 입력해주세요',
+  },
+
+  visaTypes: { d2: 'D-2 학생', d4: 'D-4 어학연수', f2: 'F-2 거주', other: '기타' },
+
+  languageNames: { ko: '한국어', zh: '중국어', en: '영어', vi: '베트남어' },
+
+  bridge: {
+    title: '이제 궁금한 것을\n바로 물어볼 수 있어요',
+    desc: '비자, 학교생활, 주거, 아르바이트 등\n궁금한 내용을 메인채팅에서 바로 시작할 수 있어요.\n질문을 시작하면 필요한 채널도 함께 만들어드릴게요.',
+    hint1: '비자 & 체류 관련 질문',
+    hint2: '학교생활, 수강신청, 기숙사',
+    hint3: '취업 허가, 아르바이트 규정',
+    start: '메인채팅 시작하기 →',
+    home: '홈 먼저 보기',
+  },
+};

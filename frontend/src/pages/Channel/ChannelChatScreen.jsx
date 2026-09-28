@@ -5,6 +5,7 @@ import { getChannelMessages, sendMessage, createMessage } from '../../api/chat';
 import { BackIcon } from '../../components/Common/icons';
 import ChatInput from '../../components/Chat/ChatInput';
 import ChatMessage from '../../components/Chat/ChatMessage';
+import { useI18n } from '../../i18n';
 
 /**
  * 채널 전용 채팅방 공통 컴포넌트
@@ -16,7 +17,8 @@ import ChatMessage from '../../components/Chat/ChatMessage';
  */
 export default function ChannelChatScreen({ channelId }) {
   const { back, navParams } = useApp();
-  const channel = getChannelById(channelId);
+  const { t, localizeChannel } = useI18n();
+  const channel = localizeChannel(getChannelById(channelId));
 
   const [messages, setMessages]   = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -64,7 +66,7 @@ export default function ChannelChatScreen({ channelId }) {
       const errMsg = createMessage({
         channelId,
         role: 'ai',
-        text: '응답을 불러오는 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.',
+        text: t('chat.error'),
       });
       setMessages(prev => [...prev, errMsg]);
     } finally {
@@ -87,7 +89,7 @@ export default function ChannelChatScreen({ channelId }) {
           {icon}
         </div>
         <div className="slim-ch-name">{name}</div>
-        <div className="slim-rag">RAG 활성</div>
+        <div className="slim-rag">{t('common.ragActive')}</div>
       </div>
 
       {/* 채팅 영역 */}

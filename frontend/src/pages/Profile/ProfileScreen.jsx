@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { useApp } from '../../hooks/useApp';
+import { useI18n } from '../../i18n';
+import { visaTypeKey } from '../../data/visaTypes';
 import BottomNav from '../../components/Common/BottomNav';
 
 function getInitial(name) {
@@ -6,27 +9,47 @@ function getInitial(name) {
   return trimmed ? trimmed.charAt(0).toUpperCase() : '?';
 }
 
-function formatSchoolLine(school, department, grade) {
-  if (!school) return '학교 정보 없음';
-  const parts = [school];
-  if (department) parts.push(department);
-  if (grade) parts.push(`${grade}학년`);
-  return parts.join(' · ');
-}
-
 export default function ProfileScreen() {
   const { navigate, showToast, toggles, setToggles, userProfile } = useApp();
+  const { t, locale, setLocale, languages } = useI18n();
+  const [langOpen, setLangOpen] = useState(false);
 
-  const name         = userProfile?.name       || '이름 없음';
+  function formatSchoolLine(school, department, grade) {
+    if (!school) return t('profile.noSchool');
+    const parts = [school];
+    if (department) parts.push(department);
+    if (grade) parts.push(t('common.gradeN', { n: grade }));
+    return parts.join(' · ');
+  }
+
+  // 비자 유형은 저장된 값(예: 'D-2 학생')을 현재 언어의 이름으로 바꿔서 보여준다
+  const rawVisaType  = userProfile?.visaType;
+  const visaTypeName = rawVisaType
+    ? (visaTypeKey(rawVisaType) ? t(`visaTypes.${visaTypeKey(rawVisaType)}`) : rawVisaType)
+    : '—';
+
+  const name         = userProfile?.name       || t('profile.noName');
   const initial      = getInitial(userProfile?.name);
   const schoolLine   = formatSchoolLine(userProfile?.school, userProfile?.department, userProfile?.grade);
   const nationality  = userProfile?.nationality || '—';
-  const visaType     = userProfile?.visaType    || '—';
+  const visaType     = visaTypeName;
+
+  function toggleNotif(key) {
+    setToggles(prev => ({ ...prev, [key]: !prev[key] }));
+    showToast(toggles[key] ? t('profile.notifOff') : t('profile.notifOn'));
+  }
+
+  function chooseLanguage(code) {
+    setLocale(code);
+    setLangOpen(false);
+  }
+
+  const currentLang = languages.find(l => l.code === locale);
 
   return (
     <>
       <div className="topbar">
-        <div className="tb-title">내 정보</div>
+        <div className="tb-title">{t('profile.title')}</div>
       </div>
       <div className="scroll-area">
 
@@ -51,76 +74,96 @@ export default function ProfileScreen() {
 
         {/* 비자 정보 카드 */}
         <div className="visa-card">
-          <div className="vc-hdr">🛂 비자 정보</div>
+          <div className="vc-hdr">{t('profile.visaInfo')}</div>
           <div className="vc-row">
-            <div className="vc-label">비자 유형</div>
+            <div className="vc-label">{t('profile.visaType')}</div>
             <div className="vc-val">{visaType}</div>
           </div>
           <div className="vc-row">
-            <div className="vc-label">만료일</div>
-            <div className="vc-val" style={{ color: 'var(--c-red)' }}>비자 채널에서 입력해주세요</div>
+            <div className="vc-label">{t('profile.expiry')}</div>
+            <div className="vc-val" style={{ color: 'var(--c-red)' }}>{t('profile.expiryHint')}</div>
           </div>
-          <div className="vc-btn" onClick={() => showToast('비자 정보 수정 화면으로 이동합니다')}>비자 정보 수정</div>
+          <div className="vc-btn" onClick={() => showToast(t('profile.editVisaToast'))}>{t('profile.editVisa')}</div>
         </div>
 
-        <div className="setting-sec">알림 설정</div>
+        <div className="setting-sec">{t('profile.notifSection')}</div>
         <div className="setting-row">
           <div className="s-icon" style={{ background: 'var(--c-purple-l)' }}>🛂</div>
           <div className="s-body">
-            <div className="s-name">비자 &amp; 체류 알림</div>
-            <div className="s-val">만료 90일·30일·7일 전</div>
+            <div className="s-name">{t('profile.visaNotif')}</div>
+            <div className="s-val">{t('profile.visaNotifSub')}</div>
           </div>
-          <div className={`toggle-track ${toggles.visa ? 'on' : 'off'}`} onClick={() => { setToggles(t => ({ ...t, visa: !t.visa })); showToast(toggles.visa ? '알림이 꺼졌습니다' : '알림이 켜졌습니다'); }}>
+          <div className={`toggle-track ${toggles.visa ? 'on' : 'off'}`} onClick={() => toggleNotif('visa')}>
             <div className="toggle-knob" />
           </div>
         </div>
         <div className="setting-row">
           <div className="s-icon" style={{ background: 'var(--c-amber-l)' }}>🏠</div>
           <div className="s-body">
-            <div className="s-name">주거 계약 알림</div>
-            <div className="s-val">만료 60일 전</div>
+            <div className="s-name">{t('profile.houseNotif')}</div>
+            <div className="s-val">{t('profile.houseNotifSub')}</div>
           </div>
-          <div className={`toggle-track ${toggles.house ? 'on' : 'off'}`} onClick={() => { setToggles(t => ({ ...t, house: !t.house })); showToast(toggles.house ? '알림이 꺼졌습니다' : '알림이 켜졌습니다'); }}>
+          <div className={`toggle-track ${toggles.house ? 'on' : 'off'}`} onClick={() => toggleNotif('house')}>
             <div className="toggle-knob" />
           </div>
         </div>
         <div className="setting-row">
           <div className="s-icon" style={{ background: 'var(--c-green-l)' }}>🏥</div>
           <div className="s-body">
-            <div className="s-name">보험료 납부 알림</div>
-            <div className="s-val">납부일 5일 전</div>
+            <div className="s-name">{t('profile.insNotif')}</div>
+            <div className="s-val">{t('profile.insNotifSub')}</div>
           </div>
-          <div className={`toggle-track ${toggles.insurance ? 'on' : 'off'}`} onClick={() => { setToggles(t => ({ ...t, insurance: !t.insurance })); showToast(toggles.insurance ? '알림이 꺼졌습니다' : '알림이 켜졌습니다'); }}>
+          <div className={`toggle-track ${toggles.insurance ? 'on' : 'off'}`} onClick={() => toggleNotif('insurance')}>
             <div className="toggle-knob" />
           </div>
         </div>
 
-        <div className="setting-sec">앱 설정</div>
-        <div className="setting-row" onClick={() => showToast('언어 설정 화면으로 이동합니다')}>
+        <div className="setting-sec">{t('profile.appSection')}</div>
+        <div className="setting-row" onClick={() => setLangOpen(true)}>
           <div className="s-icon" style={{ background: 'var(--c-accent-l)' }}>🌐</div>
           <div className="s-body">
-            <div className="s-name">사용 언어</div>
-            <div className="s-val">
-              {userProfile?.languages?.length
-                ? userProfile.languages.map(l => ({ ko: '한국어', zh: '中文', en: 'English', vi: 'Tiếng Việt' }[l] ?? l)).join(' · ')
-                : '—'}
-            </div>
+            <div className="s-name">{t('profile.language')}</div>
+            <div className="s-val">{currentLang?.nativeName}</div>
           </div>
           <div style={{ fontSize: '18px', color: 'var(--c-t3)' }}>›</div>
         </div>
         <div className="setting-row" onClick={() => navigate('s-onboarding')}>
           <div className="s-icon" style={{ background: 'var(--c-bg)' }}>👤</div>
           <div className="s-body">
-            <div className="s-name">개인정보 수정</div>
-            <div className="s-val">이름, 학교, 학과</div>
+            <div className="s-name">{t('profile.editProfile')}</div>
+            <div className="s-val">{t('profile.editProfileSub')}</div>
           </div>
           <div style={{ fontSize: '18px', color: 'var(--c-t3)' }}>›</div>
         </div>
 
-        <div className="logout-btn" onClick={() => navigate('s-onboarding')}>로그아웃</div>
+        <div className="logout-btn" onClick={() => navigate('s-onboarding')}>{t('profile.logout')}</div>
         <div style={{ height: '20px' }} />
       </div>
       <BottomNav active="s-profile" />
+
+      {/* ── 언어 선택 시트 ── */}
+      {langOpen && (
+        <div className="source-modal-overlay" onClick={() => setLangOpen(false)}>
+          <div className="channel-modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="source-modal-handle" />
+            <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--c-t1)', textAlign: 'center', padding: '4px 0 12px' }}>
+              {t('profile.languageSheetTitle')}
+            </div>
+            {languages.map(l => (
+              <button
+                key={l.code}
+                className={`channel-modal-btn ${l.code === locale ? 'primary' : 'secondary'}`}
+                onClick={() => chooseLanguage(l.code)}
+              >
+                {l.nativeName}{l.code === locale ? ' ✓' : ''}
+              </button>
+            ))}
+            <button className="channel-modal-btn secondary" onClick={() => setLangOpen(false)}>
+              {t('common.cancel')}
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

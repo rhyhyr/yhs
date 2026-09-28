@@ -13,6 +13,7 @@ import { CHECKLIST_SCREEN } from '../../data/mockChecklistData';
 import CalendarLinkCard from '../../components/Chat/CalendarLinkCard';
 import CalendarRedirectCard from '../../components/Chat/CalendarRedirectCard';
 import ChecklistSelectModal from '../../components/Chat/ChecklistSelectModal';
+import { useI18n } from '../../i18n';
 
 const CHANNEL_ID = 'visa';
 
@@ -22,6 +23,7 @@ const CHANNEL_ID = 'visa';
 export default function VisaScreen() {
   const { navigate, back, infoOpen, setInfoOpen, showToast, addChatChecklistToCalendar } = useApp();
   const { messages, isLoading, handleSend } = useChatChannel(CHANNEL_ID);
+  const { t, localizeChannel } = useI18n();
   const bottomRef = useRef(null);
   const [visa, setVisa] = useState(null);
 
@@ -32,7 +34,7 @@ export default function VisaScreen() {
   const [showRedirect, setShowRedirect]           = useState(false);
   const [linkedEarliestDate, setLinkedEarliestDate] = useState(null);
 
-  const channel      = getChannel(CHANNEL_ID);
+  const channel      = localizeChannel(getChannel(CHANNEL_ID));
   const quickActions = channel?.quickActions ?? [];
 
   useEffect(() => { getVisaInfo().then(setVisa).catch(() => {}); }, []);
@@ -71,7 +73,7 @@ export default function VisaScreen() {
     addChatChecklistToCalendar(events);
     const earliest = Object.keys(events).sort()[0] ?? null;
     setLinkedEarliestDate(earliest);
-    showToast('📅 연동되었습니다!');
+    showToast(t('toast.calendarLinked'));
     setShowModal(false);
     setShowRedirect(true);
   }
@@ -99,8 +101,8 @@ export default function VisaScreen() {
       <div className="slim-header">
         <div className="tb-back" onClick={back}><BackIcon /></div>
         <div className="slim-ch-icon" style={{ background: 'var(--c-purple-l)' }}>🛂</div>
-        <div className="slim-ch-name">비자 &amp; 체류</div>
-        <div className="slim-rag">RAG 활성</div>
+        <div className="slim-ch-name">{channel.name}</div>
+        <div className="slim-rag">{t('common.ragActive')}</div>
         <div className="slim-d87" style={{ opacity: 0.5 }} onClick={() => setInfoOpen(o => !o)}>
           <span id="d87-txt">D-{dDay}</span>
           <span style={{ fontSize: '10px' }}>{infoOpen ? '▾' : '▸'}</span>
@@ -109,9 +111,9 @@ export default function VisaScreen() {
 
       {infoOpen && (
         <div className="info-panel" style={{ opacity: 0.55 }}>
-          <div className="i-chip">🗓 {visaType} 만료 <strong>{expiryLabel}</strong></div>
-          <div className="i-chip green">🔔 알림 설정됨</div>
-          <span className="ghost-badge" style={{ alignSelf: 'center' }}>예시</span>
+          <div className="i-chip">{t('visa.expires', { type: visaType })} <strong>{expiryLabel}</strong></div>
+          <div className="i-chip green">{t('visa.alarmOn')}</div>
+          <span className="ghost-badge" style={{ alignSelf: 'center' }}>{t('common.example')}</span>
         </div>
       )}
 
@@ -121,7 +123,7 @@ export default function VisaScreen() {
             className="qa-btn qa-btn-checklist"
             onClick={() => navigate(CHECKLIST_SCREEN[activeChecklistId])}
           >
-            📋 체크리스트
+            {t('channel.checklist')}
           </button>
         )}
         {quickActions.map(action => (
@@ -173,7 +175,7 @@ export default function VisaScreen() {
 
       <ChatInput
         inputId="visa-input"
-        placeholder={channel?.placeholder ?? '비자 관련 질문하기...'}
+        placeholder={channel.placeholder}
         onSend={handleSend}
         disabled={isLoading}
       />

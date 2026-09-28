@@ -1,10 +1,6 @@
 import { useState } from 'react';
 import { getMockChecklist } from '../../data/mockChecklistData';
-
-function formatDueDate(dateStr) {
-  const [, m, d] = dateStr.split('-').map(Number);
-  return `${m}월 ${d}일`;
-}
+import { useI18n } from '../../i18n';
 
 /**
  * 캘린더 연동할 항목을 선택하는 바텀 시트 모달
@@ -15,7 +11,8 @@ function formatDueDate(dateStr) {
  *   onClose     — 모달 닫기
  */
 export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }) {
-  const checklist = getMockChecklist(checklistId);
+  const { t, fmt, localizeChecklist } = useI18n();
+  const checklist = localizeChecklist(getMockChecklist(checklistId));
   const [selected, setSelected] = useState(
     () => new Set(checklist?.items.map(i => i.id) ?? [])
   );
@@ -38,6 +35,11 @@ export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }
     );
   }
 
+  const formatDueDate = (dateStr) => {
+    const [, m, d] = dateStr.split('-').map(Number);
+    return fmt(new Date(2000, m - 1, d), { month: 'long', day: 'numeric' });
+  };
+
   const allSelected = selected.size === checklist.items.length;
   const count = selected.size;
 
@@ -49,11 +51,11 @@ export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }
         {/* 헤더 */}
         <div className="cl-sheet-header">
           <div>
-            <div className="cl-sheet-title">{checklist.title} 체크리스트</div>
-            <div className="cl-sheet-subtitle">캘린더에 연동할 항목을 선택해 주세요</div>
+            <div className="cl-sheet-title">{t('checklist.createdTitle', { title: checklist.title })}</div>
+            <div className="cl-sheet-subtitle">{t('checklist.selectSubtitle')}</div>
           </div>
           <button className="cl-sheet-all-btn" onClick={toggleAll}>
-            {allSelected ? '모두 해제' : '모두 선택'}
+            {allSelected ? t('checklist.deselectAll') : t('checklist.selectAll')}
           </button>
         </div>
 
@@ -87,13 +89,13 @@ export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }
 
         {/* 하단 버튼 */}
         <div className="cl-sheet-footer">
-          <button className="cl-sheet-cancel" onClick={onClose}>취소</button>
+          <button className="cl-sheet-cancel" onClick={onClose}>{t('common.cancel')}</button>
           <button
             className="cl-sheet-confirm"
             disabled={count === 0}
             onClick={() => onConfirm(Array.from(selected))}
           >
-            {count > 0 ? `${count}개 항목 연동` : '항목을 선택해 주세요'}
+            {count > 0 ? t('checklist.linkN', { n: count }) : t('checklist.selectPrompt')}
           </button>
         </div>
       </div>

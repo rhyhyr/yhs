@@ -1,4 +1,5 @@
 import { getMockChecklist } from '../../data/mockChecklistData';
+import { useI18n } from '../../i18n';
 
 function fmtDate(dateStr) {
   const [, m, d] = dateStr.split('-').map(Number);
@@ -9,14 +10,15 @@ function fmtDate(dateStr) {
  * 2단계: 생성된 체크리스트를 채팅 영역에 인라인으로 표시
  */
 export default function ChecklistCreatedCard({ checklistId }) {
-  const checklist = getMockChecklist(checklistId);
+  const { t, localizeChecklist } = useI18n();
+  const checklist = localizeChecklist(getMockChecklist(checklistId));
   if (!checklist) return null;
 
   return (
     <div className="cl-created-card">
       <div className="cl-created-header">
         <span className="cl-created-icon">✅</span>
-        <span className="cl-created-title">{checklist.title} 체크리스트</span>
+        <span className="cl-created-title">{t('checklist.createdTitle', { title: checklist.title })}</span>
       </div>
       <div className="cl-created-list">
         {checklist.items.map(item => (
@@ -30,7 +32,7 @@ export default function ChecklistCreatedCard({ checklistId }) {
           </div>
         ))}
       </div>
-      <div className="cl-created-footer">총 {checklist.items.length}개 항목</div>
+      <div className="cl-created-footer">{t('checklist.total', { n: checklist.items.length })}</div>
     </div>
   );
 }

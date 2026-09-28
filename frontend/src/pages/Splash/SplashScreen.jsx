@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import './SplashScreen.css';
+import { useI18n } from '../../i18n';
 
 /**
  * SplashScreen
@@ -15,6 +16,7 @@ import './SplashScreen.css';
  *   onFinish {Function} — 애니메이션 완료 후 호출되는 콜백
  */
 export default function SplashScreen({ onFinish }) {
+  const { t } = useI18n();
   const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
@@ -42,7 +44,7 @@ export default function SplashScreen({ onFinish }) {
       <div className="splash-content">
         <div className="brand-wrap">
           <h1 className="brand-title">YUHAKSEAG</h1>
-          <p className="brand-subtitle">당신의 유학생 생활을 안내합니다</p>
+          <p className="brand-subtitle">{t('splash.tagline')}</p>
         </div>
 
         <div className="globe-scene">

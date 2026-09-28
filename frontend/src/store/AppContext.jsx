@@ -4,6 +4,7 @@ import { getVisaSteps, updateStepStatus } from '../api/steps';
 import { persistUserProfile } from '../api/userProfile';
 import { loadUserProfile } from '../utils/storage';
 import { mergeEvents } from '../api/calendar';
+import { useI18n } from '../i18n';
 
 const DEFAULT_PROFILE = {
   name: '',
@@ -21,6 +22,8 @@ const EMPTY_MESSAGES = [];
 export const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
+  const { t } = useI18n();
+
   // ── 네비게이션 ──
   const [current, setCurrent] = useState('s-home');
   const [prev, setPrev] = useState(null);
@@ -65,11 +68,11 @@ export function AppProvider({ children }) {
   const [infoOpen, setInfoOpen] = useState(true);
 
   // ── 검색 필터 ──
-  const [activeFilter, setActiveFilter] = useState('전체');
-  const [activeFilter2, setActiveFilter2] = useState('#연장');
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [activeFilter2, setActiveFilter2] = useState('extend');
 
   // ── 채널 메인 필터 ──
-  const [channelFilter, setChannelFilter] = useState('전체');
+  const [channelFilter, setChannelFilter] = useState('all');
 
   // ── 채팅 체크리스트 → 캘린더 연동 이벤트 맵 ──
   // 형식: { 'YYYY-MM-DD': [CalendarEvent, ...] }
@@ -136,7 +139,7 @@ export function AppProvider({ children }) {
 
   // ── 함수 ──
   function navigate(id, params = {}) {
-    if (id === 'notif-placeholder') { showToast('알림 화면으로 이동합니다'); return; }
+    if (id === 'notif-placeholder') { showToast(t('toast.notifSoon')); return; }
     if (id === current) return;
     setPrev(current);
     setCurrent(id);
@@ -172,7 +175,7 @@ export function AppProvider({ children }) {
         return s;
       });
       if (updated.filter(s => s.checked).length === total) {
-        showToast('🎉 모든 단계를 완료했습니다!');
+        showToast(t('toast.allStepsDone'));
       }
       return updated;
     });
@@ -188,7 +191,7 @@ export function AppProvider({ children }) {
         return s;
       });
       if (updated.filter(s => s.checked).length === schoolTotal) {
-        showToast('🎉 수강신청 준비가 모두 완료됐어요!');
+        showToast(t('toast.schoolDone'));
       }
       return updated;
     });
@@ -204,7 +207,7 @@ export function AppProvider({ children }) {
         return s;
       });
       if (updated.filter(s => s.checked).length === arcTotal) {
-        showToast('🎉 재발급 준비가 모두 완료됐어요!');
+        showToast(t('toast.arcDone'));
       }
       return updated;
     });
