@@ -32,6 +32,15 @@ logger = logging.getLogger(__name__)
 # 응답에 실어 보낼 최대 출처 개수 (프론트 출처 카드가 감당할 수 있는 수준)
 _MAX_SOURCES = 5
 
+_SOURCE_URLS = {
+    "02_하이코리아_체류자격외활동_시간제취업.pdf": "https://www.hikorea.go.kr/info/InfoDatail.pt?CAT_SEQ=187&PARENT_ID=142",
+    "04_하이코리아_외국인등록_제출서류.pdf": "https://www.hikorea.go.kr/info/InfoDatail.pt?CAT_SEQ=177&PARENT_ID=139",
+    "07_동아대_국제교류과_VISA정보.pdf": "https://rfc.donga.ac.kr/global/CMS/Contents/Contents.do?mCode=MN064",
+    "08_동아대_기숙사.pdf": "https://rfc.donga.ac.kr/global/CMS/Contents/Contents.do?mCode=MN062",
+    "20_동아대_국제교류과_보험안내.pdf": "https://rfc.donga.ac.kr/global/CMS/Contents/Contents.do?mCode=MN063",
+    "25_동아대_등록안내_2026_1.pdf": "https://www.donga.ac.kr/kor/CMS/Contents/Contents.do?mCode=MN318",
+}
+
 
 @dataclass
 class Answer:
@@ -60,8 +69,10 @@ def _chunk_to_source(chunk: ChunkNode) -> Source:
         id=chunk.id,
         label=_pretty_label(chunk.source_file),
         detail=" · ".join(detail_parts),
-        url=f"/sources/{quote(chunk.source_file, safe='')}"
-        + (f"#page={chunk.source_page}" if chunk.source_page else ""),
+        url=_SOURCE_URLS.get(
+            chunk.source_file,
+            f"/sources/{quote(chunk.source_file, safe='')}",
+        ),
         score=round(chunk.score, 4),
     )
 

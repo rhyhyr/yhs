@@ -122,7 +122,9 @@ export default function ChatMessage({ role, children, style, path, sources = [] 
       </div>
     );
   }
-  const pdfSources = sources.filter((source) => source.url?.startsWith('/sources/'));
+  const linkedSources = sources.filter((source) =>
+    source.url?.startsWith('/sources/') || source.url?.startsWith('https://')
+  );
   return (
     <div className="msg-ai">
       <div className="ai-av">AI</div>
@@ -133,11 +135,11 @@ export default function ChatMessage({ role, children, style, path, sources = [] 
           </span>
         )}
         <div className="bubble-ai" style={style}>
-          {renderContent(children, pdfSources)}
-          {pdfSources.length > 0 && (
+          {renderContent(children, linkedSources)}
+          {linkedSources.length > 0 && (
             <div className="message-sources">
               <div className="message-sources-title">출처</div>
-              {pdfSources.map((source) => (
+              {linkedSources.map((source) => (
                 <a
                   key={source.id || source.url || source.label}
                   className="message-source-link"
