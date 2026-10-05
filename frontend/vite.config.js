@@ -5,7 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const appName = env.VITE_APP_NAME || 'UniGuide AI'
+  const appName = env.VITE_APP_NAME || 'YuGuide AI'
 
   return {
     plugins: [
@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
         devOptions: { enabled: true, type: 'module' },
         manifest: {
           name: appName,
-          short_name: 'UniGuide',
+          short_name: 'YuGuide',
           description: '유학생을 위한 비자·학교·생활 안내 AI 어시스턴트',
           lang: 'ko',
           start_url: '/',

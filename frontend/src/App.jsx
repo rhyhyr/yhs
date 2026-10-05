@@ -111,7 +111,7 @@ function AppShell() {
   );
 }
 
-export default function UniGuideApp() {
+export default function YuGuideApp() {
   return (
     <AppProvider>
       <AppShell />
