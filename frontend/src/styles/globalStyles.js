@@ -2002,6 +2002,29 @@ export const globalStyles = `
       box-shadow: none;
     }
 
+    /* 실제 기기에는 진짜 상태바·다이나믹 아일랜드·홈 인디케이터가 이미 있으므로
+       PC 목업용으로 그려둔 가짜 버전은 숨긴다. */
+    .dynamic-island,
+    .status-bar,
+    .home-indicator {
+      display: none;
+    }
+
+    /* --safe-top/--safe-bot 은 .screens, .bottom-nav, .toast 등 여러 곳에서
+       var() 로 참조하고 있어서, 여기서 한 번만 "가짜 59px/34px" 대신
+       기기의 실제 세이프에어리어(노치·다이나믹 아일랜드·제스처 바) 값으로
+       바꿔주면 그 값을 쓰는 요소들이 전부 자동으로 맞춰진다.
+       (index.html 의 viewport-fit=cover 가 있어야 env() 값이 0이 아닌 실제 값으로 들어온다) */
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bot: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* 채팅 입력창은 --safe-bot 을 안 쓰고 있어서 따로 하단 여백을 더해준다 */
+    .chat-input-bar {
+      padding-bottom: calc(12px + var(--safe-bot));
+    }
+
     /* 말풍선 너비 뷰포트 기반으로 전환 */
     .bubble-ai,
     .bubble-user {
