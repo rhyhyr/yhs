@@ -1,7 +1,7 @@
 import { createContext, useState, useRef, useEffect } from 'react';
 import { INITIAL_STEPS, ARC_RENEW_STEPS, SCHOOL_REGISTER_STEPS } from '../api/mockData';
 import { getVisaSteps, updateStepStatus } from '../api/steps';
-import { persistUserProfile } from '../api/userProfile';
+import { persistUserProfile, getUserProfile } from '../api/userProfile';
 import { loadUserProfile } from '../utils/storage';
 import { mergeEvents } from '../api/calendar';
 
@@ -49,6 +49,11 @@ export function AppProvider({ children }) {
 
   // ── 유저 프로필 ──
   const [userProfile, setUserProfile] = useState(() => loadUserProfile() ?? DEFAULT_PROFILE);
+
+  // 앱 시작 시 서버 프로필로 맞춘다
+  useEffect(() => {
+    getUserProfile().then(profile => { if (profile) setUserProfile(profile); });
+  }, []);
 
   function saveProfile(profile) {
     persistUserProfile(profile);

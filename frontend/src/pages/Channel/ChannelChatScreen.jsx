@@ -15,7 +15,7 @@ import ChatMessage from '../../components/Chat/ChatMessage';
  * - 메시지 state는 이 컴포넌트가 로컬로 관리 (화면별 독립)
  */
 export default function ChannelChatScreen({ channelId }) {
-  const { back, navParams } = useApp();
+  const { back, navParams, userProfile } = useApp();
   const channel = getChannelById(channelId);
 
   const [messages, setMessages]   = useState([]);
@@ -57,7 +57,12 @@ export default function ChannelChatScreen({ channelId }) {
     setIsLoading(true);
 
     try {
-      const { answer, sources } = await sendMessage({ channelId, message: trimmed, history });
+      const { answer, sources } = await sendMessage({
+        channelId,
+        message: trimmed,
+        history,
+        languages: userProfile?.languages,
+      });
       const aiMsg = createMessage({ channelId, role: 'ai', text: answer, sources });
       setMessages(prev => [...prev, aiMsg]);
     } catch {

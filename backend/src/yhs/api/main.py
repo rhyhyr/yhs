@@ -21,7 +21,7 @@ from fastapi.staticfiles import StaticFiles
 
 from yhs import __version__
 from yhs.api.deps import AppState
-from yhs.api.routes import chat_router, health_router
+from yhs.api.routes import chat_router, health_router, user_router
 from yhs.core.settings import get_settings
 
 logging.basicConfig(
@@ -60,7 +60,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.cors_origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "OPTIONS"],
         allow_headers=["*"],
     )
 
@@ -68,6 +68,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health_router)
     app.include_router(chat_router)
+    app.include_router(user_router)
     return app
 
 

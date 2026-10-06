@@ -1,164 +1,188 @@
 """
 yhs/rag/retrieval/translator.py
 
-역할:
-  중국어 질문을 한국어로 번역하여 기존 파이프라인이 그대로 동작하게 한다.
+Multilingual translation layer for retrieval and final answers.
 
-동작 원리:
-  1. langdetect로 입력 언어를 감지한다.
-  2. 중국어(간체·번체)가 감지되면 Helsinki-NLP/opus-mt-zh-ko 로컬 모델로 번역한다.
-  3. 한국어·영어 등 나머지 언어는 그대로 반환한다.
-  4. 번역 결과는 메모리 캐시에 저장하여 동일 질문이 들어오면 재번역하지 않는다.
-
-비용: API 호출 없음 (모델 로컬 실행, 약 300MB 다운로드 1회)
-속도: CPU 기준 짧은 문장 ~0.3초, GPU 있으면 더 빠름
-
-설치:
-  pip install langdetect sentencepiece
-  (transformers는 sentence-transformers 의존성으로 이미 설치됨)
+The knowledge base is mostly Korean, so non-Korean questions are translated to
+Korean before entity linking and vector search. Final answers can then be
+translated back to the configured response language.
 """
 
 from __future__ import annotations
 
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
-# 번역 대상 언어 코드 (langdetect 기준)
-_ZH_LANGS = {"zh-cn", "zh-tw", "zh"}
-_ZH_KO_MODEL = "Helsinki-NLP/opus-mt-zh-ko"
+_SUPPORTED_LANGS = {"ko", "en", "zh"}
+_NLLB_CODES = {
+    "ko": "kor_Hang",
+    "en": "eng_Latn",
+    "zh": "zho_Hans",
+}
 
-# langdetect는 기본적으로 non-deterministic → seed 고정으로 일관성 보장
 try:
     from langdetect import DetectorFactory
+
     DetectorFactory.seed = 42
 except ImportError:
-    pass  # 설치 안 됐으면 detect 호출 시 에러
+    pass
+
+
+def normalize_language(lang: str | None, default: str = "ko") -> str:
+    """Return one of ko/en/zh for user-facing language settings."""
+    if not lang:
+        return default
+    value = lang.strip().lower().replace("_", "-")
+    if value in {"ko", "kor", "korean", "kr"}:
+        return "ko"
+    if value in {"en", "eng", "english"}:
+        return "en"
+    if value in {"zh", "zh-cn", "zh-hans", "zh-tw", "zh-hant", "cn", "chinese"}:
+        return "zh"
+    return default
 
 
 def _detect_lang(text: str) -> str:
     """
-    입력 텍스트의 언어 코드를 반환한다.
-    - 텍스트가 너무 짧으면 (5자 미만) 'unknown' 반환 → 원문 그대로 사용
-    - langdetect 미설치 또는 감지 실패 시 'unknown' 반환
+    Detect the input language as ko/en/zh/unknown.
+
+    Regex comes first so the service still works when langdetect is not
+    installed in a local development environment.
     """
-    if len(text.strip()) < 5:
+    stripped = text.strip()
+    if len(stripped) < 2:
         return "unknown"
+
+    has_hangul = bool(re.search(r"[\uac00-\ud7a3]", stripped))
+    has_cjk = bool(re.search(r"[\u4e00-\u9fff]", stripped))
+    if has_hangul:
+        return "ko"
+    if has_cjk:
+        return "zh"
+
     try:
         from langdetect import detect
-        return detect(text)
+
+        return normalize_language(detect(stripped), default="unknown")
     except Exception as exc:
-        logger.debug("언어 감지 실패 (원문 사용): %s", exc)
-        return "unknown"
+        logger.debug("Language detection failed; falling back to English: %s", exc)
+        return "en" if re.search(r"[A-Za-z]", stripped) else "unknown"
 
 
 class QueryTranslator:
     """
-    한국어가 아닌 질문을 한국어로 번역하는 레이어.
+    Translate between Korean, English, and Chinese with one NLLB model.
 
-    현재 지원:
-      - 중국어(간체·번체) → 한국어: Helsinki-NLP/opus-mt-zh-ko
-
-    설계 원칙:
-      - 모델은 첫 번역 요청 시에만 로드 (lazy loading)
-        → 서버 시작 속도에 영향 없음
-      - 동일 질문은 캐시에서 반환
-        → 같은 질문 반복 시 번역 비용 0
-      - 번역 실패 시 원문 그대로 반환
-        → 파이프라인 중단 없음
+    Default model: facebook/nllb-200-distilled-600M. It is larger than the old
+    zh-ko Helsinki model, but gives one consistent multilingual path for
+    en/zh/ko and supports answer translation as well as query translation.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, model_name: str | None = None) -> None:
+        from yhs.core.settings import get_settings
+
+        self._model_name = model_name or get_settings().translation_model
         self._tokenizer = None
         self._model = None
-        self._cache: dict[str, str] = {}  # {원문: 번역문}
+        self._cache: dict[tuple[str, str, str], str] = {}
 
-    # ── 모델 로드 (첫 번역 시 1회) ───────────────────────────────────────────
     def _load_model(self) -> None:
-        """번역 모델을 메모리에 올린다. 이미 로드됐으면 바로 반환."""
         if self._model is not None:
             return
         try:
-            from transformers import MarianMTModel, MarianTokenizer
-            logger.info("번역 모델 로드 시작: %s (최초 1회, 약 300MB)", _ZH_KO_MODEL)
-            self._tokenizer = MarianTokenizer.from_pretrained(_ZH_KO_MODEL)
-            self._model = MarianMTModel.from_pretrained(_ZH_KO_MODEL)
-            logger.info("번역 모델 로드 완료")
+            from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
+            logger.info("Loading translation model: %s", self._model_name)
+            self._tokenizer = AutoTokenizer.from_pretrained(self._model_name)
+            self._model = AutoModelForSeq2SeqLM.from_pretrained(self._model_name)
+            logger.info("Translation model loaded")
         except ImportError:
             raise ImportError(
-                "번역 모델 실행에 필요한 패키지가 없습니다.\n"
-                "pip install transformers sentencepiece"
+                "Translation requires transformers and sentencepiece. "
+                "Install backend dependencies with: pip install -e '.[dev]'"
             ) from None
+
+    def detect_language(self, text: str) -> str:
+        return _detect_lang(text)
+
+    def translate(self, text: str, target_lang: str, source_lang: str | None = None) -> str:
+        """Translate text to target_lang. Unsupported or same-language text is returned as-is."""
+        source = normalize_language(source_lang or _detect_lang(text), default="unknown")
+        target = normalize_language(target_lang, default=source if source in _SUPPORTED_LANGS else "ko")
+
+        if source == target or source not in _SUPPORTED_LANGS or target not in _SUPPORTED_LANGS:
+            return text
+
+        key = (source, target, text)
+        if key in self._cache:
+            return self._cache[key]
+
+        try:
+            self._load_model()
+            src_code = _NLLB_CODES[source]
+            tgt_code = _NLLB_CODES[target]
+
+            self._tokenizer.src_lang = src_code
+            inputs = self._tokenizer(
+                text,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+                max_length=512,
+            )
+            forced_bos_token_id = self._tokenizer.convert_tokens_to_ids(tgt_code)
+            outputs = self._model.generate(
+                **inputs,
+                forced_bos_token_id=forced_bos_token_id,
+                num_beams=4,
+                max_length=512,
+            )
+            translated = self._tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
+            result = translated or text
+            self._cache[key] = result
+            return result
         except Exception as exc:
-            logger.error("번역 모델 로드 실패: %s", exc)
-            raise
+            logger.warning(
+                "Translation failed (%s -> %s); using original text: %s",
+                source,
+                target,
+                exc,
+            )
+            self._cache[key] = text
+            return text
 
-    # ── 실제 번역 ────────────────────────────────────────────────────────────
-    def _do_translate(self, text: str) -> str:
-        """중국어 텍스트를 한국어로 번역한다."""
-        self._load_model()
-        inputs = self._tokenizer(
-            [text],
-            return_tensors="pt",
-            padding=True,
-            truncation=True,
-            max_length=256,     # 유학생 질문은 대부분 짧음, 256으로 충분
-        )
-        outputs = self._model.generate(
-            **inputs,
-            num_beams=4,        # beam search: 번역 품질 vs 속도 균형
-            max_length=256,
-        )
-        return self._tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-    # ── 메인 인터페이스 ──────────────────────────────────────────────────────
     def translate_if_needed(self, text: str) -> tuple[str, bool]:
         """
-        번역이 필요한 질문이면 번역하고, 아니면 원문을 그대로 반환한다.
+        Translate non-Korean queries to Korean for retrieval.
 
-        Returns:
-            (결과 텍스트, 번역됐으면 True / 원문이면 False)
-
-        사용 예:
-            korean, was_translated = translator.translate_if_needed("我的签证怎么延长？")
-            # korean  = "내 비자는 어떻게 연장하나요?"
-            # was_translated = True
+        Returns (text_for_search, was_translated).
         """
-        # 캐시 히트
-        if text in self._cache:
-            cached = self._cache[text]
-            return cached, cached != text
+        source = _detect_lang(text)
+        if source == "ko" or source not in _SUPPORTED_LANGS:
+            return text, False
 
-        lang = _detect_lang(text)
-        logger.debug("언어 감지: [%s] '%s'", lang, text[:40])
+        translated = self.translate(text, "ko", source_lang=source)
+        return translated, translated != text
 
-        if lang in _ZH_LANGS:
-            try:
-                translated = self._do_translate(text)
-                logger.info(
-                    "중국어 번역 완료: '%s' → '%s'",
-                    text[:40], translated[:40],
-                )
-                self._cache[text] = translated
-                return translated, True
-            except Exception as exc:
-                # 번역 실패해도 파이프라인 멈추지 않음
-                logger.warning("번역 실패, 원문으로 진행: %s", exc)
-                self._cache[text] = text
-                return text, False
+    def translate_answer(self, text: str, target_lang: str, source_lang: str = "ko") -> str:
+        """
+        Translate a Korean answer to the response language, line by line.
 
-        # 한국어, 영어 등 → 번역 불필요
-        self._cache[text] = text
-        return text, False
+        NLLB truncates input at 512 tokens, so long answers are split on newlines.
+        # ponytail: a single line over 512 tokens is still cut, split on sentences if that shows up
+        """
+        return "\n".join(
+            self.translate(line, target_lang, source_lang=source_lang) if line.strip() else line
+            for line in text.split("\n")
+        )
 
 
-# ── 싱글턴 인스턴스 ────────────────────────────────────────────────────────────
-# 모든 곳에서 동일한 인스턴스를 공유하여 모델 중복 로드와 캐시 낭비를 방지한다.
 _translator: QueryTranslator | None = None
 
 
 def get_translator() -> QueryTranslator:
-    """싱글턴 QueryTranslator를 반환한다."""
     global _translator
     if _translator is None:
         _translator = QueryTranslator()
@@ -166,14 +190,22 @@ def get_translator() -> QueryTranslator:
 
 
 def is_translation_enabled() -> bool:
-    """
-    환경변수 ENABLE_ZH_TRANSLATION으로 번역 기능을 on/off할 수 있다.
-    기본값 True (번역 활성화).
-    성능 비교 실험 시 False로 설정하면 번역 없이 원문이 그대로 파이프라인에 들어간다.
-
-    사용:
-        ENABLE_ZH_TRANSLATION=false python experiments/zh_eval.py
-    """
     from yhs.core.settings import get_settings
 
     return get_settings().enable_zh_translation
+
+
+def resolve_response_language(question: str, user_languages: list[str] | None = None) -> str:
+    """
+    Pick the answer language for one question.
+
+    The question's language wins when the user selected it; otherwise the first
+    selected language is used. Unsupported codes (e.g. vi) are dropped. With no
+    usable selection, the question's own language is used, defaulting to Korean.
+    """
+    selected = [normalize_language(lang, default="") for lang in user_languages or []]
+    selected = [lang for lang in dict.fromkeys(selected) if lang in _SUPPORTED_LANGS]
+    detected = _detect_lang(question)
+    if not selected:
+        return detected if detected in _SUPPORTED_LANGS else "ko"
+    return detected if detected in selected else selected[0]

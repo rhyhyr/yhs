@@ -110,7 +110,7 @@ function detectSuggestedChannel(message) {
   return null;
 }
 
-export async function sendMessage({ channelId, message, history }) {
+export async function sendMessage({ channelId, message, history, languages }) {
   // 채널 추천은 클라이언트에서 판단한다 (백엔드 계약에 없는 UI 전용 기능).
   const suggestedChannelId = channelId === 'main' ? detectSuggestedChannel(message) : null;
 
@@ -122,7 +122,7 @@ export async function sendMessage({ channelId, message, history }) {
     const res = await fetch(`${BASE_URL}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channelId, message, history }),
+      body: JSON.stringify({ channelId, message, history, languages }),
     });
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

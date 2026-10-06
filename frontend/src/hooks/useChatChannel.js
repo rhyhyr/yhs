@@ -12,7 +12,7 @@ import { sendMessage } from '../api/chat';
  * clearSuggestion:    추천 배너를 수동으로 닫을 때 호출
  */
 export function useChatChannel(channelId) {
-  const { getMessages, addMessage } = useApp();
+  const { getMessages, addMessage, userProfile } = useApp();
   const [isLoading, setIsLoading] = useState(false);
   const [suggestedChannelId, setSuggestedChannelId] = useState(null);
 
@@ -38,7 +38,7 @@ export function useChatChannel(channelId) {
 
     try {
       const { answer, tags, sources, suggestedChannelId: suggested, checklistId, path } =
-        await sendMessage({ channelId, message: trimmed, history });
+        await sendMessage({ channelId, message: trimmed, history, languages: userProfile?.languages });
 
       addMessage(channelId, {
         id: `${channelId}-${Date.now()}-ai`,
