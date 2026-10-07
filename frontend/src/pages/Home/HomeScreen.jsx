@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useApp } from '../../hooks/useApp';
 import BottomNav from '../../components/Common/BottomNav';
+import ChannelCreateModal from '../../components/Chat/ChannelCreateModal';
 import { useI18n } from '../../i18n';
 import { getChannel } from '../../api/channels';
 
@@ -60,12 +62,15 @@ function GhostChItem({ icon, iconBg, name, preview, onClick }) {
 
 /* ── 메인 화면 ── */
 export default function HomeScreen() {
-  const { navigate, showToast, createdChannels, userProfile } = useApp();
+  const { navigate, showToast, createdChannels, addCreatedChannel, userProfile } = useApp();
   const { t, localizeChannel } = useI18n();
 
   const userName = userProfile?.name?.trim();
   const displayName = userName || t('home.greetingFallback');
   const initial = userName ? userName.charAt(0).toUpperCase() : '?';
+
+  // 예시 채널 카드에서 "생성할까요?" 확인 중인 채널 (null이면 모달 안 뜸)
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   // 채널 ID → 전용 화면 매핑 (채널 추가 시 여기만 수정)
   const CHANNEL_SCREEN = {
@@ -84,6 +89,23 @@ export default function HomeScreen() {
     } else {
       navigate('s-channel-chat', { channelId: id });
     }
+  }
+
+  // 예시 채널 카드 클릭 → 실제로 만들지 확인하는 모달 띄움
+  // (ChatScreen의 카테고리 칩과 동일한 흐름 — addCreatedChannel 재사용)
+  function handleGhostClick(id) {
+    const ch = getChannel(id);
+    if (!ch) return;
+    setSelectedCategory({ id, channelId: id, icon: ch.icon, iconBg: ch.iconBg });
+  }
+
+  function handleCreateChannel() {
+    if (!selectedCategory) return;
+    addCreatedChannel(selectedCategory);
+    showToast(t('chat.channelCreated', { name: localizeChannel(getChannel(selectedCategory.id)).name }));
+    const cat = selectedCategory;
+    setSelectedCategory(null);
+    goToChannel(cat);
   }
 
   return (
@@ -196,7 +218,7 @@ export default function HomeScreen() {
                   iconBg={ch.iconBg}
                   name={ch.name}
                   preview={t(`home.ghost.${id}`)}
-                  onClick={() => showToast(t('home.channelIsExample'))}
+                  onClick={() => handleGhostClick(id)}
                 />
               );
             })}
@@ -224,6 +246,15 @@ export default function HomeScreen() {
       </div>
 
       <BottomNav active="s-home" />
+
+      {selectedCategory && (
+        <ChannelCreateModal
+          icon={selectedCategory.icon}
+          name={localizeChannel(getChannel(selectedCategory.id)).name}
+          onConfirm={handleCreateChannel}
+          onClose={() => setSelectedCategory(null)}
+        />
+      )}
     </>
   );
 }
