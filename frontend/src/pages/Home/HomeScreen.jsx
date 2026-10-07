@@ -22,7 +22,8 @@ const GHOST_CHANNEL_IDS = ['visa', 'school', 'job', 'house', 'insurance'];
 /* ── 서브 컴포넌트: 일반 채널 아이템 ──
    onTogglePin이 전달될 때만(=실제로 생성된 채널일 때만) 핀 버튼을 보여준다.
    예시 채널·긴급 알림 배너는 pin 대상이 아니라서 onTogglePin을 안 넘긴다. */
-function ChItem({ icon, iconBg, name, preview, time, badge, urgent, pinned, onTogglePin, onClick }) {
+function ChItem({ icon, iconBg, name, preview, time, badge, urgent, pinned, onTogglePin, exampleBadge, onClick }) {
+  const { t } = useI18n();
   return (
     <div
       className={`ch-item${urgent ? ' ch-item--urgent' : ''}`}
@@ -40,6 +41,7 @@ function ChItem({ icon, iconBg, name, preview, time, badge, urgent, pinned, onTo
             {badge.label}
           </div>
         )}
+        {exampleBadge && <span className="ghost-badge">{t('common.example')}</span>}
       </div>
       {onTogglePin && (
         <button
@@ -160,6 +162,7 @@ export default function HomeScreen() {
               preview={t('home.urgentPreview')}
               time={t('time.today')}
               urgent
+              exampleBadge
               onClick={() => {}}
             />
           </div>

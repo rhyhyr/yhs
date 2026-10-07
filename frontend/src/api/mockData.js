@@ -22,9 +22,12 @@ export const SCHOOL_REGISTER_STEPS = [
 ];
 
 export const INITIAL_STEPS = [
-  { id: 1, text: '여권 원본 + 사본 1부', sub: '유효기간 6개월 이상',                       checked: true,  current: false, dueDate: '2026-08-01' },
-  { id: 2, text: '외국인등록증 원본',     sub: '',                                         checked: true,  current: false, dueDate: '2026-08-01' },
-  { id: 3, text: '재학증명서 (영문) 발급', sub: '포털 → 증명서 발급 → 영문 재학증명서',    checked: false, current: true,  dueDate: '2026-08-05' },
+  // ⚠️ 1·2번을 처음부터 checked:true로 심어뒀던 건 "사용자가 하지도 않은 걸 이미 체크된
+  //    것처럼" 보여주는 버그였음 — ARC_RENEW_STEPS/SCHOOL_REGISTER_STEPS처럼 전부
+  //    checked:false로 시작하고, current(지금 할 차례)만 첫 항목에 표시하도록 통일.
+  { id: 1, text: '여권 원본 + 사본 1부', sub: '유효기간 6개월 이상',                       checked: false, current: true,  dueDate: '2026-08-01' },
+  { id: 2, text: '외국인등록증 원본',     sub: '',                                         checked: false, current: false, dueDate: '2026-08-01' },
+  { id: 3, text: '재학증명서 (영문) 발급', sub: '포털 → 증명서 발급 → 영문 재학증명서',    checked: false, current: false, dueDate: '2026-08-05' },
   { id: 4, text: '수수료 60,000원 준비',  sub: '',                                         checked: false, current: false, dueDate: '2026-08-08' },
   { id: 5, text: '출입국관리사무소 방문 예약', sub: 'Hi Korea에서 사전 예약 필수',          checked: false, current: false, dueDate: '2026-08-10' },
   { id: 6, text: '방문 접수 및 수령',     sub: '처리 기간 약 5~7 영업일',                  checked: false, current: false, dueDate: '2026-08-15' },
