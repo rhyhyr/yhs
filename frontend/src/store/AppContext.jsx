@@ -94,6 +94,29 @@ export function AppProvider({ children }) {
   // ── 채널별 채팅 상태 ──
   const [chatState, setChatState] = useState({});
 
+  // ── 채널별 "작성 중인" 입력창 내용 ──
+  // ChatInput이 더 이상 자체 state를 안 갖고 이걸 직접 읽고 쓴다.
+  // 그래서 다른 화면 갔다 와도(언마운트돼도) 내용이 안 사라지고,
+  // 빠른 질문 버튼도 같은 방식으로 "입력창 채우기"를 구현한다.
+  const [drafts, setDrafts] = useState({});
+
+  function getDraft(channelId) {
+    return drafts[channelId] ?? '';
+  }
+
+  function setDraft(channelId, text) {
+    setDrafts(prev => ({ ...prev, [channelId]: text }));
+  }
+
+  function clearDraft(channelId) {
+    setDrafts(prev => {
+      if (!(channelId in prev)) return prev;
+      const next = { ...prev };
+      delete next[channelId];
+      return next;
+    });
+  }
+
   // ── 네비게이션 파라미터 (채널 ID 등 화면 전환 시 전달할 데이터) ──
   const [navParams, setNavParams] = useState({});
 
@@ -231,6 +254,8 @@ export function AppProvider({ children }) {
       userProfile, saveUserProfile: saveProfile, updateUserProfile,
       // 채팅 상태
       addMessage, getMessages,
+      // 채팅 입력창 임시저장(draft)
+      getDraft, setDraft, clearDraft,
       // 채팅 체크리스트 → 캘린더
       chatCalendarItems, addChatChecklistToCalendar,
       // 생성된 채널

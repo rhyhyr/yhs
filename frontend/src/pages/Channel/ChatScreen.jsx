@@ -184,6 +184,7 @@ export default function ChatScreen() {
       {!showWelcome && (
         <ChatInput
           inputId="main-input"
+          channelId={CHANNEL_ID}
           placeholder={localizeChannel(getChannel(CHANNEL_ID)).placeholder}
           onSend={handleSend}
           disabled={isLoading}

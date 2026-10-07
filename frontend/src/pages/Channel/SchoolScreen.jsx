@@ -17,7 +17,7 @@ import { useI18n } from '../../i18n';
 const CHANNEL_ID = 'school';
 
 export default function SchoolScreen() {
-  const { navigate, back, showToast, addChatChecklistToCalendar } = useApp();
+  const { navigate, back, showToast, addChatChecklistToCalendar, setDraft } = useApp();
   const { messages, isLoading, handleSend } = useChatChannel(CHANNEL_ID);
   const { t, localizeChannel } = useI18n();
   const bottomRef = useRef(null);
@@ -72,9 +72,10 @@ export default function SchoolScreen() {
     setShowRedirect(false);
   }
 
+  // 질문형 버튼은 바로 전송하지 않고 입력창에 채워서, 사용자가 확인/수정 후 직접 전송하게 함
   function handleQuickAction(action) {
     if (action.type === 'navigate') navigate(action.target);
-    else handleSend(action.text);
+    else setDraft(CHANNEL_ID, action.text);
   }
 
   return (
@@ -142,6 +143,7 @@ export default function SchoolScreen() {
 
       <ChatInput
         inputId="school-input"
+        channelId={CHANNEL_ID}
         placeholder={channel.placeholder}
         onSend={handleSend}
         disabled={isLoading}

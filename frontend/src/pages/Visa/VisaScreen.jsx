@@ -21,7 +21,7 @@ const CHANNEL_ID = 'visa';
 // 'idle' → 'ask-checklist' → 'checklist-created' → 'ask-calendar' → 'done'
 
 export default function VisaScreen() {
-  const { navigate, back, infoOpen, setInfoOpen, showToast, addChatChecklistToCalendar } = useApp();
+  const { navigate, back, infoOpen, setInfoOpen, showToast, addChatChecklistToCalendar, setDraft } = useApp();
   const { messages, isLoading, handleSend } = useChatChannel(CHANNEL_ID);
   const { t, localizeChannel } = useI18n();
   const bottomRef = useRef(null);
@@ -91,9 +91,10 @@ export default function VisaScreen() {
   const expiryLabel = visa?.expiryLabel ?? '2026. 8. 15';
   const visaType    = visa?.type        ?? 'D-2';
 
+  // 질문형 버튼은 바로 전송하지 않고 입력창에 채워서, 사용자가 확인/수정 후 직접 전송하게 함
   function handleQuickAction(action) {
     if (action.type === 'navigate') navigate(action.target);
-    else handleSend(action.text);
+    else setDraft(CHANNEL_ID, action.text);
   }
 
   return (
@@ -175,6 +176,7 @@ export default function VisaScreen() {
 
       <ChatInput
         inputId="visa-input"
+        channelId={CHANNEL_ID}
         placeholder={channel.placeholder}
         onSend={handleSend}
         disabled={isLoading}

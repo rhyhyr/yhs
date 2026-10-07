@@ -16,7 +16,7 @@ import { useI18n } from '../../i18n';
  * - 메시지 state는 이 컴포넌트가 로컬로 관리 (화면별 독립)
  */
 export default function ChannelChatScreen({ channelId }) {
-  const { back, navigate, navParams } = useApp();
+  const { back, navigate, navParams, setDraft } = useApp();
   const { t, localizeChannel } = useI18n();
   const channel = localizeChannel(getChannelById(channelId));
 
@@ -78,9 +78,10 @@ export default function ChannelChatScreen({ channelId }) {
 
   const { icon, iconBg, name, welcomeMsg, placeholder, quickActions = [] } = channel;
 
+  // 질문형 버튼은 바로 전송하지 않고 입력창에 채워서, 사용자가 확인/수정 후 직접 전송하게 함
   function handleQuickAction(action) {
     if (action.type === 'navigate') navigate(action.target);
-    else handleSend(action.text);
+    else setDraft(channelId, action.text);
   }
 
   return (
@@ -130,6 +131,7 @@ export default function ChannelChatScreen({ channelId }) {
       {/* 입력창 */}
       <ChatInput
         inputId={`${channelId}-input`}
+        channelId={channelId}
         placeholder={placeholder}
         onSend={handleSend}
         disabled={isLoading}
