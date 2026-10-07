@@ -5,8 +5,12 @@ import { formatDateKey } from '../../api/mockData';
 import BottomNav from '../../components/Common/BottomNav';
 import { useI18n } from '../../i18n';
 
+// 체크리스트→캘린더 연동을 지원하는 채널 → 그 채널의 채팅 화면 id
+// (지금은 비자/학교 채널만 체크리스트 흐름이 있음)
+const CHECKLIST_CHANNEL_SCREEN = { visa: 's-visa', school: 's-school' };
+
 export default function CalendarScreen() {
-  const { showToast, chatCalendarItems, navParams } = useApp();
+  const { navigate, showToast, chatCalendarItems, navParams } = useApp();
   const { t, fmt } = useI18n();
   const [calDate, setCalDate]             = useState(new Date());
   const [selectedDateKey, setSelectedDateKey] = useState(null);
@@ -161,6 +165,11 @@ export default function CalendarScreen() {
                   key={i}
                   event={evt}
                   onPress={() => showToast(t('calendar.fromChat'))}
+                  onViewChat={
+                    evt.channelId && evt.messageId && CHECKLIST_CHANNEL_SCREEN[evt.channelId]
+                      ? () => navigate(CHECKLIST_CHANNEL_SCREEN[evt.channelId], { highlightMessageId: evt.messageId })
+                      : null
+                  }
                 />
               ))
             )}
@@ -173,7 +182,7 @@ export default function CalendarScreen() {
   );
 }
 
-function EventCard({ event, onPress }) {
+function EventCard({ event, onPress, onViewChat }) {
   const { t, tx } = useI18n();
   // 채팅 체크리스트에서 온 일정은 항목 id 로 번역본을 찾아, 언어를 바꾸면 함께 바뀐다
   const base = `checklists.${event.checklistId}`;
@@ -199,6 +208,14 @@ function EventCard({ event, onPress }) {
           )}
           {event.isCompleted && <span className="cal-event-completed">{t('calendar.done')}</span>}
         </div>
+        {onViewChat && (
+          <button
+            className="cal-event-chat-link"
+            onClick={e => { e.stopPropagation(); onViewChat(); }}
+          >
+            {t('calendar.viewChat')}
+          </button>
+        )}
       </div>
     </div>
   );

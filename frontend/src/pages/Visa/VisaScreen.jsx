@@ -21,7 +21,7 @@ const CHANNEL_ID = 'visa';
 // 'idle' → 'ask-checklist' → 'checklist-created' → 'ask-calendar' → 'done'
 
 export default function VisaScreen() {
-  const { navigate, back, infoOpen, setInfoOpen, showToast, addChatChecklistToCalendar, setDraft } = useApp();
+  const { navigate, back, infoOpen, setInfoOpen, showToast, addChatChecklistToCalendar, setDraft, navParams } = useApp();
   const { messages, isLoading, handleSend } = useChatChannel(CHANNEL_ID);
   const { t, localizeChannel } = useI18n();
   const bottomRef = useRef(null);
@@ -30,9 +30,25 @@ export default function VisaScreen() {
   // ── 플로우 상태 ────────────────────────────────────────────
   const [stage, setStage]                         = useState('idle');
   const [activeChecklistId, setActiveChecklistId] = useState(null);
+  const [activeMessageId, setActiveMessageId]     = useState(null);
   const [showModal, setShowModal]                 = useState(false);
   const [showRedirect, setShowRedirect]           = useState(false);
   const [linkedEarliestDate, setLinkedEarliestDate] = useState(null);
+
+  // ── 캘린더 "관련 대화 보기"에서 돌아왔을 때 해당 메시지로 스크롤 ──
+  // 채팅 기록은 새로고침하면 사라지는 구조라, 못 찾으면 조용히 그냥 둔다.
+  const highlightMessageId = navParams?.highlightMessageId ?? null;
+  const [highlightedId, setHighlightedId] = useState(null);
+  const msgRefs = useRef({});
+  useEffect(() => {
+    if (!highlightMessageId) return;
+    const el = msgRefs.current[highlightMessageId];
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlightedId(highlightMessageId);
+    const timer = setTimeout(() => setHighlightedId(null), 2000);
+    return () => clearTimeout(timer);
+  }, [highlightMessageId]);
 
   const channel      = localizeChannel(getChannel(CHANNEL_ID));
   const quickActions = channel?.quickActions ?? [];
@@ -54,6 +70,7 @@ export default function VisaScreen() {
   // ── 핸들러 ────────────────────────────────────────────────
   function handleChecklistYes() {
     setActiveChecklistId(lastAiMsg.checklistId);
+    setActiveMessageId(lastAiMsg.id);
     setStage('ask-calendar');
   }
   function handleChecklistNo() {
@@ -69,7 +86,10 @@ export default function VisaScreen() {
   function handleModalConfirm(selectedIds, dateOverrides) {
     const checklist = getMockChecklist(activeChecklistId);
     if (!checklist) return;
-    const events = convertChecklistItemsToEvents(checklist, selectedIds, dateOverrides);
+    const events = convertChecklistItemsToEvents(checklist, selectedIds, dateOverrides, {
+      channelId: CHANNEL_ID,
+      messageId: activeMessageId,
+    });
     addChatChecklistToCalendar(events);
     const earliest = Object.keys(events).sort()[0] ?? null;
     setLinkedEarliestDate(earliest);
@@ -141,7 +161,13 @@ export default function VisaScreen() {
             <ChatMessage role="ai">{channel?.welcomeMsg}</ChatMessage>
           )}
           {messages.map(msg => (
-            <ChatMessage key={msg.id} role={msg.role} path={msg.path}>{msg.text}</ChatMessage>
+            <div
+              key={msg.id}
+              ref={el => { msgRefs.current[msg.id] = el; }}
+              className={highlightedId === msg.id ? 'msg-highlighted' : ''}
+            >
+              <ChatMessage role={msg.role} path={msg.path}>{msg.text}</ChatMessage>
+            </div>
           ))}
           {isLoading && <ChatMessage role="ai">…</ChatMessage>}
 

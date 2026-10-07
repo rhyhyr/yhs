@@ -108,6 +108,7 @@ export default {
     emptySub: '在聊天中创建清单，\n并添加到日历吧',
     fromChat: '这是通过聊天添加的日程',
     chatBadge: '💬 聊天',
+    viewChat: '💬 查看相关对话',
     done: '已完成',
   },
 

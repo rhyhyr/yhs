@@ -108,6 +108,7 @@ export default {
     emptySub: '채팅에서 체크리스트를 만들고\n캘린더에 연동해 보세요',
     fromChat: '채팅에서 등록한 일정이에요',
     chatBadge: '💬 채팅',
+    viewChat: '💬 관련 대화 보기',
     done: '완료',
   },
 

@@ -104,9 +104,11 @@ export function mergeEvents(...eventMaps) {
  * @param {number[]} selectedItemIds  — 사용자가 선택한 item.id 배열
  * @param {Record<number, string>} [dateOverrides] — 사용자가 등록 전에 직접 수정한 날짜.
  *   키: item.id, 값: 'YYYY-MM-DD'. 없는 항목은 체크리스트 원래 dueDate를 그대로 씀.
+ * @param {{ channelId?: string, messageId?: string }} [origin] — 이 체크리스트를 만든
+ *   채팅 맥락. 캘린더 화면에서 "관련 대화 보기"로 돌아갈 때 씀 (없으면 버튼 자체가 안 뜸).
  * @returns {Record<string, Array>}
  */
-export function convertChecklistItemsToEvents(checklist, selectedItemIds, dateOverrides = {}) {
+export function convertChecklistItemsToEvents(checklist, selectedItemIds, dateOverrides = {}, origin = {}) {
   const selectedSet = new Set(selectedItemIds);
   const result      = {};
 
@@ -125,6 +127,8 @@ export function convertChecklistItemsToEvents(checklist, selectedItemIds, dateOv
         checklistId:     checklist.id,
         checklistItemId: item.id,
         isCompleted:     false,
+        channelId:       origin.channelId ?? null,
+        messageId:       origin.messageId ?? null,
       });
     });
 

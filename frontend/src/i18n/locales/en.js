@@ -106,6 +106,7 @@ export default {
     emptySub: 'Create a checklist in chat and\nadd it to your calendar',
     fromChat: 'This event was added from chat',
     chatBadge: '💬 Chat',
+    viewChat: '💬 View related conversation',
     done: 'Done',
   },
 

@@ -492,6 +492,17 @@ export const globalStyles = `
 
   .msg-ai { display: flex; gap: 8px; align-items: flex-end; }
 
+  /* 캘린더 "관련 대화 보기"로 돌아왔을 때 해당 메시지를 잠깐 강조 */
+  .msg-highlighted {
+    animation: msgHighlightFlash 2s ease;
+    border-radius: 14px;
+  }
+
+  @keyframes msgHighlightFlash {
+    0%   { background: var(--c-accent-l); }
+    100% { background: transparent; }
+  }
+
   .ai-av {
     width: 30px;
     height: 30px;
@@ -2313,6 +2324,18 @@ export const globalStyles = `
     font-weight: 600;
     padding: 3px 9px;
     border-radius: 8px;
+  }
+
+  .cal-event-chat-link {
+    display: block;
+    margin-top: 8px;
+    padding: 0;
+    border: none;
+    background: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-accent);
+    cursor: pointer;
   }
 
   .cal-event-completed {
