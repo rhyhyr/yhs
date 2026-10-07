@@ -19,8 +19,10 @@ const URGENT_ITEMS = [
 /* ── 예시 채널 (ghost) — 실제 채널이 없을 때 흐리게 표시. 이름·아이콘은 채널 레지스트리에서 ── */
 const GHOST_CHANNEL_IDS = ['visa', 'school', 'job', 'house', 'insurance'];
 
-/* ── 서브 컴포넌트: 일반 채널 아이템 ── */
-function ChItem({ icon, iconBg, name, preview, time, badge, urgent, onClick }) {
+/* ── 서브 컴포넌트: 일반 채널 아이템 ──
+   onTogglePin이 전달될 때만(=실제로 생성된 채널일 때만) 핀 버튼을 보여준다.
+   예시 채널·긴급 알림 배너는 pin 대상이 아니라서 onTogglePin을 안 넘긴다. */
+function ChItem({ icon, iconBg, name, preview, time, badge, urgent, pinned, onTogglePin, onClick }) {
   return (
     <div
       className={`ch-item${urgent ? ' ch-item--urgent' : ''}`}
@@ -39,6 +41,15 @@ function ChItem({ icon, iconBg, name, preview, time, badge, urgent, onClick }) {
           </div>
         )}
       </div>
+      {onTogglePin && (
+        <button
+          className={`ch-pin-btn${pinned ? ' pinned' : ''}`}
+          onClick={e => { e.stopPropagation(); onTogglePin(); }}
+          aria-label="pin"
+        >
+          📌
+        </button>
+      )}
     </div>
   );
 }
@@ -62,7 +73,7 @@ function GhostChItem({ icon, iconBg, name, preview, onClick }) {
 
 /* ── 메인 화면 ── */
 export default function HomeScreen() {
-  const { navigate, showToast, createdChannels, addCreatedChannel, userProfile } = useApp();
+  const { navigate, showToast, createdChannels, addCreatedChannel, toggleChannelPin, userProfile } = useApp();
   const { t, localizeChannel } = useI18n();
 
   const userName = userProfile?.name?.trim();
@@ -180,6 +191,8 @@ export default function HomeScreen() {
                   preview={t('home.tapToOpen')}
                   time={t('time.justNow')}
                   badge={{ label: 'NEW', bg: 'var(--c-accent-l)', color: 'var(--c-accent)' }}
+                  pinned={ch.pinned}
+                  onTogglePin={() => toggleChannelPin(ch.id)}
                   onClick={() => goToChannel(ch)}
                 />
               );

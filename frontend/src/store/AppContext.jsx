@@ -1,4 +1,4 @@
-import { createContext, useState, useRef, useEffect } from 'react';
+import { createContext, useState, useRef, useEffect, useMemo } from 'react';
 import { INITIAL_STEPS, ARC_RENEW_STEPS, SCHOOL_REGISTER_STEPS } from '../api/mockData';
 import { getVisaSteps, updateStepStatus } from '../api/steps';
 import { persistUserProfile } from '../api/userProfile';
@@ -87,9 +87,24 @@ export function AppProvider({ children }) {
 
   function addCreatedChannel(channel) {
     setCreatedChannels(prev =>
-      prev.find(c => c.id === channel.id) ? prev : [...prev, channel]
+      prev.find(c => c.id === channel.id) ? prev : [...prev, { pinned: false, ...channel }]
     );
   }
+
+  // ── 채널 상단 고정 ──
+  function toggleChannelPin(id) {
+    setCreatedChannels(prev =>
+      prev.map(c => (c.id === id ? { ...c, pinned: !c.pinned } : c))
+    );
+  }
+
+  // 고정된 채널이 위로 오도록 정렬한 목록 — 화면에 내 채널을 보여주는 곳은
+  // 다 이 정렬된 배열을 써야 하므로, 원본 대신 이 값을 createdChannels로 내보낸다.
+  // (Array.sort는 안정 정렬이라 고정 여부가 같으면 기존 순서가 유지된다)
+  const sortedCreatedChannels = useMemo(
+    () => [...createdChannels].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)),
+    [createdChannels]
+  );
 
   // ── 채널별 채팅 상태 ──
   const [chatState, setChatState] = useState({});
@@ -258,8 +273,8 @@ export function AppProvider({ children }) {
       getDraft, setDraft, clearDraft,
       // 채팅 체크리스트 → 캘린더
       chatCalendarItems, addChatChecklistToCalendar,
-      // 생성된 채널
-      createdChannels, addCreatedChannel,
+      // 생성된 채널 (고정된 채널이 위로 오도록 정렬된 상태로 내보냄)
+      createdChannels: sortedCreatedChannels, addCreatedChannel, toggleChannelPin,
       // 채널
       infoOpen, setInfoOpen,
       activeFilter, setActiveFilter,

@@ -393,6 +393,30 @@ export const globalStyles = `
     border-radius: 10px;
   }
 
+  /* 채널 상단 고정 버튼 — ch-item 맨 오른쪽에 작게 */
+  .ch-pin-btn {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--c-t3);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color .15s, background .15s;
+  }
+
+  .ch-pin-btn:active { background: var(--c-bg); }
+
+  .ch-pin-btn.pinned {
+    color: var(--c-accent);
+    background: var(--c-accent-l);
+  }
+
   .info-chip {
     display: flex;
     align-items: center;

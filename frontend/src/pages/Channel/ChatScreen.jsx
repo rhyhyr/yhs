@@ -27,7 +27,7 @@ const CHANNEL_SCREEN = {
 };
 
 export default function ChatScreen() {
-  const { navigate, showToast, createdChannels, addCreatedChannel } = useApp();
+  const { navigate, showToast, createdChannels, addCreatedChannel, toggleChannelPin } = useApp();
   const { t, localizeChannel } = useI18n();
   const catName = cat => localizeChannel(getChannel(cat.id)).name;
   const welcomeMsg = localizeChannel(getChannel(CHANNEL_ID)).welcomeMsg;
@@ -141,6 +141,13 @@ export default function ChatScreen() {
                   <div className="ch-preview">{t('chat.createdPreview')}</div>
                 </div>
                 <div style={{ fontSize: '18px', color: 'var(--c-t3)' }}>›</div>
+                <button
+                  className={`ch-pin-btn${cat.pinned ? ' pinned' : ''}`}
+                  onClick={e => { e.stopPropagation(); toggleChannelPin(cat.id); }}
+                  aria-label="pin"
+                >
+                  📌
+                </button>
               </div>
             ))}
           </div>
