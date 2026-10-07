@@ -102,17 +102,21 @@ export function mergeEvents(...eventMaps) {
  *
  * @param {import('../data/mockChecklistData').ChatChecklist} checklist
  * @param {number[]} selectedItemIds  — 사용자가 선택한 item.id 배열
+ * @param {Record<number, string>} [dateOverrides] — 사용자가 등록 전에 직접 수정한 날짜.
+ *   키: item.id, 값: 'YYYY-MM-DD'. 없는 항목은 체크리스트 원래 dueDate를 그대로 씀.
  * @returns {Record<string, Array>}
  */
-export function convertChecklistItemsToEvents(checklist, selectedItemIds) {
+export function convertChecklistItemsToEvents(checklist, selectedItemIds, dateOverrides = {}) {
   const selectedSet = new Set(selectedItemIds);
   const result      = {};
 
   checklist.items
-    .filter(item => selectedSet.has(item.id) && item.dueDate)
+    .filter(item => selectedSet.has(item.id))
     .forEach(item => {
-      if (!result[item.dueDate]) result[item.dueDate] = [];
-      result[item.dueDate].push({
+      const dueDate = dateOverrides[item.id] ?? item.dueDate;
+      if (!dueDate) return;
+      if (!result[dueDate]) result[dueDate] = [];
+      result[dueDate].push({
         title:           item.text,
         desc:            item.sub || null,
         color:           checklist.color,

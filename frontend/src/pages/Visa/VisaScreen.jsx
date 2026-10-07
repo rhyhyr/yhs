@@ -66,10 +66,10 @@ export default function VisaScreen() {
   function handleCalendarNo() {
     setStage('done');
   }
-  function handleModalConfirm(selectedIds) {
+  function handleModalConfirm(selectedIds, dateOverrides) {
     const checklist = getMockChecklist(activeChecklistId);
     if (!checklist) return;
-    const events = convertChecklistItemsToEvents(checklist, selectedIds);
+    const events = convertChecklistItemsToEvents(checklist, selectedIds, dateOverrides);
     addChatChecklistToCalendar(events);
     const earliest = Object.keys(events).sort()[0] ?? null;
     setLinkedEarliestDate(earliest);

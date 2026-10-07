@@ -2712,6 +2712,21 @@ export const globalStyles = `
     font-weight: 600;
     padding: 3px 8px;
     border-radius: 7px;
+    cursor: pointer;
+  }
+
+  /* 날짜 칩을 탭하면 이 네이티브 date input으로 바뀐다 — 등록 전 날짜 수정 */
+  .cl-sheet-date-input {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: inherit;
+    padding: 2px 6px;
+    border-radius: 7px;
+    border: 1.5px solid var(--c-accent-m);
+    background: var(--c-surface);
+    color: var(--c-t1);
+    width: 120px;
   }
 
   .cl-sheet-footer {
