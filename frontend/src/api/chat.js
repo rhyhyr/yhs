@@ -93,11 +93,11 @@ export async function getChannelMessages(channelId) {
  */
 // ── 데모용 채널 추천 키워드 테이블 ──────────────────────────────────────
 const DEMO_SUGGEST_RULES = [
-  { keywords: ['보험', '건강보험', '의료', '진료', '부산대학교 유학생', '유학생 보험'], channelId: 'insurance' },
-  { keywords: ['등록금', '납부', '다음 학기 등록', '수강신청', '수강', '학사', '학교', '학점', '장학금', '기숙사'], channelId: 'school' },
-  { keywords: ['arc', 'ARC', '비자', '체류', '외국인등록증', '분실', '재발급', '재등록', '연장', 'hikorea', 'hi korea', '출입국'], channelId: 'visa' },
-  { keywords: ['알바', '아르바이트', '취업', '시간제', '허가'], channelId: 'job' },
-  { keywords: ['집', '전세', '월세', '계약', '이사', '주거'], channelId: 'house' },
+  { keywords: ['보험', '건강보험', '의료', '진료', '부산대학교 유학생', '유학생 보험', 'insurance', 'hospital', 'health', '保险', '医院', '就医'], channelId: 'insurance' },
+  { keywords: ['등록금', '납부', '다음 학기 등록', '수강신청', '수강', '학사', '학교', '학점', '장학금', '기숙사', 'tuition', 'course', 'semester', 'scholarship', 'dorm', 'school', '学费', '选课', '学期', '奖学金', '宿舍', '学校', '校历'], channelId: 'school' },
+  { keywords: ['arc', 'ARC', '비자', '체류', '외국인등록증', '분실', '재발급', '재등록', '연장', 'hikorea', 'hi korea', '출입국', 'visa', 'stay', 'alien registration', 'reissue', 'lost', 'extension', 'immigration', '签证', '居留', '登录证', '补办', '延期', '出入境'], channelId: 'visa' },
+  { keywords: ['알바', '아르바이트', '취업', '시간제', '허가', 'part-time', 'job', 'work permit', '兼职', '打工', '就业'], channelId: 'job' },
+  { keywords: ['집', '전세', '월세', '계약', '이사', '주거', 'rent', 'lease', 'housing', 'deposit', '租房', '住房', '合同', '搬家'], channelId: 'house' },
 ];
 
 function detectSuggestedChannel(message) {

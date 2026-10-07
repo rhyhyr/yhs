@@ -1,26 +1,29 @@
 import { useApp } from '../../hooks/useApp';
 import { BackIcon } from '../../components/Common/icons';
+import { useI18n } from '../../i18n';
 
 export default function SchoolChecklistScreen() {
   const {
     back, showToast,
-    schoolSteps, toggleSchoolStep,
+    schoolSteps: rawSchoolSteps, toggleSchoolStep,
     schoolCheckedCount, schoolTotal, schoolPct,
     schoolGrp1Checked, schoolGrp2Checked,
   } = useApp();
+  const { t, localizeSteps } = useI18n();
+  const schoolSteps = localizeSteps(rawSchoolSteps, 'school-registration');
 
   return (
     <>
       <div className="topbar">
         <div className="tb-back" onClick={back}>
           <BackIcon />
-          학교생활 채널
+          {t('guide.schoolChannel')}
         </div>
       </div>
 
       <div style={{ padding: '12px 16px 4px' }}>
-        <div className="tb-title" style={{ fontSize: '17px' }}>수강신청 & 등록 준비</div>
-        <div className="tb-sub">학교 포털 기준 · 학기 시작 전 확인</div>
+        <div className="tb-title" style={{ fontSize: '17px' }}>{t('guide.schoolTitle')}</div>
+        <div className="tb-sub">{t('guide.schoolBasis')}</div>
       </div>
 
       <div className="progress-wrap">
@@ -28,7 +31,7 @@ export default function SchoolChecklistScreen() {
           <div className="progress-fill" style={{ width: `${schoolPct}%` }} />
         </div>
         <div className="prog-label">
-          <span>{schoolCheckedCount} / {schoolTotal} 단계 완료</span>
+          <span>{t('guide.progress', { done: schoolCheckedCount, total: schoolTotal })}</span>
           <span style={{ color: 'var(--c-green)' }}>{schoolPct}%</span>
         </div>
       </div>
@@ -37,8 +40,8 @@ export default function SchoolChecklistScreen() {
         {/* 등록 준비 */}
         <div className="step-card">
           <div className="step-card-hdr">
-            <span>📅 등록 준비</span>
-            <span style={{ fontSize: '11px', fontWeight: 400 }}>{schoolGrp1Checked}/4 완료</span>
+            <span>{t('guide.regPrep')}</span>
+            <span style={{ fontSize: '11px', fontWeight: 400 }}>{t('guide.groupProgress', { done: schoolGrp1Checked, total: 4 })}</span>
           </div>
           {schoolSteps.slice(0, 4).map(step => (
             <div key={step.id} className="step-row" onClick={() => toggleSchoolStep(step.id)}>
@@ -68,8 +71,8 @@ export default function SchoolChecklistScreen() {
         {/* 수강신청 */}
         <div className="step-card">
           <div className="step-card-hdr">
-            <span>📋 수강신청</span>
-            <span style={{ fontSize: '11px', fontWeight: 400 }}>{schoolGrp2Checked}/3 완료</span>
+            <span>{t('guide.courseReg')}</span>
+            <span style={{ fontSize: '11px', fontWeight: 400 }}>{t('guide.groupProgress', { done: schoolGrp2Checked, total: schoolSteps.length - 4 })}</span>
           </div>
           {schoolSteps.slice(4).map(step => (
             <div key={step.id} className="step-row" onClick={() => toggleSchoolStep(step.id)}>
@@ -96,15 +99,15 @@ export default function SchoolChecklistScreen() {
           ))}
         </div>
 
-        <div className="save-note">✅ 체크 상태는 자동 저장됩니다. 앱을 닫아도 유지돼요.</div>
+        <div className="save-note">{t('guide.autoSave')}</div>
 
         <div style={{ margin: '4px 14px' }}>
           <button
             className="qa-btn"
             style={{ width: '100%', textAlign: 'left', borderRadius: '11px', padding: '12px 14px' }}
-            onClick={() => showToast('학교 포털로 이동합니다')}
+            onClick={() => showToast(t('guide.portalToast'))}
           >
-            🏫 학교 포털 바로가기
+            {t('guide.portalLink')}
           </button>
         </div>
       </div>

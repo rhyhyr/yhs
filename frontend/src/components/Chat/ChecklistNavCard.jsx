@@ -1,5 +1,6 @@
 import { useApp } from '../../hooks/useApp';
 import { getMockChecklist } from '../../data/mockChecklistData';
+import { useI18n } from '../../i18n';
 
 // checklistId → 이동할 화면 ID
 const CHECKLIST_SCREEN = {
@@ -14,7 +15,8 @@ const CHECKLIST_SCREEN = {
  */
 export default function ChecklistNavCard({ checklistId }) {
   const { navigate } = useApp();
-  const checklist = getMockChecklist(checklistId);
+  const { t, localizeChecklist } = useI18n();
+  const checklist = localizeChecklist(getMockChecklist(checklistId));
   if (!checklist) return null;
 
   const screenId = CHECKLIST_SCREEN[checklistId];
@@ -28,10 +30,10 @@ export default function ChecklistNavCard({ checklistId }) {
       <div className="cl-nav-icon">📋</div>
       <div className="cl-nav-body">
         <div className="cl-nav-title" style={{ color: checklist.color }}>
-          체크리스트
+          {t('checklist.navTitle')}
         </div>
         <div className="cl-nav-sub">
-          {checklist.title} · {checklist.items.length}개 항목
+          {t('checklist.navSub', { title: checklist.title, n: checklist.items.length })}
         </div>
       </div>
       <div className="cl-nav-arrow" style={{ color: checklist.color }}>›</div>

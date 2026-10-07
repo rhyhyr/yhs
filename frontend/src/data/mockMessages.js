@@ -26,6 +26,8 @@
  * }
  */
 
+import { translateData } from '../i18n/core';
+
 // ── Mock Source 샘플 ───────────────────────────────────────────────────────
 
 const sourceUrl = (url) => url;
@@ -152,30 +154,30 @@ const CHANNEL_DEFAULT_CHECKLIST = {
 const DEMO_PICK_RULES = {
   main: [
     { keywords: ['arc', 'ARC', '재등록'], index: 0 },
-    { keywords: ['수강신청', '수강', '준비', '학교'], index: 1 },
+    { keywords: ['수강신청', '수강', '준비', '학교', 'course', 'enroll', 'school', '选课', '学校'], index: 1 },
     // 비자 개념 질문 (fast) — 연장·절차 규칙보다 먼저 체크
-    { keywords: ['비자가 뭐야', '비자가 뭔지', '비자란', '비자 개념', '비자 소개', '비자 뭔가요', 'd-2가 뭐야', '비자가 뭔가'], index: 7 },
+    { keywords: ['비자가 뭐야', '비자가 뭔지', '비자란', '비자 개념', '비자 소개', '비자 뭔가요', 'd-2가 뭐야', '비자가 뭔가', 'what is a visa', 'what is d-2', 'what is the d-2', '签证是什么', 'd-2是什么'], index: 7 },
     // 연장·절차는 deep 흐름 → 비자 채널 유도
-    { keywords: ['연장', '절차', '출입국'], index: 2 },
-    { keywords: ['외국인등록증', '분실', '재발급'], index: 3 },
-    { keywords: ['등록금', '납부', '다음 학기'], index: 4 },
-    { keywords: ['보험', '부산대', '최신'], index: 5 },
-    { keywords: ['시간제취업', '알바 허가', '취업 허가', '아르바이트 허가', '시간제 취업'], index: 6 },
+    { keywords: ['연장', '절차', '출입국', 'extend', 'extension', 'procedure', '延期', '流程'], index: 2 },
+    { keywords: ['외국인등록증', '분실', '재발급', 'alien registration', 'lost', 'reissue', '登录证', '丢失', '补办'], index: 3 },
+    { keywords: ['등록금', '납부', '다음 학기', 'tuition', 'next semester', '学费', '下学期'], index: 4 },
+    { keywords: ['보험', '부산대', '최신', 'insurance', '保险'], index: 5 },
+    { keywords: ['시간제취업', '알바 허가', '취업 허가', '아르바이트 허가', '시간제 취업', 'part-time', 'work permit', '兼职', '就业许可'], index: 6 },
   ],
   visa: [
     // fast path 규칙을 먼저 — 정의·개념·조건 질문은 체크리스트 없이 즉시 응답
-    { keywords: ['비자란', '비자가 뭐야', 'd-2가 뭐야', 'd-2 비자가 뭐야', '비자 뭐야', '비자 뭔가요', '비자가 뭔지', '비자 개념', '비자 소개'], index: 3, checklistId: null },
-    { keywords: ['시간제취업', '알바 허가', '아르바이트 허가', '취업 허가 조건', '시간제 취업'], index: 4, checklistId: null },
-    { keywords: ['외국인등록증', '분실', '재발급', 'arc', 'ARC', '재등록'], index: 1, checklistId: 'arc-renew' },
+    { keywords: ['비자란', '비자가 뭐야', 'd-2가 뭐야', 'd-2 비자가 뭐야', '비자 뭐야', '비자 뭔가요', '비자가 뭔지', '비자 개념', '비자 소개', 'what is a visa', 'what is d-2', 'what is the d-2', 'visa mean', '签证是什么', 'd-2是什么'], index: 3, checklistId: null },
+    { keywords: ['시간제취업', '알바 허가', '아르바이트 허가', '취업 허가 조건', '시간제 취업', 'part-time', 'work permit', '兼职', '就业许可'], index: 4, checklistId: null },
+    { keywords: ['외국인등록증', '분실', '재발급', 'arc', 'ARC', '재등록', 'alien registration', 'lost', 'reissue', 're-registration', '登录证', '丢失', '补办', '重新登记'], index: 1, checklistId: 'arc-renew' },
     // 절차·서류 요청은 deep path — 체크리스트 연동
-    { keywords: ['연장', '서류', '절차', '체크리스트', '어떻게', '방법'],    index: 2, checklistId: 'visa-extension' },
+    { keywords: ['연장', '서류', '절차', '체크리스트', '어떻게', '방법', 'extend', 'extension', 'documents', 'procedure', 'how to', 'how do', '延期', '材料', '流程', '清单', '如何'],    index: 2, checklistId: 'visa-extension' },
   ],
   school: [
-    { keywords: ['등록금', '납부', '다음 학기'],            index: 1, checklistId: 'school-registration' },
-    { keywords: ['수강신청', '수강', '준비', '체크리스트'], index: 0, checklistId: 'school-registration' },
+    { keywords: ['등록금', '납부', '다음 학기', 'tuition', 'next semester', '学费', '下学期'],            index: 1, checklistId: 'school-registration' },
+    { keywords: ['수강신청', '수강', '준비', '체크리스트', 'course', 'registration', 'checklist', '选课', '清单'], index: 0, checklistId: 'school-registration' },
   ],
   insurance: [
-    { keywords: ['부산대', '최신', '유학생 보험', '보험 가입'], index: 0 },
+    { keywords: ['부산대', '최신', '유학생 보험', '보험 가입', 'insurance', 'latest', '保险', '最新'], index: 0 },
   ],
 };
 
@@ -187,7 +189,8 @@ const DEMO_PICK_RULES = {
  * @returns {{ text: string, sources: Source[] }}
  */
 export function pickMockResponse(channelId, message = '') {
-  const pool    = MOCK_ANSWER_POOL[channelId] ?? MOCK_ANSWER_POOL.main;
+  const poolKey = MOCK_ANSWER_POOL[channelId] ? channelId : 'main';
+  const pool    = MOCK_ANSWER_POOL[poolKey];
   const rules   = DEMO_PICK_RULES[channelId] ?? [];
   const lower   = message.toLowerCase();
 
@@ -208,8 +211,14 @@ export function pickMockResponse(channelId, message = '') {
   // 아무 규칙도 안 걸린 경우 default checklist를 비워서 fast path 취급
   if (!ruleMatched) checklistId = null;
 
-  const text    = pool[index] ?? pool[0];
-  const sources = MOCK_SOURCES[channelId] ?? [];
+  // 응답 본문·출처는 현재 UI 언어의 번역본이 있으면 그것을, 없으면 한국어 원문을 쓴다
+  const i       = pool[index] !== undefined ? index : 0;
+  const text    = translateData(`mock.answers.${poolKey}.${i}`, pool[i]);
+  const sources = (MOCK_SOURCES[channelId] ?? []).map((src, n) => ({
+    ...src,
+    label:  translateData(`mock.sources.${channelId}.${n}.label`,  src.label),
+    detail: translateData(`mock.sources.${channelId}.${n}.detail`, src.detail),
+  }));
   return { text, sources, checklistId };
 }
 
