@@ -54,7 +54,12 @@ export const CHANNEL_LIST = [
     iconBg: 'var(--c-amber-l)',
     placeholder: '취업 · 아르바이트 관련 질문하기...',
     welcomeMsg: '취업 & 아르바이트 채널입니다.\n시간제 취업 허가 절차, 허가 서류, 근무 가능 시간 등을 단계별로 안내해드릴게요.',
-    quickActions: [],
+    quickActions: [
+      { label: '🪪 시간제취업 허가', type: 'question', text: '시간제 취업 허가 신청 방법을 알려주세요.' },
+      { label: '📄 필요 서류',       type: 'question', text: '아르바이트 하려면 어떤 서류가 필요해요?' },
+      { label: '⏰ 근무 가능 시간',  type: 'question', text: '학기 중 아르바이트 가능한 시간이 얼마나 되나요?' },
+      { label: '⚠️ 불법 취업 주의',  type: 'question', text: '허가 없이 일하면 어떻게 되나요?' },
+    ],
   },
   {
     id: 'house',
@@ -63,7 +68,12 @@ export const CHANNEL_LIST = [
     iconBg: 'var(--c-accent-l)',
     placeholder: '주거 관련 질문하기...',
     welcomeMsg: '주거 채널입니다. 전월세 계약, 관리비, 이사, 외국인 임대차 주의사항 등 주거 관련 질문을 해주세요!',
-    quickActions: [],
+    quickActions: [
+      { label: '📑 계약 전 확인사항', type: 'question', text: '전월세 계약할 때 뭘 확인해야 하나요?' },
+      { label: '🏠 전입신고',         type: 'question', text: '전입신고는 어떻게 하나요?' },
+      { label: '💰 관리비',           type: 'question', text: '관리비에는 보통 뭐가 포함되나요?' },
+      { label: '📦 이사 체크리스트',  type: 'question', text: '이사할 때 주의할 점을 알려주세요.' },
+    ],
   },
   {
     id: 'insurance',
@@ -72,7 +82,12 @@ export const CHANNEL_LIST = [
     iconBg: '#FEE2E2',
     placeholder: '병원 · 보험 관련 질문하기...',
     welcomeMsg: '병원 & 보험 채널입니다. 건강보험 가입, 병원 이용 방법, 보험 혜택 등을 안내해 드립니다!',
-    quickActions: [],
+    quickActions: [
+      { label: '🏥 건강보험 가입', type: 'question', text: '외국인 유학생 건강보험 가입 방법을 알려주세요.' },
+      { label: '💳 보험료 납부',   type: 'question', text: '건강보험료는 어떻게 납부하나요?' },
+      { label: '🩺 병원 이용',     type: 'question', text: '한국에서 병원은 어떻게 이용하나요?' },
+      { label: '📋 보험 혜택',     type: 'question', text: '건강보험으로 어떤 혜택을 받을 수 있나요?' },
+    ],
   },
   {
     id: 'main',

@@ -16,7 +16,7 @@ import { useI18n } from '../../i18n';
  * - 메시지 state는 이 컴포넌트가 로컬로 관리 (화면별 독립)
  */
 export default function ChannelChatScreen({ channelId }) {
-  const { back, navParams } = useApp();
+  const { back, navigate, navParams } = useApp();
   const { t, localizeChannel } = useI18n();
   const channel = localizeChannel(getChannelById(channelId));
 
@@ -76,7 +76,12 @@ export default function ChannelChatScreen({ channelId }) {
 
   if (!channel) return null;
 
-  const { icon, iconBg, name, welcomeMsg, placeholder } = channel;
+  const { icon, iconBg, name, welcomeMsg, placeholder, quickActions = [] } = channel;
+
+  function handleQuickAction(action) {
+    if (action.type === 'navigate') navigate(action.target);
+    else handleSend(action.text);
+  }
 
   return (
     <>
@@ -91,6 +96,18 @@ export default function ChannelChatScreen({ channelId }) {
         <div className="slim-ch-name">{name}</div>
         <div className="slim-rag">{t('common.ragActive')}</div>
       </div>
+
+      {/* 추천 질문 버튼 — 채널 데이터(data/channels.js)의 quickActions 기준 */}
+      {quickActions.length > 0 && (
+        <div className="qa-scroll">
+          {quickActions.map(action => (
+            <button key={action.label} className="qa-btn"
+              onClick={() => handleQuickAction(action)} disabled={isLoading}>
+              {action.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 채팅 영역 */}
       <div className="scroll-area">

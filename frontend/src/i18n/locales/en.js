@@ -286,16 +286,34 @@ export default {
       name: 'Jobs & Part-time Work',
       welcome: 'Welcome to the Jobs & Part-time Work channel.\nI will guide you step by step through the part-time work permit process, required documents and allowed working hours.',
       placeholder: 'Ask about jobs and part-time work...',
+      qa: {
+        0: { label: '🪪 Work permit', text: 'How do I apply for a part-time work permit?' },
+        1: { label: '📄 Required documents', text: 'What documents do I need for a part-time job?' },
+        2: { label: '⏰ Allowed hours', text: 'How many hours can I work part-time during the semester?' },
+        3: { label: '⚠️ Working without permission', text: 'What happens if I work without a permit?' },
+      },
     },
     house: {
       name: 'Housing',
       welcome: 'Welcome to the Housing channel. Ask me about jeonse/monthly rent contracts, maintenance fees, moving, and tips for foreign tenants!',
       placeholder: 'Ask about housing...',
+      qa: {
+        0: { label: '📑 Before you sign', text: 'What should I check before signing a lease?' },
+        1: { label: '🏠 Move-in report', text: 'How do I file a move-in report?' },
+        2: { label: '💰 Maintenance fees', text: 'What does the maintenance fee usually cover?' },
+        3: { label: '📦 Moving checklist', text: 'What should I watch out for when moving?' },
+      },
     },
     insurance: {
       name: 'Hospital & Insurance',
       welcome: 'Welcome to the Hospital & Insurance channel. I can help with health insurance enrollment, using hospitals and insurance benefits!',
       placeholder: 'Ask about hospitals and insurance...',
+      qa: {
+        0: { label: '🏥 Enrolling in insurance', text: 'How do international students enroll in health insurance?' },
+        1: { label: '💳 Paying premiums', text: 'How do I pay my health insurance premium?' },
+        2: { label: '🩺 Using hospitals', text: 'How does seeing a doctor work in Korea?' },
+        3: { label: '📋 Insurance benefits', text: 'What benefits does health insurance cover?' },
+      },
     },
     main: {
       name: 'Main Chat',
