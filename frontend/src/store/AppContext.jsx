@@ -4,6 +4,7 @@ import { getVisaSteps, updateStepStatus } from '../api/steps';
 import { persistUserProfile } from '../api/userProfile';
 import { loadUserProfile } from '../utils/storage';
 import { mergeEvents } from '../api/calendar';
+import { buildAnswerHistory } from '../utils/answerHistory';
 import { useI18n } from '../i18n';
 
 const DEFAULT_PROFILE = {
@@ -175,6 +176,9 @@ export function AppProvider({ children }) {
     return chatState[channelId] ?? EMPTY_MESSAGES;
   }
 
+  // "기록" 탭에서 보여줄 실제 질문/답변 목록 — 새 저장소 없이 chatState에서 파생시킨다
+  const answerHistory = useMemo(() => buildAnswerHistory(chatState), [chatState]);
+
   // ── 함수 ──
   function navigate(id, params = {}) {
     if (id === 'notif-placeholder') { showToast(t('toast.notifSoon')); return; }
@@ -268,7 +272,7 @@ export function AppProvider({ children }) {
       // 유저 프로필
       userProfile, saveUserProfile: saveProfile, updateUserProfile,
       // 채팅 상태
-      addMessage, getMessages,
+      addMessage, getMessages, answerHistory,
       // 채팅 입력창 임시저장(draft)
       getDraft, setDraft, clearDraft,
       // 채팅 체크리스트 → 캘린더

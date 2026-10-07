@@ -197,6 +197,7 @@ export default {
     resultCount: '저장된 답변 {n}건',
     aiAnswer: 'AI 답변',
     viewAnswer: '답변 보기 ›',
+    empty: '이 필터에 해당하는 답변이 없어요',
   },
 
   profile: {

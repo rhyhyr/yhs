@@ -196,6 +196,7 @@ export default {
     resultCount: '已保存 {n} 条回答',
     aiAnswer: 'AI 回答',
     viewAnswer: '查看回答 ›',
+    empty: '没有符合该筛选条件的回答',
   },
 
   profile: {

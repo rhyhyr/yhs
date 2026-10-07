@@ -194,6 +194,7 @@ export default {
     resultCount: '{n} saved answers',
     aiAnswer: 'AI answer',
     viewAnswer: 'View answer ›',
+    empty: 'No answers match this filter',
   },
 
   profile: {
