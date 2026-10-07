@@ -45,6 +45,29 @@ function AppShell() {
     return () => document.head.removeChild(styleEl);
   }, []);
 
+  // 모바일에서 키보드가 올라오면 visualViewport가 그만큼 줄어드는 걸 감지해서
+  // --kb-offset으로 흘려보냄 (globalStyles.js의 480px 이하 .iphone 규칙이 이 값으로
+  // 높이를 줄여서, flex 맨 아래 있는 채팅 입력창이 키보드에 가려지지 않게 함).
+  // 지원 안 하는 브라우저는 그냥 아무 일도 안 함(--kb-offset 기본값 0).
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    function handleViewportChange() {
+      const offset = window.innerHeight - vv.height - vv.offsetTop;
+      document.documentElement.style.setProperty('--kb-offset', `${Math.max(0, offset)}px`);
+    }
+
+    vv.addEventListener('resize', handleViewportChange);
+    vv.addEventListener('scroll', handleViewportChange);
+    handleViewportChange();
+
+    return () => {
+      vv.removeEventListener('resize', handleViewportChange);
+      vv.removeEventListener('scroll', handleViewportChange);
+    };
+  }, []);
+
   return (
     <div className="phone-wrapper">
     <div className="iphone">

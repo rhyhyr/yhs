@@ -1669,7 +1669,7 @@ export const globalStyles = `
     width: 100%;
     background: var(--c-surface);
     border-radius: 20px 20px 0 0;
-    padding: 12px 16px 28px;
+    padding: 12px 16px calc(28px + var(--safe-bot));
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -1937,7 +1937,7 @@ export const globalStyles = `
     width: 100%;
     background: var(--c-surface);
     border-radius: 24px 24px 0 0;
-    padding: 14px 16px 32px;
+    padding: 14px 16px calc(32px + var(--safe-bot));
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -2032,7 +2032,9 @@ export const globalStyles = `
       width: 100%;
       max-width: 100%;
       height: 100vh;
-      height: 100dvh;
+      /* --kb-offset: 키보드가 올라온 만큼(App.jsx가 visualViewport로 측정해서 넣어줌).
+         안 올라와 있으면 0이라 평소엔 그냥 100dvh와 같다. */
+      height: calc(100dvh - var(--kb-offset, 0px));
       border-radius: 0;
       box-shadow: none;
     }
@@ -2755,7 +2757,7 @@ export const globalStyles = `
   .cl-sheet-footer {
     display: flex;
     gap: 8px;
-    padding: 10px 16px 20px;
+    padding: 10px 16px calc(20px + var(--safe-bot));
     border-top: 1px solid var(--c-border);
   }
 
