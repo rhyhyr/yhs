@@ -6,7 +6,9 @@
  *
  * quickActions: 채널 상단에 표시할 빠른 실행 버튼 (선택 사항)
  *   - type 'navigate': 다른 화면으로 이동
- *   - type 'question': 해당 텍스트를 채팅으로 전송
+ *   - type 'question': 해당 텍스트를 입력창에 채워줌 (전송은 사용자가 직접)
+ *   - example: true 를 주면 점선 테두리로 "예시 바로가기"처럼 보이게 함
+ *     (실제 대화로 만든 게 아니라 미리 준비된 화면으로 바로 이동하는 버튼일 때)
  */
 export const CHANNELS = {
   visa: {
@@ -17,10 +19,11 @@ export const CHANNELS = {
     welcomeMsg: '비자 & 체류 채널입니다.\nARC 재등록, 비자 연장, 외국인등록증 관련 절차를 안내해드릴게요.',
     placeholder: '비자 관련 질문하기...',
     quickActions: [
-      { label: '📋 비자 연장 절차', type: 'navigate', target: 's-step' },
-      { label: '🪪 외국인등록증 재발급', type: 'navigate', target: 's-arc-checklist' },
+      { label: '📋 비자 연장 절차', type: 'question', text: '비자 연장 절차를 알려주세요.' },
+      { label: '🪪 외국인등록증 재발급', type: 'question', text: '외국인등록증 재발급 절차를 알려주세요.' },
       { label: '📄 체류확인서', type: 'question', text: '체류확인서 발급 방법을 알려주세요.' },
       { label: '🔄 비자 변경', type: 'question', text: '비자 변경 절차를 알려주세요.' },
+      { label: '📋 비자 체크리스트', type: 'navigate', target: 's-step', example: true },
     ],
   },
   school: {

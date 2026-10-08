@@ -142,6 +142,9 @@ export default {
     createdTitle: '{title}清单',
     total: '共 {n} 项',
     navTitle: '清单',
+    navArc: '📋 ARC 清单',
+    navVisaExt: '📋 签证清单',
+    navSchool: '📋 选课清单',
     navSub: '{title} · {n} 项',
     askBody: '要根据这些内容创建清单吗？',
     make: '创建',
@@ -289,10 +292,11 @@ export default {
       welcome: '这里是“签证与居留”频道。\n我会为您介绍 ARC 重新登记、签证延期、外国人登录证相关办理流程。',
       placeholder: '咨询签证相关问题...',
       qa: {
-        0: { label: '📋 签证延期流程' },
-        1: { label: '🪪 补办外国人登录证' },
+        0: { label: '📋 签证延期流程', text: '请问签证延期流程是什么？' },
+        1: { label: '🪪 补办外国人登录证', text: '外国人登录证丢失了要怎么补办？' },
         2: { label: '📄 居留证明', text: '请问如何办理居留证明？' },
         3: { label: '🔄 变更签证', text: '请问变更签证的流程是什么？' },
+        4: { label: '📋 签证清单' },
       },
     },
     school: {

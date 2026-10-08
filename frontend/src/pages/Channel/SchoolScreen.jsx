@@ -8,7 +8,7 @@ import { BackIcon } from '../../components/Common/icons';
 import ChatInput from '../../components/Chat/ChatInput';
 import ChatMessage from '../../components/Chat/ChatMessage';
 import ChecklistAskCard from '../../components/Chat/ChecklistAskCard';
-import { CHECKLIST_SCREEN } from '../../data/mockChecklistData';
+import { CHECKLIST_SCREEN, CHECKLIST_NAV_LABEL_KEY } from '../../data/mockChecklistData';
 import CalendarLinkCard from '../../components/Chat/CalendarLinkCard';
 import CalendarRedirectCard from '../../components/Chat/CalendarRedirectCard';
 import ChecklistSelectModal from '../../components/Chat/ChecklistSelectModal';
@@ -113,11 +113,11 @@ export default function SchoolScreen() {
             className="qa-btn qa-btn-checklist"
             onClick={() => navigate(CHECKLIST_SCREEN[activeChecklistId])}
           >
-            {t('channel.checklist')}
+            {t(CHECKLIST_NAV_LABEL_KEY[activeChecklistId] ?? 'channel.checklist')}
           </button>
         )}
         {quickActions.map(action => (
-          <button key={action.label} className="qa-btn"
+          <button key={action.label} className={`qa-btn${action.example ? ' qa-btn-example' : ''}`}
             onClick={() => handleQuickAction(action)} disabled={isLoading}>
             {action.label}
           </button>

@@ -75,7 +75,7 @@ export default function ChannelChatScreen({ channelId }) {
       {quickActions.length > 0 && (
         <div className="qa-scroll">
           {quickActions.map(action => (
-            <button key={action.label} className="qa-btn"
+            <button key={action.label} className={`qa-btn${action.example ? ' qa-btn-example' : ''}`}
               onClick={() => handleQuickAction(action)} disabled={isLoading}>
               {action.label}
             </button>

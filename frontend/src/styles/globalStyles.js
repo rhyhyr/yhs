@@ -483,6 +483,12 @@ export const globalStyles = `
     background: #D4E2FA;
   }
 
+  /* 예시용 퀵액션 버튼 — 실제 대화로 만든 게 아니라 미리 준비된 샘플로 바로 이동함을 표시 */
+  .qa-btn-example {
+    border-style: dashed;
+    color: var(--c-t3);
+  }
+
   .chat-area {
     padding: 10px 14px;
     display: flex;

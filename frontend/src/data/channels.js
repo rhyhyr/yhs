@@ -27,10 +27,11 @@ export const CHANNEL_LIST = [
     placeholder: '비자 관련 질문하기...',
     welcomeMsg: '비자 & 체류 채널입니다.\nARC 재등록, 비자 연장, 외국인등록증 관련 절차를 안내해드릴게요.',
     quickActions: [
-      { label: '📋 비자 연장 절차', type: 'navigate', target: 's-step' },
-      { label: '🪪 외국인등록증',   type: 'question', text: '외국인등록증 재발급 절차를 알려주세요.' },
+      { label: '📋 비자 연장 절차', type: 'question', text: '비자 연장 절차를 알려주세요.' },
+      { label: '🪪 외국인등록증 재발급', type: 'question', text: '외국인등록증 재발급 절차를 알려주세요.' },
       { label: '📄 체류확인서',     type: 'question', text: '체류확인서 발급 방법을 알려주세요.' },
       { label: '🔄 비자 변경',      type: 'question', text: '비자 변경 절차를 알려주세요.' },
+      { label: '📋 비자 체크리스트', type: 'navigate', target: 's-step', example: true },
     ],
   },
   {

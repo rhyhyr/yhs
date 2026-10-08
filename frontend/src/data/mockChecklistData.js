@@ -91,3 +91,15 @@ export const CHECKLIST_SCREEN = {
   'visa-extension':      's-step',
   'school-registration': 's-school-checklist',
 };
+
+/**
+ * checklistId → 체크리스트 이동 버튼에 쓸 i18n 키.
+ * 비자 채널은 하나의 채널에서 서로 다른 체크리스트(비자 연장/ARC 재발급)가
+ * 만들어질 수 있어서, 버튼에 "체크리스트"라고만 쓰면 뭘 눌러야 할지 헷갈림 —
+ * 어떤 체크리스트인지 이름으로 구별되게 함.
+ */
+export const CHECKLIST_NAV_LABEL_KEY = {
+  'arc-renew':           'checklist.navArc',
+  'visa-extension':      'checklist.navVisaExt',
+  'school-registration': 'checklist.navSchool',
+};

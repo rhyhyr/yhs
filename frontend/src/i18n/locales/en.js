@@ -140,6 +140,9 @@ export default {
     createdTitle: '{title} checklist',
     total: '{n} items in total',
     navTitle: 'Checklist',
+    navArc: '📋 ARC Checklist',
+    navVisaExt: '📋 Visa Checklist',
+    navSchool: '📋 Course Registration Checklist',
     navSub: '{title} · {n} items',
     askBody: 'Create a checklist from this?',
     make: 'Create',
@@ -287,10 +290,11 @@ export default {
       welcome: 'Welcome to the Visa & Stay channel.\nI can guide you through ARC re-registration, visa extensions and alien registration card procedures.',
       placeholder: 'Ask about visas...',
       qa: {
-        0: { label: '📋 Visa extension steps' },
-        1: { label: '🪪 Reissue alien registration card' },
+        0: { label: '📋 Visa extension steps', text: "What's the visa extension procedure?" },
+        1: { label: '🪪 Reissue alien registration card', text: 'How do I reissue my alien registration card?' },
         2: { label: '📄 Certificate of residence', text: 'How do I get a certificate of residence?' },
         3: { label: '🔄 Change of visa', text: 'What is the procedure for changing my visa?' },
+        4: { label: '📋 Visa checklist' },
       },
     },
     school: {
