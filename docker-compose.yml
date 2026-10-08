@@ -99,6 +99,10 @@ services:
       args:
         # 비워 두면 같은 오리진의 /api 로 호출하고 nginx 가 프록시합니다.
         VITE_API_BASE_URL: ""
+        # 구글 캘린더 연동 OAuth 클라이언트 ID. 로컬에서 docker compose로 직접
+        # 빌드할 때만 의미 있음 — 운영 배포는 CI가 이미 빌드해둔 이미지를 쓰므로
+        # .github/workflows/cd.yml 쪽 설정이 적용된다.
+        VITE_GOOGLE_CLIENT_ID: "${VITE_GOOGLE_CLIENT_ID:-}"
     restart: unless-stopped
     ports:
       - "3000:80"
