@@ -4,6 +4,7 @@ import { useChatChannel } from '../../hooks/useChatChannel';
 import BottomNav from '../../components/Common/BottomNav';
 import ChatInput from '../../components/Chat/ChatInput';
 import ChatMessage from '../../components/Chat/ChatMessage';
+import ChannelCreateModal from '../../components/Chat/ChannelCreateModal';
 import { useI18n } from '../../i18n';
 import { getChannel } from '../../api/channels';
 
@@ -26,7 +27,7 @@ const CHANNEL_SCREEN = {
 };
 
 export default function ChatScreen() {
-  const { navigate, showToast, createdChannels, addCreatedChannel } = useApp();
+  const { navigate, showToast, createdChannels, addCreatedChannel, toggleChannelPin } = useApp();
   const { t, localizeChannel } = useI18n();
   const catName = cat => localizeChannel(getChannel(cat.id)).name;
   const welcomeMsg = localizeChannel(getChannel(CHANNEL_ID)).welcomeMsg;
@@ -140,6 +141,13 @@ export default function ChatScreen() {
                   <div className="ch-preview">{t('chat.createdPreview')}</div>
                 </div>
                 <div style={{ fontSize: '18px', color: 'var(--c-t3)' }}>›</div>
+                <button
+                  className={`ch-pin-btn${cat.pinned ? ' pinned' : ''}`}
+                  onClick={e => { e.stopPropagation(); toggleChannelPin(cat.id); }}
+                  aria-label="pin"
+                >
+                  📌
+                </button>
               </div>
             ))}
           </div>
@@ -184,6 +192,7 @@ export default function ChatScreen() {
       {!showWelcome && (
         <ChatInput
           inputId="main-input"
+          channelId={CHANNEL_ID}
           placeholder={localizeChannel(getChannel(CHANNEL_ID)).placeholder}
           onSend={handleSend}
           disabled={isLoading}
@@ -194,28 +203,12 @@ export default function ChatScreen() {
 
       {/* ── 채널 생성 확인 모달 ── */}
       {selectedCategory && (
-        <div className="source-modal-overlay" onClick={() => setSelectedCategory(null)}>
-          <div className="channel-modal-sheet" onClick={e => e.stopPropagation()}>
-            <div className="source-modal-handle" />
-            <div style={{ textAlign: 'center', padding: '4px 0 8px' }}>
-              <div style={{ fontSize: '36px', marginBottom: '10px' }}>
-                {selectedCategory.icon}
-              </div>
-              <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--c-t1)', marginBottom: '6px' }}>
-                {t('chat.createTitle', { name: catName(selectedCategory) })}
-              </div>
-              <div style={{ fontSize: '13px', color: 'var(--c-t2)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
-                {t('chat.createDesc')}
-              </div>
-            </div>
-            <button className="channel-modal-btn primary" onClick={handleCreateChannel}>
-              {t('chat.createBtn')}
-            </button>
-            <button className="channel-modal-btn secondary" onClick={() => setSelectedCategory(null)}>
-              {t('chat.later')}
-            </button>
-          </div>
-        </div>
+        <ChannelCreateModal
+          icon={selectedCategory.icon}
+          name={catName(selectedCategory)}
+          onConfirm={handleCreateChannel}
+          onClose={() => setSelectedCategory(null)}
+        />
       )}
     </>
   );

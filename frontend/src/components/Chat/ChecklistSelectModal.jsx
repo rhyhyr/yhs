@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { getMockChecklist } from '../../data/mockChecklistData';
+import { downloadIcsFile, createGoogleCalendarEvents } from '../../utils/googleCalendar';
+import { useApp } from '../../hooks/useApp';
 import { useI18n } from '../../i18n';
 
 /**
@@ -7,15 +9,23 @@ import { useI18n } from '../../i18n';
  *
  * props:
  *   checklistId — 표시할 체크리스트 ID
- *   onConfirm   — (selectedItemIds: number[]) => void
+ *   onConfirm   — (selectedItemIds: number[], dateOverrides: Record<number,string>) => void
  *   onClose     — 모달 닫기
  */
 export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }) {
   const { t, fmt, localizeChecklist } = useI18n();
+  const { googleAccessToken, showToast, invalidateGoogleToken } = useApp();
   const checklist = localizeChecklist(getMockChecklist(checklistId));
+  const [addingToGoogle, setAddingToGoogle] = useState(false);
   const [selected, setSelected] = useState(
     () => new Set(checklist?.items.map(i => i.id) ?? [])
   );
+
+  // 항목별로 사용자가 직접 바꾼 날짜 — 키: item.id, 값: 'YYYY-MM-DD'.
+  // 여기 없는 항목은 체크리스트 원래 날짜를 그대로 씀.
+  const [dateOverrides, setDateOverrides] = useState({});
+  // 지금 날짜 입력 중인 항목 id (한 번에 하나만 편집)
+  const [editingId, setEditingId] = useState(null);
 
   if (!checklist) return null;
 
@@ -35,6 +45,11 @@ export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }
     );
   }
 
+  function changeDate(id, value) {
+    if (!value) return;
+    setDateOverrides(prev => ({ ...prev, [id]: value }));
+  }
+
   const formatDueDate = (dateStr) => {
     const [, m, d] = dateStr.split('-').map(Number);
     return fmt(new Date(2000, m - 1, d), { month: 'long', day: 'numeric' });
@@ -42,6 +57,45 @@ export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }
 
   const allSelected = selected.size === checklist.items.length;
   const count = selected.size;
+
+  // 선택한 항목을 통째로 .ics 파일로 내려받기 — 구글 캘린더 "가져오기"로 한 번에 등록 가능
+  // (다른 캘린더 앱도 다 호환되는 표준 파일이라 구글에만 묶이지 않음)
+  function handleExportIcs() {
+    const events = checklist.items
+      .filter(item => selected.has(item.id))
+      .map(item => ({
+        uid: `${checklist.id}-${item.id}`,
+        title: item.text,
+        description: item.sub || '',
+        dateStr: dateOverrides[item.id] ?? item.dueDate,
+      }));
+    downloadIcsFile(checklist.title, events);
+  }
+
+  // 구글 연결이 돼 있으면, 선택한 항목을 실제로 하나씩 Calendar API로 등록
+  async function handleAddAllToGoogle() {
+    const events = checklist.items
+      .filter(item => selected.has(item.id))
+      .map(item => ({
+        title: item.text,
+        description: item.sub || '',
+        dateStr: dateOverrides[item.id] ?? item.dueDate,
+      }));
+
+    setAddingToGoogle(true);
+    try {
+      const { succeeded, failed, authExpired } = await createGoogleCalendarEvents(googleAccessToken, events);
+      if (authExpired) {
+        invalidateGoogleToken();
+      } else if (failed === 0) {
+        showToast(t('checklist.addAllToGoogleDone', { n: succeeded }));
+      } else {
+        showToast(t('checklist.addAllToGoogleDonePartial', { succeeded, failed }));
+      }
+    } finally {
+      setAddingToGoogle(false);
+    }
+  }
 
   return (
     <div className="source-modal-overlay" onClick={onClose}>
@@ -62,7 +116,9 @@ export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }
         {/* 항목 목록 */}
         <div className="cl-sheet-list">
           {checklist.items.map(item => {
-            const checked = selected.has(item.id);
+            const checked  = selected.has(item.id);
+            const dueDate  = dateOverrides[item.id] ?? item.dueDate;
+            const editing  = editingId === item.id;
             return (
               <div
                 key={item.id}
@@ -76,15 +132,55 @@ export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }
                   <div className="cl-sheet-item-title">{item.text}</div>
                   {item.sub && <div className="cl-sheet-item-sub">{item.sub}</div>}
                 </div>
-                <div
-                  className="cl-sheet-item-date"
-                  style={{ color: checklist.color, background: `${checklist.color}14` }}
-                >
-                  {formatDueDate(item.dueDate)}
-                </div>
+
+                {editing ? (
+                  <input
+                    type="date"
+                    className="cl-sheet-date-input"
+                    value={dueDate}
+                    autoFocus
+                    onClick={e => e.stopPropagation()}
+                    onChange={e => changeDate(item.id, e.target.value)}
+                    onBlur={() => setEditingId(null)}
+                  />
+                ) : (
+                  <div
+                    className="cl-sheet-item-date"
+                    style={{ color: checklist.color, background: `${checklist.color}14` }}
+                    onClick={e => { e.stopPropagation(); setEditingId(item.id); }}
+                  >
+                    {formatDueDate(dueDate)} ✏️
+                  </div>
+                )}
               </div>
             );
           })}
+        </div>
+
+        {/* 구글 연결이 돼 있으면, 로그인 없는 .ics 방식 대신 바로 등록하는 버튼도 보여줌 */}
+        {googleAccessToken && (
+          <div style={{ padding: '0 16px 4px' }}>
+            <button
+              className="qa-btn"
+              style={{ width: '100%', textAlign: 'center', borderRadius: '11px', padding: '10px 14px' }}
+              disabled={count === 0 || addingToGoogle}
+              onClick={handleAddAllToGoogle}
+            >
+              {addingToGoogle ? t('checklist.addAllToGoogleInProgress') : t('checklist.addAllToGoogle', { n: count })}
+            </button>
+          </div>
+        )}
+
+        {/* 구글 캘린더(등) 가져오기용 .ics 내보내기 */}
+        <div style={{ padding: '0 16px 4px' }}>
+          <button
+            className="qa-btn"
+            style={{ width: '100%', textAlign: 'center', borderRadius: '11px', padding: '10px 14px' }}
+            disabled={count === 0}
+            onClick={handleExportIcs}
+          >
+            {t('checklist.exportIcs', { n: count })}
+          </button>
         </div>
 
         {/* 하단 버튼 */}
@@ -93,7 +189,7 @@ export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }
           <button
             className="cl-sheet-confirm"
             disabled={count === 0}
-            onClick={() => onConfirm(Array.from(selected))}
+            onClick={() => onConfirm(Array.from(selected), dateOverrides)}
           >
             {count > 0 ? t('checklist.linkN', { n: count }) : t('checklist.selectPrompt')}
           </button>

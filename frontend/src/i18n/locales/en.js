@@ -106,6 +106,11 @@ export default {
     emptySub: 'Create a checklist in chat and\nadd it to your calendar',
     fromChat: 'This event was added from chat',
     chatBadge: '💬 Chat',
+    viewChat: '💬 View related conversation',
+    addToGoogle: '📅 Add to Google Calendar',
+    addToGoogleReal: '✅ Add directly to Google Calendar',
+    addedToGoogle: 'Added to Google Calendar!',
+    addToGoogleFailed: 'Could not add it. Please try again shortly.',
     done: 'Done',
   },
 
@@ -144,6 +149,11 @@ export default {
     deselectAll: 'Clear all',
     linkN: 'Add {n} items',
     selectPrompt: 'Select items',
+    exportIcs: '📥 Export {n} selected as .ics (Google Calendar, etc.)',
+    addAllToGoogle: '✅ Add {n} selected directly to Google Calendar',
+    addAllToGoogleInProgress: 'Adding...',
+    addAllToGoogleDone: 'All {n} added!',
+    addAllToGoogleDonePartial: '{succeeded} added, {failed} failed.',
   },
 
   calendarLink: {
@@ -193,6 +203,7 @@ export default {
     resultCount: '{n} saved answers',
     aiAnswer: 'AI answer',
     viewAnswer: 'View answer ›',
+    empty: 'No answers match this filter',
   },
 
   profile: {
@@ -216,10 +227,21 @@ export default {
     notifOn: 'Notifications turned on',
     appSection: 'App settings',
     language: 'Language',
+    googleCalendar: 'Google Calendar sync',
+    googleConnected: 'Connected',
+    googleNotConnected: 'Not connected',
+    googleConnecting: 'Connecting...',
     languageSheetTitle: 'Choose language',
     editProfile: 'Edit personal info',
     editProfileSub: 'Name, school, major',
     logout: 'Log out',
+  },
+
+  google: {
+    connected: 'Connected to Google Calendar!',
+    notConfigured: 'Google Calendar sync isn\'t set up yet.',
+    connectCancelled: 'Google Calendar connection was cancelled.',
+    tokenExpired: 'Your Google connection expired. Please connect again.',
   },
 
   onboarding: {
@@ -286,16 +308,34 @@ export default {
       name: 'Jobs & Part-time Work',
       welcome: 'Welcome to the Jobs & Part-time Work channel.\nI will guide you step by step through the part-time work permit process, required documents and allowed working hours.',
       placeholder: 'Ask about jobs and part-time work...',
+      qa: {
+        0: { label: '🪪 Work permit', text: 'How do I apply for a part-time work permit?' },
+        1: { label: '📄 Required documents', text: 'What documents do I need for a part-time job?' },
+        2: { label: '⏰ Allowed hours', text: 'How many hours can I work part-time during the semester?' },
+        3: { label: '⚠️ Working without permission', text: 'What happens if I work without a permit?' },
+      },
     },
     house: {
       name: 'Housing',
       welcome: 'Welcome to the Housing channel. Ask me about jeonse/monthly rent contracts, maintenance fees, moving, and tips for foreign tenants!',
       placeholder: 'Ask about housing...',
+      qa: {
+        0: { label: '📑 Before you sign', text: 'What should I check before signing a lease?' },
+        1: { label: '🏠 Move-in report', text: 'How do I file a move-in report?' },
+        2: { label: '💰 Maintenance fees', text: 'What does the maintenance fee usually cover?' },
+        3: { label: '📦 Moving checklist', text: 'What should I watch out for when moving?' },
+      },
     },
     insurance: {
       name: 'Hospital & Insurance',
       welcome: 'Welcome to the Hospital & Insurance channel. I can help with health insurance enrollment, using hospitals and insurance benefits!',
       placeholder: 'Ask about hospitals and insurance...',
+      qa: {
+        0: { label: '🏥 Enrolling in insurance', text: 'How do international students enroll in health insurance?' },
+        1: { label: '💳 Paying premiums', text: 'How do I pay my health insurance premium?' },
+        2: { label: '🩺 Using hospitals', text: 'How does seeing a doctor work in Korea?' },
+        3: { label: '📋 Insurance benefits', text: 'What benefits does health insurance cover?' },
+      },
     },
     main: {
       name: 'Main Chat',

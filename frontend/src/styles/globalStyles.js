@@ -393,6 +393,30 @@ export const globalStyles = `
     border-radius: 10px;
   }
 
+  /* 채널 상단 고정 버튼 — ch-item 맨 오른쪽에 작게 */
+  .ch-pin-btn {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--c-t3);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color .15s, background .15s;
+  }
+
+  .ch-pin-btn:active { background: var(--c-bg); }
+
+  .ch-pin-btn.pinned {
+    color: var(--c-accent);
+    background: var(--c-accent-l);
+  }
+
   .info-chip {
     display: flex;
     align-items: center;
@@ -467,6 +491,17 @@ export const globalStyles = `
   }
 
   .msg-ai { display: flex; gap: 8px; align-items: flex-end; }
+
+  /* 캘린더 "관련 대화 보기"로 돌아왔을 때 해당 메시지를 잠깐 강조 */
+  .msg-highlighted {
+    animation: msgHighlightFlash 2s ease;
+    border-radius: 14px;
+  }
+
+  @keyframes msgHighlightFlash {
+    0%   { background: var(--c-accent-l); }
+    100% { background: transparent; }
+  }
 
   .ai-av {
     width: 30px;
@@ -1634,7 +1669,7 @@ export const globalStyles = `
     width: 100%;
     background: var(--c-surface);
     border-radius: 20px 20px 0 0;
-    padding: 12px 16px 28px;
+    padding: 12px 16px calc(28px + var(--safe-bot));
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -1902,7 +1937,7 @@ export const globalStyles = `
     width: 100%;
     background: var(--c-surface);
     border-radius: 24px 24px 0 0;
-    padding: 14px 16px 32px;
+    padding: 14px 16px calc(32px + var(--safe-bot));
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -1997,9 +2032,34 @@ export const globalStyles = `
       width: 100%;
       max-width: 100%;
       height: 100vh;
-      height: 100dvh;
+      /* --kb-offset: 키보드가 올라온 만큼(App.jsx가 visualViewport로 측정해서 넣어줌).
+         안 올라와 있으면 0이라 평소엔 그냥 100dvh와 같다. */
+      height: calc(100dvh - var(--kb-offset, 0px));
       border-radius: 0;
       box-shadow: none;
+    }
+
+    /* 실제 기기에는 진짜 상태바·다이나믹 아일랜드·홈 인디케이터가 이미 있으므로
+       PC 목업용으로 그려둔 가짜 버전은 숨긴다. */
+    .dynamic-island,
+    .status-bar,
+    .home-indicator {
+      display: none;
+    }
+
+    /* --safe-top/--safe-bot 은 .screens, .bottom-nav, .toast 등 여러 곳에서
+       var() 로 참조하고 있어서, 여기서 한 번만 "가짜 59px/34px" 대신
+       기기의 실제 세이프에어리어(노치·다이나믹 아일랜드·제스처 바) 값으로
+       바꿔주면 그 값을 쓰는 요소들이 전부 자동으로 맞춰진다.
+       (index.html 의 viewport-fit=cover 가 있어야 env() 값이 0이 아닌 실제 값으로 들어온다) */
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bot: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* 채팅 입력창은 --safe-bot 을 안 쓰고 있어서 따로 하단 여백을 더해준다 */
+    .chat-input-bar {
+      padding-bottom: calc(12px + var(--safe-bot));
     }
 
     /* 말풍선 너비 뷰포트 기반으로 전환 */
@@ -2266,6 +2326,24 @@ export const globalStyles = `
     font-weight: 600;
     padding: 3px 9px;
     border-radius: 8px;
+  }
+
+  .cal-event-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .cal-event-chat-link {
+    padding: 0;
+    border: none;
+    background: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-accent);
+    cursor: pointer;
+    text-decoration: none;
   }
 
   .cal-event-completed {
@@ -2665,12 +2743,27 @@ export const globalStyles = `
     font-weight: 600;
     padding: 3px 8px;
     border-radius: 7px;
+    cursor: pointer;
+  }
+
+  /* 날짜 칩을 탭하면 이 네이티브 date input으로 바뀐다 — 등록 전 날짜 수정 */
+  .cl-sheet-date-input {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: inherit;
+    padding: 2px 6px;
+    border-radius: 7px;
+    border: 1.5px solid var(--c-accent-m);
+    background: var(--c-surface);
+    color: var(--c-t1);
+    width: 120px;
   }
 
   .cl-sheet-footer {
     display: flex;
     gap: 8px;
-    padding: 10px 16px 20px;
+    padding: 10px 16px calc(20px + var(--safe-bot));
     border-top: 1px solid var(--c-border);
   }
 

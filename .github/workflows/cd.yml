@@ -57,3 +57,11 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,scope=${{ matrix.service }},mode=max
+          # frontend 전용 build-arg. Vite 환경변수는 빌드 시점에 결과물에 박히므로
+          # 여기서 안 넘기면 운영 이미지엔 빈 값으로 고정됨(해당 기능만 비활성화,
+          # 빌드 자체는 안 깨짐). 클라이언트 ID는 비밀값이 아니라서(client secret이
+          # 필요 없는 OAuth 방식) Secrets 대신 Variables(repo vars)에 등록하면 됨:
+          # Settings → Secrets and variables → Actions → Variables 탭 →
+          # VITE_GOOGLE_CLIENT_ID 추가.
+          build-args: |
+            ${{ matrix.service == 'frontend' && format('VITE_GOOGLE_CLIENT_ID={0}', vars.VITE_GOOGLE_CLIENT_ID) || '' }}

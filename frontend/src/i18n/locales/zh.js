@@ -108,6 +108,11 @@ export default {
     emptySub: '在聊天中创建清单，\n并添加到日历吧',
     fromChat: '这是通过聊天添加的日程',
     chatBadge: '💬 聊天',
+    viewChat: '💬 查看相关对话',
+    addToGoogle: '📅 添加到谷歌日历',
+    addToGoogleReal: '✅ 直接添加到谷歌日历',
+    addedToGoogle: '已添加到谷歌日历！',
+    addToGoogleFailed: '添加失败，请稍后重试。',
     done: '已完成',
   },
 
@@ -146,6 +151,11 @@ export default {
     deselectAll: '取消全选',
     linkN: '添加 {n} 项',
     selectPrompt: '请选择项目',
+    exportIcs: '📥 导出已选 {n} 项为 .ics（可导入谷歌日历等）',
+    addAllToGoogle: '✅ 将已选 {n} 项直接添加到谷歌日历',
+    addAllToGoogleInProgress: '正在添加...',
+    addAllToGoogleDone: '已全部添加 {n} 项！',
+    addAllToGoogleDonePartial: '成功 {succeeded} 项，失败 {failed} 项。',
   },
 
   calendarLink: {
@@ -195,6 +205,7 @@ export default {
     resultCount: '已保存 {n} 条回答',
     aiAnswer: 'AI 回答',
     viewAnswer: '查看回答 ›',
+    empty: '没有符合该筛选条件的回答',
   },
 
   profile: {
@@ -218,10 +229,21 @@ export default {
     notifOn: '通知已开启',
     appSection: '应用设置',
     language: '语言',
+    googleCalendar: '谷歌日历同步',
+    googleConnected: '已连接',
+    googleNotConnected: '未连接',
+    googleConnecting: '连接中...',
     languageSheetTitle: '选择语言',
     editProfile: '修改个人信息',
     editProfileSub: '姓名、学校、专业',
     logout: '退出登录',
+  },
+
+  google: {
+    connected: '已连接到谷歌日历！',
+    notConfigured: '谷歌日历同步还没有设置好。',
+    connectCancelled: '已取消连接谷歌日历。',
+    tokenExpired: '谷歌连接已过期，请重新连接。',
   },
 
   onboarding: {
@@ -288,16 +310,34 @@ export default {
       name: '就业与打工',
       welcome: '这里是“就业与打工”频道。\n我会分步骤为您介绍兼职就业许可流程、所需材料、可工作时间等。',
       placeholder: '咨询就业、打工相关问题...',
+      qa: {
+        0: { label: '🪪 兼职就业许可', text: '请问如何申请兼职就业许可？' },
+        1: { label: '📄 所需材料', text: '打工需要准备哪些材料？' },
+        2: { label: '⏰ 可工作时间', text: '学期中兼职最多可以工作多少小时？' },
+        3: { label: '⚠️ 无许可打工', text: '没有许可就打工会怎么样？' },
+      },
     },
     house: {
       name: '住房',
       welcome: '这里是“住房”频道。欢迎咨询租房合同、管理费、搬家、外国人租房注意事项等住房相关问题！',
       placeholder: '咨询住房相关问题...',
+      qa: {
+        0: { label: '📑 签约前确认事项', text: '签租房合同前要确认什么？' },
+        1: { label: '🏠 迁入申报', text: '迁入申报要怎么办理？' },
+        2: { label: '💰 管理费', text: '管理费一般包含哪些项目？' },
+        3: { label: '📦 搬家清单', text: '搬家时有哪些需要注意的？' },
+      },
     },
     insurance: {
       name: '医院与保险',
       welcome: '这里是“医院与保险”频道。我会为您介绍健康保险参保、就医方法、保险福利等！',
       placeholder: '咨询医院、保险相关问题...',
+      qa: {
+        0: { label: '🏥 参加健康保险', text: '留学生健康保险要怎么参保？' },
+        1: { label: '💳 缴纳保险费', text: '健康保险费要怎么缴纳？' },
+        2: { label: '🩺 就医方法', text: '在韩国怎么去医院看病？' },
+        3: { label: '📋 保险福利', text: '健康保险能享受哪些福利？' },
+      },
     },
     main: {
       name: '主聊天',

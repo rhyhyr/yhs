@@ -61,7 +61,7 @@ export default function OnboardingScreen() {
     <div style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <div className="ob-hero">
         <span className="ob-mark">🎓</span>
-        <div className="ob-h">UniGuide AI</div>
+        <div className="ob-h">YuGuide AI</div>
         <div className="ob-p" style={{ whiteSpace: 'pre-line' }}>{t('onboarding.tagline')}</div>
       </div>
 

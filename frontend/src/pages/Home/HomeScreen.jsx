@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useApp } from '../../hooks/useApp';
 import BottomNav from '../../components/Common/BottomNav';
+import ChannelCreateModal from '../../components/Chat/ChannelCreateModal';
 import { useI18n } from '../../i18n';
 import { getChannel } from '../../api/channels';
 
@@ -17,8 +19,11 @@ const URGENT_ITEMS = [
 /* ── 예시 채널 (ghost) — 실제 채널이 없을 때 흐리게 표시. 이름·아이콘은 채널 레지스트리에서 ── */
 const GHOST_CHANNEL_IDS = ['visa', 'school', 'job', 'house', 'insurance'];
 
-/* ── 서브 컴포넌트: 일반 채널 아이템 ── */
-function ChItem({ icon, iconBg, name, preview, time, badge, urgent, onClick }) {
+/* ── 서브 컴포넌트: 일반 채널 아이템 ──
+   onTogglePin이 전달될 때만(=실제로 생성된 채널일 때만) 핀 버튼을 보여준다.
+   예시 채널·긴급 알림 배너는 pin 대상이 아니라서 onTogglePin을 안 넘긴다. */
+function ChItem({ icon, iconBg, name, preview, time, badge, urgent, pinned, onTogglePin, exampleBadge, onClick }) {
+  const { t } = useI18n();
   return (
     <div
       className={`ch-item${urgent ? ' ch-item--urgent' : ''}`}
@@ -36,7 +41,17 @@ function ChItem({ icon, iconBg, name, preview, time, badge, urgent, onClick }) {
             {badge.label}
           </div>
         )}
+        {exampleBadge && <span className="ghost-badge">{t('common.example')}</span>}
       </div>
+      {onTogglePin && (
+        <button
+          className={`ch-pin-btn${pinned ? ' pinned' : ''}`}
+          onClick={e => { e.stopPropagation(); onTogglePin(); }}
+          aria-label="pin"
+        >
+          📌
+        </button>
+      )}
     </div>
   );
 }
@@ -60,12 +75,15 @@ function GhostChItem({ icon, iconBg, name, preview, onClick }) {
 
 /* ── 메인 화면 ── */
 export default function HomeScreen() {
-  const { navigate, showToast, createdChannels, userProfile } = useApp();
+  const { navigate, showToast, createdChannels, addCreatedChannel, toggleChannelPin, userProfile } = useApp();
   const { t, localizeChannel } = useI18n();
 
   const userName = userProfile?.name?.trim();
   const displayName = userName || t('home.greetingFallback');
   const initial = userName ? userName.charAt(0).toUpperCase() : '?';
+
+  // 예시 채널 카드에서 "생성할까요?" 확인 중인 채널 (null이면 모달 안 뜸)
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   // 채널 ID → 전용 화면 매핑 (채널 추가 시 여기만 수정)
   const CHANNEL_SCREEN = {
@@ -86,6 +104,23 @@ export default function HomeScreen() {
     }
   }
 
+  // 예시 채널 카드 클릭 → 실제로 만들지 확인하는 모달 띄움
+  // (ChatScreen의 카테고리 칩과 동일한 흐름 — addCreatedChannel 재사용)
+  function handleGhostClick(id) {
+    const ch = getChannel(id);
+    if (!ch) return;
+    setSelectedCategory({ id, channelId: id, icon: ch.icon, iconBg: ch.iconBg });
+  }
+
+  function handleCreateChannel() {
+    if (!selectedCategory) return;
+    addCreatedChannel(selectedCategory);
+    showToast(t('chat.channelCreated', { name: localizeChannel(getChannel(selectedCategory.id)).name }));
+    const cat = selectedCategory;
+    setSelectedCategory(null);
+    goToChannel(cat);
+  }
+
   return (
     <>
       {/* 상단 바 */}
@@ -99,7 +134,7 @@ export default function HomeScreen() {
           <div className="notif-bubble">1</div>
         </div>
         <div style={{ flex: 1, marginLeft: '8px' }}>
-          <div className="tb-title">UniGuide</div>
+          <div className="tb-title">YuGuide</div>
           <div className="tb-sub">{t('home.greeting', { name: displayName })}</div>
         </div>
         <div
@@ -127,6 +162,7 @@ export default function HomeScreen() {
               preview={t('home.urgentPreview')}
               time={t('time.today')}
               urgent
+              exampleBadge
               onClick={() => {}}
             />
           </div>
@@ -158,6 +194,8 @@ export default function HomeScreen() {
                   preview={t('home.tapToOpen')}
                   time={t('time.justNow')}
                   badge={{ label: 'NEW', bg: 'var(--c-accent-l)', color: 'var(--c-accent)' }}
+                  pinned={ch.pinned}
+                  onTogglePin={() => toggleChannelPin(ch.id)}
                   onClick={() => goToChannel(ch)}
                 />
               );
@@ -196,7 +234,7 @@ export default function HomeScreen() {
                   iconBg={ch.iconBg}
                   name={ch.name}
                   preview={t(`home.ghost.${id}`)}
-                  onClick={() => showToast(t('home.channelIsExample'))}
+                  onClick={() => handleGhostClick(id)}
                 />
               );
             })}
@@ -224,6 +262,15 @@ export default function HomeScreen() {
       </div>
 
       <BottomNav active="s-home" />
+
+      {selectedCategory && (
+        <ChannelCreateModal
+          icon={selectedCategory.icon}
+          name={localizeChannel(getChannel(selectedCategory.id)).name}
+          onConfirm={handleCreateChannel}
+          onClose={() => setSelectedCategory(null)}
+        />
+      )}
     </>
   );
 }

@@ -17,6 +17,14 @@ COPY . .
 # 백엔드를 다른 도메인에 두는 경우에만 값을 준다.
 ARG VITE_API_BASE_URL=""
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
+# 구글 캘린더 연동용 OAuth 클라이언트 ID. Vite 환경변수는 빌드 시점에 결과물에
+# 박히므로(런타임에 못 바꿈) 반드시 이 빌드 단계에서 넘겨줘야 한다.
+# 비워 두면(기본값) 구글 캘린더 연동 버튼이 "아직 설정 안 됨"으로 비활성 표시됨 —
+# 빌드가 깨지진 않으니 값을 안 줘도 나머지 기능은 정상 동작한다.
+ARG VITE_GOOGLE_CLIENT_ID=""
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 RUN npm run build
 
 

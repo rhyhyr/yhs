@@ -10,7 +10,10 @@ function getInitial(name) {
 }
 
 export default function ProfileScreen() {
-  const { navigate, showToast, toggles, setToggles, userProfile, updateUserProfile } = useApp();
+  const {
+    navigate, showToast, toggles, setToggles, userProfile, updateUserProfile,
+    googleAccessToken, googleConnecting, connectGoogleCalendar, disconnectGoogleCalendar,
+  } = useApp();
   const { t, locale, setLocale, languages } = useI18n();
   const [langOpen, setLangOpen] = useState(false);
 
@@ -43,6 +46,12 @@ export default function ProfileScreen() {
     setLocale(code);
     updateUserProfile({ languages: [code] });
     setLangOpen(false);
+  }
+
+  function handleGoogleRowClick() {
+    if (googleConnecting) return;
+    if (googleAccessToken) disconnectGoogleCalendar();
+    else connectGoogleCalendar();
   }
 
   const currentLang = languages.find(l => l.code === locale);
@@ -127,6 +136,22 @@ export default function ProfileScreen() {
             <div className="s-val">{currentLang?.nativeName}</div>
           </div>
           <div style={{ fontSize: '18px', color: 'var(--c-t3)' }}>›</div>
+        </div>
+        <div className="setting-row" onClick={handleGoogleRowClick}>
+          <div className="s-icon" style={{ background: 'var(--c-red-l)' }}>📅</div>
+          <div className="s-body">
+            <div className="s-name">{t('profile.googleCalendar')}</div>
+            <div className="s-val">
+              {googleConnecting
+                ? t('profile.googleConnecting')
+                : googleAccessToken
+                  ? t('profile.googleConnected')
+                  : t('profile.googleNotConnected')}
+            </div>
+          </div>
+          <div className={`toggle-track ${googleAccessToken ? 'on' : 'off'}`}>
+            <div className="toggle-knob" />
+          </div>
         </div>
         <div className="setting-row" onClick={() => navigate('s-onboarding')}>
           <div className="s-icon" style={{ background: 'var(--c-bg)' }}>👤</div>

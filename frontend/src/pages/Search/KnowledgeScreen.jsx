@@ -25,6 +25,7 @@ export default function KnowledgeScreen() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
           <div style={{ width: '24px', height: '24px', borderRadius: '7px', background: 'var(--c-purple-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }}>🛂</div>
           <span style={{ fontSize: '13px', color: 'var(--c-t2)' }}>{t('kb.channelLabel', { name: localizeChannel(getChannel('visa')).name })}</span>
+          <span className="ghost-badge">{t('common.example')}</span>
         </div>
       </div>
       <div className="scroll-area">

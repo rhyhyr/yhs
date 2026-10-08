@@ -40,6 +40,7 @@ export default function ChannelMainScreen() {
         {CARDS.map(({ key, tags, time }) => (
           <div key={key} className="k-card" onClick={() => navigate('s-knowledge')}>
             <div className="k-card-body">
+              <span className="ghost-badge" style={{ marginBottom: '4px', display: 'inline-block' }}>{t('common.example')}</span>
               <div className="k-q">{t(`kb.${key}.q`)}</div>
               <div className="k-preview">{t(`kb.${key}.preview`)}</div>
             </div>

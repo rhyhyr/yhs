@@ -21,7 +21,7 @@ import zh from './locales/zh';
 export const LOCALES = { ko, en, zh };
 export const DEFAULT_LOCALE = 'ko';
 
-const STORAGE_KEY = 'uniguide.locale';
+const STORAGE_KEY = 'yuguide.locale';
 
 function loadLocale() {
   try {

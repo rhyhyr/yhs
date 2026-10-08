@@ -13,7 +13,7 @@
  * 백엔드를 다른 도메인에 두는 경우에만 VITE_API_BASE_URL 을 설정하세요.
  */
 export const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
-export const APP_NAME = import.meta.env.VITE_APP_NAME ?? 'UniGuide AI';
+export const APP_NAME = import.meta.env.VITE_APP_NAME ?? 'YuGuide AI';
 
 /** true 면 백엔드를 호출하지 않고 mock 데이터만 씁니다 (디자인 작업용). */
 export const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';

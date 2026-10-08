@@ -1,87 +1,61 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../../hooks/useApp';
+import { useChatChannel } from '../../hooks/useChatChannel';
 import { getChannelById } from '../../data/channels';
-import { getChannelMessages, sendMessage, createMessage } from '../../api/chat';
 import { BackIcon } from '../../components/Common/icons';
 import ChatInput from '../../components/Chat/ChatInput';
 import ChatMessage from '../../components/Chat/ChatMessage';
 import { useI18n } from '../../i18n';
 
 /**
- * 채널 전용 채팅방 공통 컴포넌트
+ * 채널 전용 채팅방 공통 컴포넌트 (취업/주거/보험 등)
  *
  * - props.channelId 로 어떤 채널인지 결정
  * - 채널 메타(헤더·placeholder·welcomeMsg)는 data/channels.js에서 조회
- * - 메시지 송수신은 api/chat.js (mock → fetch 교체 가능)
- * - 메시지 state는 이 컴포넌트가 로컬로 관리 (화면별 독립)
+ * - 메시지는 useChatChannel(공유 훅)을 통해 AppContext의 chatState에 저장된다
+ *   — Visa/SchoolScreen과 같은 방식이라, 화면을 나갔다 와도 대화가 안 사라지고
+ *   "기록" 탭(answerHistory)에도 같이 잡힌다.
  */
 export default function ChannelChatScreen({ channelId }) {
-  const { back, navParams, userProfile } = useApp();
+  const { back, navigate, navParams, setDraft } = useApp();
   const { t, localizeChannel } = useI18n();
   const channel = localizeChannel(getChannelById(channelId));
 
-  const [messages, setMessages]   = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // 메인채팅에서 넘어온 대화 맥락 — 채널 RAG에 컨텍스트로만 제공 (화면엔 안 보임)
+  // useState lazy init으로 마운트 시점 값만 한 번 캡처 (렌더 중 ref.current 직접 읽기 방지)
+  const [initialHistory] = useState(() => navParams?.initialHistory ?? []);
+  const { messages, isLoading, handleSend } = useChatChannel(channelId, initialHistory);
   const bottomRef = useRef(null);
-
-  // 메인채팅에서 넘어온 대화 맥락 — 채널 RAG에 컨텍스트 제공
-  // useRef로 캡처하여 최초 진입 시점의 history만 사용
-  const initialHistoryRef = useRef(navParams?.initialHistory ?? []);
-
-  // 진입 시 이전 메시지 불러오기
-  // mock 단계에서는 빈 배열 반환, 실제 API 연결 후 히스토리 복원
-  useEffect(() => {
-    let cancelled = false;
-    getChannelMessages(channelId)
-      .then(msgs => { if (!cancelled) setMessages(msgs); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [channelId]);
 
   // 새 메시지 도착 시 스크롤 하단 이동
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
-  async function handleSend(text) {
-    const trimmed = text.trim();
-    if (!trimmed || isLoading) return;
-
-    // 히스토리 스냅샷 — 메인채팅 맥락(initialHistory) + 현재 채널 대화
-    const history = [
-      ...initialHistoryRef.current,
-      ...messages.map(m => ({ role: m.role, content: m.text })),
-    ];
-
-    // 사용자 메시지 즉시 추가
-    const userMsg = createMessage({ channelId, role: 'user', text: trimmed });
-    setMessages(prev => [...prev, userMsg]);
-    setIsLoading(true);
-
-    try {
-      const { answer, sources } = await sendMessage({
-        channelId,
-        message: trimmed,
-        history,
-        languages: userProfile?.languages,
-      });
-      const aiMsg = createMessage({ channelId, role: 'ai', text: answer, sources });
-      setMessages(prev => [...prev, aiMsg]);
-    } catch {
-      const errMsg = createMessage({
-        channelId,
-        role: 'ai',
-        text: t('chat.error'),
-      });
-      setMessages(prev => [...prev, errMsg]);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  // ── "관련 대화 보기"(캘린더·검색 기록)로 돌아왔을 때 해당 메시지로 스크롤 ──
+  // 채팅 기록은 새로고침하면 사라지는 구조라, 못 찾으면 조용히 그냥 둔다.
+  const highlightMessageId = navParams?.highlightMessageId ?? null;
+  const [highlightedId, setHighlightedId] = useState(null);
+  const msgRefs = useRef({});
+  useEffect(() => {
+    if (!highlightMessageId) return;
+    const el = msgRefs.current[highlightMessageId];
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setHighlightedId(highlightMessageId);
+    const timer = setTimeout(() => setHighlightedId(null), 2000);
+    return () => clearTimeout(timer);
+  }, [highlightMessageId]);
 
   if (!channel) return null;
 
-  const { icon, iconBg, name, welcomeMsg, placeholder } = channel;
+  const { icon, iconBg, name, welcomeMsg, placeholder, quickActions = [] } = channel;
+
+  // 질문형 버튼은 바로 전송하지 않고 입력창에 채워서, 사용자가 확인/수정 후 직접 전송하게 함
+  function handleQuickAction(action) {
+    if (action.type === 'navigate') navigate(action.target);
+    else setDraft(channelId, action.text);
+  }
 
   return (
     <>
@@ -97,6 +71,18 @@ export default function ChannelChatScreen({ channelId }) {
         <div className="slim-rag">{t('common.ragActive')}</div>
       </div>
 
+      {/* 추천 질문 버튼 — 채널 데이터(data/channels.js)의 quickActions 기준 */}
+      {quickActions.length > 0 && (
+        <div className="qa-scroll">
+          {quickActions.map(action => (
+            <button key={action.label} className="qa-btn"
+              onClick={() => handleQuickAction(action)} disabled={isLoading}>
+              {action.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* 채팅 영역 */}
       <div className="scroll-area">
         <div className="chat-area" id={`${channelId}-chat-area`}>
@@ -105,9 +91,13 @@ export default function ChannelChatScreen({ channelId }) {
             <ChatMessage role="ai">{welcomeMsg}</ChatMessage>
           )}
           {messages.map(msg => (
-            <ChatMessage key={msg.id} role={msg.role} sources={msg.sources}>
-              {msg.text}
-            </ChatMessage>
+            <div
+              key={msg.id}
+              ref={el => { msgRefs.current[msg.id] = el; }}
+              className={highlightedId === msg.id ? 'msg-highlighted' : ''}
+            >
+              <ChatMessage role={msg.role} sources={msg.sources}>{msg.text}</ChatMessage>
+            </div>
           ))}
           {isLoading && <ChatMessage role="ai">…</ChatMessage>}
           <div ref={bottomRef} />
@@ -118,6 +108,7 @@ export default function ChannelChatScreen({ channelId }) {
       {/* 입력창 */}
       <ChatInput
         inputId={`${channelId}-input`}
+        channelId={channelId}
         placeholder={placeholder}
         onSend={handleSend}
         disabled={isLoading}
