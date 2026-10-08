@@ -107,6 +107,7 @@ export default {
     fromChat: 'This event was added from chat',
     chatBadge: '💬 Chat',
     viewChat: '💬 View related conversation',
+    addToGoogle: '📅 Add to Google Calendar',
     done: 'Done',
   },
 
@@ -145,6 +146,7 @@ export default {
     deselectAll: 'Clear all',
     linkN: 'Add {n} items',
     selectPrompt: 'Select items',
+    exportIcs: '📥 Export {n} selected as .ics (Google Calendar, etc.)',
   },
 
   calendarLink: {

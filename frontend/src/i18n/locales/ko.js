@@ -109,6 +109,7 @@ export default {
     fromChat: '채팅에서 등록한 일정이에요',
     chatBadge: '💬 채팅',
     viewChat: '💬 관련 대화 보기',
+    addToGoogle: '📅 구글 캘린더에 추가',
     done: '완료',
   },
 
@@ -147,6 +148,7 @@ export default {
     deselectAll: '모두 해제',
     linkN: '{n}개 항목 연동',
     selectPrompt: '항목을 선택해 주세요',
+    exportIcs: '📥 선택한 {n}개 .ics로 내보내기 (구글 캘린더 등)',
   },
 
   calendarLink: {

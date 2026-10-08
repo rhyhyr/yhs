@@ -2328,9 +2328,14 @@ export const globalStyles = `
     border-radius: 8px;
   }
 
-  .cal-event-chat-link {
-    display: block;
+  .cal-event-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
     margin-top: 8px;
+  }
+
+  .cal-event-chat-link {
     padding: 0;
     border: none;
     background: none;
@@ -2338,6 +2343,7 @@ export const globalStyles = `
     font-weight: 600;
     color: var(--c-accent);
     cursor: pointer;
+    text-decoration: none;
   }
 
   .cal-event-completed {

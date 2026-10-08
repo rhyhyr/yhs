@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getMockChecklist } from '../../data/mockChecklistData';
+import { downloadIcsFile } from '../../utils/googleCalendar';
 import { useI18n } from '../../i18n';
 
 /**
@@ -53,6 +54,20 @@ export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }
 
   const allSelected = selected.size === checklist.items.length;
   const count = selected.size;
+
+  // 선택한 항목을 통째로 .ics 파일로 내려받기 — 구글 캘린더 "가져오기"로 한 번에 등록 가능
+  // (다른 캘린더 앱도 다 호환되는 표준 파일이라 구글에만 묶이지 않음)
+  function handleExportIcs() {
+    const events = checklist.items
+      .filter(item => selected.has(item.id))
+      .map(item => ({
+        uid: `${checklist.id}-${item.id}`,
+        title: item.text,
+        description: item.sub || '',
+        dateStr: dateOverrides[item.id] ?? item.dueDate,
+      }));
+    downloadIcsFile(checklist.title, events);
+  }
 
   return (
     <div className="source-modal-overlay" onClick={onClose}>
@@ -112,6 +127,18 @@ export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }
               </div>
             );
           })}
+        </div>
+
+        {/* 구글 캘린더(등) 가져오기용 .ics 내보내기 */}
+        <div style={{ padding: '0 16px 4px' }}>
+          <button
+            className="qa-btn"
+            style={{ width: '100%', textAlign: 'center', borderRadius: '11px', padding: '10px 14px' }}
+            disabled={count === 0}
+            onClick={handleExportIcs}
+          >
+            {t('checklist.exportIcs', { n: count })}
+          </button>
         </div>
 
         {/* 하단 버튼 */}

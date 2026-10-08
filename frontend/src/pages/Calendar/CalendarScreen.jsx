@@ -4,6 +4,7 @@ import { getCalendarEvents, mergeEvents } from '../../api/calendar';
 import { formatDateKey } from '../../api/mockData';
 import BottomNav from '../../components/Common/BottomNav';
 import { useI18n } from '../../i18n';
+import { buildGoogleCalendarUrl } from '../../utils/googleCalendar';
 
 // 체크리스트→캘린더 연동을 지원하는 채널 → 그 채널의 채팅 화면 id
 // (지금은 비자/학교 채널만 체크리스트 흐름이 있음)
@@ -164,6 +165,7 @@ export default function CalendarScreen() {
                 <EventCard
                   key={i}
                   event={evt}
+                  date={resolvedSelected}
                   onPress={() => showToast(t('calendar.fromChat'))}
                   onViewChat={
                     evt.channelId && evt.messageId && CHECKLIST_CHANNEL_SCREEN[evt.channelId]
@@ -182,7 +184,7 @@ export default function CalendarScreen() {
   );
 }
 
-function EventCard({ event, onPress, onViewChat }) {
+function EventCard({ event, date, onPress, onViewChat }) {
   const { t, tx } = useI18n();
   // 채팅 체크리스트에서 온 일정은 항목 id 로 번역본을 찾아, 언어를 바꾸면 함께 바뀐다
   const base = `checklists.${event.checklistId}`;
@@ -190,6 +192,7 @@ function EventCard({ event, onPress, onViewChat }) {
   const title = linked ? tx(`${base}.items.${event.checklistItemId}.text`, event.title) : event.title;
   const desc  = linked && event.desc ? tx(`${base}.items.${event.checklistItemId}.sub`, event.desc) : event.desc;
   const type  = linked ? tx(`${base}.type`, event.type) : event.type;
+  const googleUrl = buildGoogleCalendarUrl({ title, description: desc, dateStr: date });
   const dotColor  = event.isCompleted ? 'var(--c-t3)' : event.color;
   const typeStyle = {
     color:      event.isCompleted ? 'var(--c-t3)' : event.color,
@@ -208,14 +211,25 @@ function EventCard({ event, onPress, onViewChat }) {
           )}
           {event.isCompleted && <span className="cal-event-completed">{t('calendar.done')}</span>}
         </div>
-        {onViewChat && (
-          <button
+        <div className="cal-event-links">
+          {onViewChat && (
+            <button
+              className="cal-event-chat-link"
+              onClick={e => { e.stopPropagation(); onViewChat(); }}
+            >
+              {t('calendar.viewChat')}
+            </button>
+          )}
+          <a
             className="cal-event-chat-link"
-            onClick={e => { e.stopPropagation(); onViewChat(); }}
+            href={googleUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
           >
-            {t('calendar.viewChat')}
-          </button>
-        )}
+            {t('calendar.addToGoogle')}
+          </a>
+        </div>
       </div>
     </div>
   );

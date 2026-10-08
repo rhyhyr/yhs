@@ -109,6 +109,7 @@ export default {
     fromChat: '这是通过聊天添加的日程',
     chatBadge: '💬 聊天',
     viewChat: '💬 查看相关对话',
+    addToGoogle: '📅 添加到谷歌日历',
     done: '已完成',
   },
 
@@ -147,6 +148,7 @@ export default {
     deselectAll: '取消全选',
     linkN: '添加 {n} 项',
     selectPrompt: '请选择项目',
+    exportIcs: '📥 导出已选 {n} 项为 .ics（可导入谷歌日历等）',
   },
 
   calendarLink: {
