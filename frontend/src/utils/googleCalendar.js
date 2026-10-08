@@ -8,6 +8,8 @@
  *   2. buildIcsFile            — 여러 일정을 표준 .ics 파일 내용으로 변환
  *      (구글 캘린더 "가져오기"로 한 번에 넣을 수 있음, 다른 캘린더 앱도 호환)
  *   3. downloadIcsFile         — 2번 결과를 실제 파일 다운로드로 트리거
+ *   4. createGoogleCalendarEvent(s) — (구글 연결된 경우) 진짜로 Calendar API를
+ *      호출해서 사용자 캘린더에 바로 등록. googleAuth.js에서 받은 접근 토큰 필요.
  *
  * 전부 로그인·백엔드 없이 프론트엔드만으로 동작한다.
  */
@@ -95,4 +97,60 @@ export function downloadIcsFile(filename, events) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * 구글 연결(접근 토큰)이 돼 있을 때, 일정 하나를 진짜로 사용자의
+ * 기본 캘린더에 추가한다 (Calendar API 직접 호출, 백엔드 안 거침).
+ *
+ * @param {string} accessToken
+ * @param {{ title: string, description?: string, dateStr: string }} event
+ * @throws {Error} 토큰 만료(401) 등 API 에러 시 — 메시지에 상태 코드 포함
+ */
+export async function createGoogleCalendarEvent(accessToken, { title, description, dateStr }) {
+  const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      summary: title,
+      description: description || undefined,
+      start: { date: dateStr },
+      end: { date: nextDay(dateStr) },
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const err = new Error(body?.error?.message || `Google Calendar API 오류 (HTTP ${res.status})`);
+    err.status = res.status;
+    throw err;
+  }
+
+  return res.json();
+}
+
+/**
+ * 여러 일정을 순서대로 등록 (Calendar API는 REST 엔드포인트상 한 번에
+ * 여러 개를 넣는 기능이 없어서 하나씩 보낸다 — 체크리스트 규모(수 개~십여 개)엔 충분).
+ * @returns {Promise<{ succeeded: number, failed: number, authExpired: boolean }>}
+ *   authExpired: 실패 중 하나라도 401(토큰 만료)이었는지 — 재연결 유도 여부 판단용
+ */
+export async function createGoogleCalendarEvents(accessToken, events) {
+  let succeeded = 0;
+  let failed = 0;
+  let authExpired = false;
+  for (const event of events) {
+    if (authExpired) { failed += 1; continue; } // 토큰이 만료된 걸 확인했으면 나머지는 호출 자체를 건너뜀
+    try {
+      await createGoogleCalendarEvent(accessToken, event);
+      succeeded += 1;
+    } catch (err) {
+      failed += 1;
+      if (err.status === 401) authExpired = true;
+    }
+  }
+  return { succeeded, failed, authExpired };
 }

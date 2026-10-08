@@ -4,14 +4,17 @@ import { getCalendarEvents, mergeEvents } from '../../api/calendar';
 import { formatDateKey } from '../../api/mockData';
 import BottomNav from '../../components/Common/BottomNav';
 import { useI18n } from '../../i18n';
-import { buildGoogleCalendarUrl } from '../../utils/googleCalendar';
+import { buildGoogleCalendarUrl, createGoogleCalendarEvent } from '../../utils/googleCalendar';
 
 // 체크리스트→캘린더 연동을 지원하는 채널 → 그 채널의 채팅 화면 id
 // (지금은 비자/학교 채널만 체크리스트 흐름이 있음)
 const CHECKLIST_CHANNEL_SCREEN = { visa: 's-visa', school: 's-school' };
 
 export default function CalendarScreen() {
-  const { navigate, showToast, chatCalendarItems, navParams } = useApp();
+  const {
+    navigate, showToast, chatCalendarItems, navParams,
+    googleAccessToken, invalidateGoogleToken,
+  } = useApp();
   const { t, fmt } = useI18n();
   const [calDate, setCalDate]             = useState(new Date());
   const [selectedDateKey, setSelectedDateKey] = useState(null);
@@ -172,6 +175,9 @@ export default function CalendarScreen() {
                       ? () => navigate(CHECKLIST_CHANNEL_SCREEN[evt.channelId], { highlightMessageId: evt.messageId })
                       : null
                   }
+                  googleAccessToken={googleAccessToken}
+                  showToast={showToast}
+                  invalidateGoogleToken={invalidateGoogleToken}
                 />
               ))
             )}
@@ -184,8 +190,9 @@ export default function CalendarScreen() {
   );
 }
 
-function EventCard({ event, date, onPress, onViewChat }) {
+function EventCard({ event, date, onPress, onViewChat, googleAccessToken, showToast, invalidateGoogleToken }) {
   const { t, tx } = useI18n();
+  const [adding, setAdding] = useState(false);
   // 채팅 체크리스트에서 온 일정은 항목 id 로 번역본을 찾아, 언어를 바꾸면 함께 바뀐다
   const base = `checklists.${event.checklistId}`;
   const linked = event.source === 'chat-checklist';
@@ -193,6 +200,21 @@ function EventCard({ event, date, onPress, onViewChat }) {
   const desc  = linked && event.desc ? tx(`${base}.items.${event.checklistItemId}.sub`, event.desc) : event.desc;
   const type  = linked ? tx(`${base}.type`, event.type) : event.type;
   const googleUrl = buildGoogleCalendarUrl({ title, description: desc, dateStr: date });
+
+  // 구글 연결이 돼 있으면 "바로 추가"(실제 API 호출), 아니면 로그인 없이 되는 딥링크로 폴백
+  async function handleAddToGoogle(e) {
+    e.stopPropagation();
+    setAdding(true);
+    try {
+      await createGoogleCalendarEvent(googleAccessToken, { title, description: desc, dateStr: date });
+      showToast(t('calendar.addedToGoogle'));
+    } catch (err) {
+      if (err.status === 401) invalidateGoogleToken();
+      else showToast(t('calendar.addToGoogleFailed'));
+    } finally {
+      setAdding(false);
+    }
+  }
   const dotColor  = event.isCompleted ? 'var(--c-t3)' : event.color;
   const typeStyle = {
     color:      event.isCompleted ? 'var(--c-t3)' : event.color,
@@ -220,15 +242,21 @@ function EventCard({ event, date, onPress, onViewChat }) {
               {t('calendar.viewChat')}
             </button>
           )}
-          <a
-            className="cal-event-chat-link"
-            href={googleUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={e => e.stopPropagation()}
-          >
-            {t('calendar.addToGoogle')}
-          </a>
+          {googleAccessToken ? (
+            <button className="cal-event-chat-link" onClick={handleAddToGoogle} disabled={adding}>
+              {adding ? '…' : t('calendar.addToGoogleReal')}
+            </button>
+          ) : (
+            <a
+              className="cal-event-chat-link"
+              href={googleUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+            >
+              {t('calendar.addToGoogle')}
+            </a>
+          )}
         </div>
       </div>
     </div>

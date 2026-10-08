@@ -108,6 +108,9 @@ export default {
     chatBadge: '💬 Chat',
     viewChat: '💬 View related conversation',
     addToGoogle: '📅 Add to Google Calendar',
+    addToGoogleReal: '✅ Add directly to Google Calendar',
+    addedToGoogle: 'Added to Google Calendar!',
+    addToGoogleFailed: 'Could not add it. Please try again shortly.',
     done: 'Done',
   },
 
@@ -147,6 +150,10 @@ export default {
     linkN: 'Add {n} items',
     selectPrompt: 'Select items',
     exportIcs: '📥 Export {n} selected as .ics (Google Calendar, etc.)',
+    addAllToGoogle: '✅ Add {n} selected directly to Google Calendar',
+    addAllToGoogleInProgress: 'Adding...',
+    addAllToGoogleDone: 'All {n} added!',
+    addAllToGoogleDonePartial: '{succeeded} added, {failed} failed.',
   },
 
   calendarLink: {
@@ -220,10 +227,21 @@ export default {
     notifOn: 'Notifications turned on',
     appSection: 'App settings',
     language: 'Language',
+    googleCalendar: 'Google Calendar sync',
+    googleConnected: 'Connected',
+    googleNotConnected: 'Not connected',
+    googleConnecting: 'Connecting...',
     languageSheetTitle: 'Choose language',
     editProfile: 'Edit personal info',
     editProfileSub: 'Name, school, major',
     logout: 'Log out',
+  },
+
+  google: {
+    connected: 'Connected to Google Calendar!',
+    notConfigured: 'Google Calendar sync isn\'t set up yet.',
+    connectCancelled: 'Google Calendar connection was cancelled.',
+    tokenExpired: 'Your Google connection expired. Please connect again.',
   },
 
   onboarding: {

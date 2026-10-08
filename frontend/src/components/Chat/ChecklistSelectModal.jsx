@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getMockChecklist } from '../../data/mockChecklistData';
-import { downloadIcsFile } from '../../utils/googleCalendar';
+import { downloadIcsFile, createGoogleCalendarEvents } from '../../utils/googleCalendar';
+import { useApp } from '../../hooks/useApp';
 import { useI18n } from '../../i18n';
 
 /**
@@ -13,7 +14,9 @@ import { useI18n } from '../../i18n';
  */
 export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }) {
   const { t, fmt, localizeChecklist } = useI18n();
+  const { googleAccessToken, showToast, invalidateGoogleToken } = useApp();
   const checklist = localizeChecklist(getMockChecklist(checklistId));
+  const [addingToGoogle, setAddingToGoogle] = useState(false);
   const [selected, setSelected] = useState(
     () => new Set(checklist?.items.map(i => i.id) ?? [])
   );
@@ -67,6 +70,31 @@ export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }
         dateStr: dateOverrides[item.id] ?? item.dueDate,
       }));
     downloadIcsFile(checklist.title, events);
+  }
+
+  // 구글 연결이 돼 있으면, 선택한 항목을 실제로 하나씩 Calendar API로 등록
+  async function handleAddAllToGoogle() {
+    const events = checklist.items
+      .filter(item => selected.has(item.id))
+      .map(item => ({
+        title: item.text,
+        description: item.sub || '',
+        dateStr: dateOverrides[item.id] ?? item.dueDate,
+      }));
+
+    setAddingToGoogle(true);
+    try {
+      const { succeeded, failed, authExpired } = await createGoogleCalendarEvents(googleAccessToken, events);
+      if (authExpired) {
+        invalidateGoogleToken();
+      } else if (failed === 0) {
+        showToast(t('checklist.addAllToGoogleDone', { n: succeeded }));
+      } else {
+        showToast(t('checklist.addAllToGoogleDonePartial', { succeeded, failed }));
+      }
+    } finally {
+      setAddingToGoogle(false);
+    }
   }
 
   return (
@@ -128,6 +156,20 @@ export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }
             );
           })}
         </div>
+
+        {/* 구글 연결이 돼 있으면, 로그인 없는 .ics 방식 대신 바로 등록하는 버튼도 보여줌 */}
+        {googleAccessToken && (
+          <div style={{ padding: '0 16px 4px' }}>
+            <button
+              className="qa-btn"
+              style={{ width: '100%', textAlign: 'center', borderRadius: '11px', padding: '10px 14px' }}
+              disabled={count === 0 || addingToGoogle}
+              onClick={handleAddAllToGoogle}
+            >
+              {addingToGoogle ? t('checklist.addAllToGoogleInProgress') : t('checklist.addAllToGoogle', { n: count })}
+            </button>
+          </div>
+        )}
 
         {/* 구글 캘린더(등) 가져오기용 .ics 내보내기 */}
         <div style={{ padding: '0 16px 4px' }}>

@@ -110,6 +110,9 @@ export default {
     chatBadge: '💬 聊天',
     viewChat: '💬 查看相关对话',
     addToGoogle: '📅 添加到谷歌日历',
+    addToGoogleReal: '✅ 直接添加到谷歌日历',
+    addedToGoogle: '已添加到谷歌日历！',
+    addToGoogleFailed: '添加失败，请稍后重试。',
     done: '已完成',
   },
 
@@ -149,6 +152,10 @@ export default {
     linkN: '添加 {n} 项',
     selectPrompt: '请选择项目',
     exportIcs: '📥 导出已选 {n} 项为 .ics（可导入谷歌日历等）',
+    addAllToGoogle: '✅ 将已选 {n} 项直接添加到谷歌日历',
+    addAllToGoogleInProgress: '正在添加...',
+    addAllToGoogleDone: '已全部添加 {n} 项！',
+    addAllToGoogleDonePartial: '成功 {succeeded} 项，失败 {failed} 项。',
   },
 
   calendarLink: {
@@ -222,10 +229,21 @@ export default {
     notifOn: '通知已开启',
     appSection: '应用设置',
     language: '语言',
+    googleCalendar: '谷歌日历同步',
+    googleConnected: '已连接',
+    googleNotConnected: '未连接',
+    googleConnecting: '连接中...',
     languageSheetTitle: '选择语言',
     editProfile: '修改个人信息',
     editProfileSub: '姓名、学校、专业',
     logout: '退出登录',
+  },
+
+  google: {
+    connected: '已连接到谷歌日历！',
+    notConfigured: '谷歌日历同步还没有设置好。',
+    connectCancelled: '已取消连接谷歌日历。',
+    tokenExpired: '谷歌连接已过期，请重新连接。',
   },
 
   onboarding: {

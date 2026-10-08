@@ -5,6 +5,7 @@ import { persistUserProfile } from '../api/userProfile';
 import { loadUserProfile } from '../utils/storage';
 import { mergeEvents } from '../api/calendar';
 import { buildAnswerHistory } from '../utils/answerHistory';
+import { requestGoogleAccessToken } from '../utils/googleAuth';
 import { useI18n } from '../i18n';
 
 const DEFAULT_PROFILE = {
@@ -81,6 +82,40 @@ export function AppProvider({ children }) {
 
   function addChatChecklistToCalendar(eventMap) {
     setChatCalendarItems(prev => mergeEvents(prev, eventMap));
+  }
+
+  // ── 구글 캘린더 연동 (로그인 없이, 백엔드 없이 — OAuth 토큰 플로우) ──
+  // 접근 토큰은 메모리에만 둔다. 새로고침하면 날아가고(의도된 동작),
+  // 1시간 정도 지나면 구글 쪽에서 만료시켜서 다시 연결해야 한다.
+  const [googleAccessToken, setGoogleAccessToken] = useState(null);
+  const [googleConnecting, setGoogleConnecting] = useState(false);
+
+  async function connectGoogleCalendar() {
+    setGoogleConnecting(true);
+    try {
+      const token = await requestGoogleAccessToken();
+      setGoogleAccessToken(token);
+      showToast(t('google.connected'));
+    } catch (err) {
+      if (err.message === 'NO_CLIENT_ID' || err.message === 'GIS_NOT_LOADED') {
+        showToast(t('google.notConfigured'));
+      } else {
+        // 사용자가 팝업을 닫은 경우(access_denied 등) 포함 — 조용히 취소 처리
+        showToast(t('google.connectCancelled'));
+      }
+    } finally {
+      setGoogleConnecting(false);
+    }
+  }
+
+  function disconnectGoogleCalendar() {
+    setGoogleAccessToken(null);
+  }
+
+  // API 호출 중 토큰 만료(401)를 만나면 화면 쪽에서 이걸 불러서 연결 상태를 초기화한다
+  function invalidateGoogleToken() {
+    setGoogleAccessToken(null);
+    showToast(t('google.tokenExpired'));
   }
 
   // ── 사용자가 생성한 채널 목록 (ChatScreen → HomeScreen 공유) ──
@@ -277,6 +312,8 @@ export function AppProvider({ children }) {
       getDraft, setDraft, clearDraft,
       // 채팅 체크리스트 → 캘린더
       chatCalendarItems, addChatChecklistToCalendar,
+      // 구글 캘린더 연동
+      googleAccessToken, googleConnecting, connectGoogleCalendar, disconnectGoogleCalendar, invalidateGoogleToken,
       // 생성된 채널 (고정된 채널이 위로 오도록 정렬된 상태로 내보냄)
       createdChannels: sortedCreatedChannels, addCreatedChannel, toggleChannelPin,
       // 채널

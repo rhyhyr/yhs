@@ -110,6 +110,9 @@ export default {
     chatBadge: '💬 채팅',
     viewChat: '💬 관련 대화 보기',
     addToGoogle: '📅 구글 캘린더에 추가',
+    addToGoogleReal: '✅ 구글 캘린더에 바로 추가',
+    addedToGoogle: '구글 캘린더에 추가됐어요!',
+    addToGoogleFailed: '추가하지 못했어요. 잠시 후 다시 시도해주세요.',
     done: '완료',
   },
 
@@ -149,6 +152,10 @@ export default {
     linkN: '{n}개 항목 연동',
     selectPrompt: '항목을 선택해 주세요',
     exportIcs: '📥 선택한 {n}개 .ics로 내보내기 (구글 캘린더 등)',
+    addAllToGoogle: '✅ 선택한 {n}개 구글 캘린더에 바로 등록',
+    addAllToGoogleInProgress: '등록하는 중...',
+    addAllToGoogleDone: '{n}개 전부 등록 완료했어요!',
+    addAllToGoogleDonePartial: '{succeeded}개 등록, {failed}개는 실패했어요.',
   },
 
   calendarLink: {
@@ -223,10 +230,21 @@ export default {
     notifOn: '알림이 켜졌습니다',
     appSection: '앱 설정',
     language: '언어',
+    googleCalendar: '구글 캘린더 연동',
+    googleConnected: '연결됨',
+    googleNotConnected: '연결 안 됨',
+    googleConnecting: '연결 중...',
     languageSheetTitle: '언어 선택',
     editProfile: '개인정보 수정',
     editProfileSub: '이름, 학교, 학과',
     logout: '로그아웃',
+  },
+
+  google: {
+    connected: '구글 캘린더에 연결됐어요!',
+    notConfigured: '구글 캘린더 연동이 아직 설정되지 않았어요.',
+    connectCancelled: '구글 캘린더 연결이 취소됐어요.',
+    tokenExpired: '구글 연결이 만료됐어요. 다시 연결해주세요.',
   },
 
   onboarding: {
