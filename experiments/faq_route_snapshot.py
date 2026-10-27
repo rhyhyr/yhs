@@ -31,7 +31,7 @@ from experiments.eval_sets.eval_questions_v3 import EVAL_QUERIES as V3  # noqa: 
 _spec = importlib.util.spec_from_file_location(
     "yhs_faq_snapshot", os.path.join(_ROOT, "backend", "src", "yhs", "rag", "faq.py")
 )
-faq = importlib.util.module_from_spec(_spec)
+faq = sys.modules[_spec.name] = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(faq)
 
 

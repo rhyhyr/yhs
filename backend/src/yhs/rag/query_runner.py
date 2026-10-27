@@ -89,7 +89,13 @@ def process_question(
     from time import perf_counter
     t0 = perf_counter()
 
-    faq_answer, _ = faq_handler.match_with_score(question)
+    # 신뢰도 미달이면 faq_answer 가 None → 아래 RAG 파이프라인으로 흘러내려간다
+    faq_answer, faq_m = faq_handler.match_with_score(question)
+    logger.info(
+        "FAQ %s | reason=%s confidence=%.2f margin=%d coverage=%.2f entry=%s",
+        "hit" if faq_answer else "pass", faq_m.reason, faq_m.confidence,
+        faq_m.margin, faq_m.coverage, faq_m.entry_index,
+    )
     if faq_answer:
         return {
             "answer": faq_answer, "path": "faq", "method": "faq",
@@ -233,11 +239,16 @@ def run_query_loop() -> None:
             # ── 1. FAQ 빠른 매칭 ─────────────────────────────────────────────
             faq_start = perf_counter()
             print(f"[{_ts()}] FAQ 검사 시작")
-            faq_answer, faq_score = faq_handler.match_with_score(question)
-            print(f"[{_ts()}] FAQ 검사 완료 ({perf_counter() - faq_start:.2f}s) | keyword_match={faq_score}")
+            faq_answer, faq_m = faq_handler.match_with_score(question)
+            faq_signals = (
+                f"reason={faq_m.reason} confidence={faq_m.confidence:.2f} margin={faq_m.margin} "
+                f"coverage={faq_m.coverage:.2f} entry={faq_m.entry_index}"
+            )
+            print(f"[{_ts()}] FAQ 검사 완료 ({perf_counter() - faq_start:.2f}s) | {faq_signals}")
 
+            # 신뢰도 미달이면 faq_answer 가 None → 아래 RAG 파이프라인으로 흘러내려간다
             if faq_answer:
-                print(f"[{_ts()}] [FAQ] path=faq | keyword_match_score={faq_score}")
+                print(f"[{_ts()}] [FAQ] path=faq | {faq_signals}")
                 print(faq_answer)
                 print(f"[{_ts()}] 처리 완료 ({perf_counter() - question_start:.2f}s)\n")
                 continue
