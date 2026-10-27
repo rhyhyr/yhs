@@ -1,0 +1,180 @@
+{"set": "v2", "id": "v_indb_1", "stratum": "in_db", "query": "외국인등록은 입국 후 며칠 이내에 해야 해?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "v_indb_2", "stratum": "in_db", "query": "외국인등록 할 때 제출서류가 뭐야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:할 때"}
+{"set": "v2", "id": "v_indb_3", "stratum": "in_db", "query": "외국인등록증을 잃어버리면 어떻게 재발급해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:어떻게"}
+{"set": "v2", "id": "v_indb_4", "stratum": "in_db", "query": "D-4에서 D-2로 비자 바꾸려면 어떻게 해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:어떻게"}
+{"set": "v2", "id": "v_indb_5", "stratum": "in_db", "query": "D-4에서 D-2로 바꿀 때 필요한 서류는?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:서류"}
+{"set": "v2", "id": "v_indb_6", "stratum": "in_db", "query": "체류기간 연장은 언제 신청해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v2", "id": "v_indb_7", "stratum": "in_db", "query": "체류기간 연장 신청 공통서류가 뭐야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v2", "id": "v_indb_8", "stratum": "in_db", "query": "이사했는데 체류지 변경 신고는 어디서 며칠 안에 해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:어디서"}
+{"set": "v2", "id": "v_indb_9", "stratum": "in_db", "query": "부산에서 체류 업무는 어디서 봐?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:어디서"}
+{"set": "v2", "id": "v_indb_10", "stratum": "in_db", "query": "D-2 체류기간 연장에 기본으로 내는 서류는?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v2", "id": "v_cplx_1", "stratum": "complex", "query": "성적이 2.0 미만인데 비자 연장 될까?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v2", "id": "v_cplx_2", "stratum": "complex", "query": "학교 안내엔 체류지 변경 14일이라는데 법정 기준도 14일이야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:변경"}
+{"set": "v2", "id": "v_cplx_3", "stratum": "complex", "query": "휴학하면 D-2 체류자격에 영향 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "v_cplx_4", "stratum": "complex", "query": "어학연수로 왔는데 출국 안 하고 국내에서 D-2로 바꿀 수 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "v_cplx_5", "stratum": "complex", "query": "사증발급인정서는 언제 필요해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:발급"}
+{"set": "v2", "id": "v_cplx_6", "stratum": "complex", "query": "외국인등록 정보(여권·학교 등)가 바뀌면 어떻게 해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:어떻게"}
+{"set": "v2", "id": "v_cplx_7", "stratum": "complex", "query": "건강보험료 체납이 비자 연장에 영향을 줘?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v2", "id": "v_uncov_1", "stratum": "uncovered", "query": "이번 학기 체류기간 연장 방문예약 언제까지 받아?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v2", "id": "v_uncov_2", "stratum": "uncovered", "query": "이번 학기 외국인등록 학교 단체 신청 일정 알려줘", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v2", "id": "v_uncov_3", "stratum": "uncovered", "query": "부산출입국 이번 달 방문예약 빈자리 있어?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:이번 달"}
+{"set": "v2", "id": "v_dirty_1", "stratum": "dirty", "query": "외국인 등록 며칠안에 해야됨?? 빨리해야하나", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "i_indb_1", "stratum": "in_db", "query": "유학생도 건강보험 가입 대상이야?", "route": "faq", "matched_entry_index": 4, "score": 1, "reason": null}
+{"set": "v2", "id": "i_indb_2", "stratum": "in_db", "query": "건강보험은 언제부터 가입되는 거야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:언제부터"}
+{"set": "v2", "id": "i_indb_3", "stratum": "in_db", "query": "건강보험료는 어떻게 납부해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:납부"}
+{"set": "v2", "id": "i_indb_4", "stratum": "in_db", "query": "보험료를 안 내면 어떤 불이익이 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "i_cplx_1", "stratum": "complex", "query": "건강보험은 한국 온 지 6개월 지나야 가입되는 거 아니야?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "i_cplx_2", "stratum": "complex", "query": "건강보험료 한 달에 얼마야?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "i_cplx_3", "stratum": "complex", "query": "보험료 밀리면 비자 연장에 문제 생겨?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v2", "id": "i_cplx_4", "stratum": "complex", "query": "학교 보험 안내랑 공단 기준이 다르면 뭘 믿어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "i_cplx_5", "stratum": "complex", "query": "건강보험으로 안 되는 치료가 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "i_uncov_1", "stratum": "uncovered", "query": "올해 외국인 건강보험 적용 고시 바뀐 거 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "i_dirty_2", "stratum": "dirty", "query": "보험료 안내면 비자에 영향 감??", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "w_indb_1", "stratum": "in_db", "query": "유학생도 아르바이트 할 수 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "w_indb_4", "stratum": "in_db", "query": "시간제취업 허가는 어디서 신청해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v2", "id": "w_indb_5", "stratum": "in_db", "query": "아르바이트할 때 학교 확인이 필요해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:할 때"}
+{"set": "v2", "id": "w_cplx_1", "stratum": "complex", "query": "허가 없이 아르바이트하면 어떻게 돼?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:어떻게"}
+{"set": "v2", "id": "w_cplx_5", "stratum": "complex", "query": "알바 자리를 바꾸면 허가를 다시 받아야 해?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "w_cplx_6", "stratum": "complex", "query": "졸업하고 취업하려면 비자를 어떻게 해야 해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:하려면"}
+{"set": "v2", "id": "w_uncov_1", "stratum": "uncovered", "query": "이번 학기 시간제취업 학교 확인 신청 마감 언제야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v2", "id": "w_dirty_2", "stratum": "dirty", "query": "알바 허가 없이 그냥 하면 어케됨?", "route": "faq", "matched_entry_index": 5, "score": 1, "reason": null}
+{"set": "v2", "id": "a_indb_1", "stratum": "in_db", "query": "D-4에서 D-2로 비자 바꿀 때 재정능력 증빙은 얼마야?", "route": "faq", "matched_entry_index": 9, "score": 1, "reason": null}
+{"set": "v2", "id": "a_indb_2", "stratum": "in_db", "query": "국제교류과는 어떤 걸 도와줘?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "a_indb_3", "stratum": "in_db", "query": "비자 서류에 필요한 학교 확인서는 누가 발급해줘?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:서류"}
+{"set": "v2", "id": "a_cplx_1", "stratum": "complex", "query": "학교 서류랑 출입국 서류 중 뭘 먼저 준비해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:먼저"}
+{"set": "v2", "id": "a_cplx_2", "stratum": "complex", "query": "비자 문제는 국제교류과랑 출입국 중 어디에 먼저 물어봐?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:먼저"}
+{"set": "v2", "id": "a_uncov_1", "stratum": "uncovered", "query": "국제교류과 이번 주 상담 가능한 시간 알려줘", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "s_indb_1", "stratum": "in_db", "query": "외국인 유학생 장학금은 어떤 종류가 있어?", "route": "faq", "matched_entry_index": 13, "score": 1, "reason": null}
+{"set": "v2", "id": "s_indb_2", "stratum": "in_db", "query": "신입생 한국어트랙 장학금 기준이 뭐야?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "s_indb_3", "stratum": "in_db", "query": "영어트랙은 어떤 영어성적으로 장학금을 받아?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "s_indb_4", "stratum": "in_db", "query": "대학원 유학생 장학금 유지 조건은?", "route": "faq", "matched_entry_index": 13, "score": 1, "reason": null}
+{"set": "v2", "id": "s_cplx_1", "stratum": "complex", "query": "성적이 떨어지면 장학금이 끊겨?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "s_cplx_2", "stratum": "complex", "query": "한국어트랙이랑 영어트랙 장학 기준이 어떻게 달라?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:어떻게 달라"}
+{"set": "v2", "id": "s_uncov_1", "stratum": "uncovered", "query": "이번 학기 장학금 신청은 언제까지야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v2", "id": "ac_indb_1", "stratum": "in_db", "query": "휴학은 어떻게 신청해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v2", "id": "ac_indb_2", "stratum": "in_db", "query": "신입생도 첫 학기에 휴학할 수 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "ac_indb_3", "stratum": "in_db", "query": "복학은 어떻게 신청해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v2", "id": "ac_indb_5", "stratum": "in_db", "query": "등록금은 어떻게 납부해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:납부"}
+{"set": "v2", "id": "ac_cplx_1", "stratum": "complex", "query": "등록금 안 내면 제적돼?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "ac_cplx_2", "stratum": "complex", "query": "복학하면 바로 수강신청 할 수 있어?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v2", "id": "ac_cplx_3", "stratum": "complex", "query": "휴학이 비자에 영향을 줘?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "ac_uncov_1", "stratum": "uncovered", "query": "이번 학기 수강신청 날짜 알려줘", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v2", "id": "ac_uncov_2", "stratum": "uncovered", "query": "이번 학기 등록금 납부 마감일 언제야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:납부"}
+{"set": "v2", "id": "h_indb_1", "stratum": "in_db", "query": "외국인 유학생 전용 기숙사가 어디야?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "h_indb_2", "stratum": "in_db", "query": "석당 글로벌하우스는 몇 인 1실이고 정원이 얼마야?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "h_indb_3", "stratum": "in_db", "query": "한림생활관은 어느 캠퍼스에 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "h_indb_4", "stratum": "in_db", "query": "기숙사 신청은 어디서 해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v2", "id": "h_cplx_1", "stratum": "complex", "query": "부민캠퍼스 다니는데 승학캠퍼스 한림생활관에 들어갈 수 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "h_cplx_2", "stratum": "complex", "query": "외국인 유학생은 기숙사 우선 배정이 돼?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "h_uncov_1", "stratum": "uncovered", "query": "이번 학기 석당 글로벌하우스 입사 신청 언제까지야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v2", "id": "h_uncov_2", "stratum": "uncovered", "query": "다음 학기 한림생활관 모집 공고 떴어?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:다음 학기"}
+{"set": "v2", "id": "b_indb_3", "stratum": "in_db", "query": "모바일 외국인등록증으로 어느 은행에서 비대면 업무를 볼 수 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "b_uncov_1", "stratum": "uncovered", "query": "요즘 모바일 외국인등록증으로 계좌 개설 되는 은행 어디야?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "t_indb_1", "stratum": "in_db", "query": "외국인 후불 핸드폰 개통할 때 체류코드마다 다른 게 있어?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:할 때"}
+{"set": "v2", "id": "t_indb_2", "stratum": "in_db", "query": "후불 핸드폰 개통하려면 뭐가 필요해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:하려면"}
+{"set": "v2", "id": "t_cplx_1", "stratum": "complex", "query": "외국인등록증 없이 후불 핸드폰 개통 가능해?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "t_dirty_1", "stratum": "dirty", "query": "핸드폰 개통 뭐 필요함?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "sp_indb_1", "stratum": "in_db", "query": "1345는 무슨 번호야?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "sp_indb_2", "stratum": "in_db", "query": "부산 외국인 통합콜센터 번호 알려줘", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "sp_indb_3", "stratum": "in_db", "query": "통역으로 상담받을 수 있는 곳이 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v2", "id": "sp_cplx_1", "stratum": "complex", "query": "출입국 관련 무료 법률·통역 상담을 받을 수 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "v_cplx_1", "stratum": "complex", "query": "성적이 2.0 미만인데 비자 연장 될까?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v3", "id": "v_cplx_2", "stratum": "complex", "query": "학교 안내엔 체류지 변경 14일이라는데 법정 기준도 14일이야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:변경"}
+{"set": "v3", "id": "v_cplx_3", "stratum": "complex", "query": "휴학하면 D-2 체류자격에 영향 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "v_cplx_4", "stratum": "complex", "query": "어학연수로 왔는데 출국 안 하고 국내에서 D-2로 바꿀 수 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "v_cplx_5", "stratum": "complex", "query": "사증발급인정서는 언제 필요해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:발급"}
+{"set": "v3", "id": "v_cplx_6", "stratum": "complex", "query": "외국인등록 정보(여권·학교 등)가 바뀌면 어떻게 해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:어떻게"}
+{"set": "v3", "id": "v_cplx_7", "stratum": "complex", "query": "건강보험료 체납이 비자 연장에 영향을 줘?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v3", "id": "v_uncov_1", "stratum": "uncovered", "query": "이번 학기 체류기간 연장 방문예약 언제까지 받아?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v3", "id": "v_uncov_2", "stratum": "uncovered", "query": "이번 학기 외국인등록 학교 단체 신청 일정 알려줘", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v3", "id": "v_uncov_3", "stratum": "uncovered", "query": "부산출입국 이번 달 방문예약 빈자리 있어?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:이번 달"}
+{"set": "v3", "id": "v_dirty_1", "stratum": "dirty", "query": "외국인 등록 며칠안에 해야됨?? 빨리해야하나", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "i_cplx_1", "stratum": "complex", "query": "건강보험은 한국 온 지 6개월 지나야 가입되는 거 아니야?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "i_cplx_2", "stratum": "complex", "query": "건강보험료 한 달에 얼마야?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "i_cplx_3", "stratum": "complex", "query": "보험료 밀리면 비자 연장에 문제 생겨?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v3", "id": "i_cplx_4", "stratum": "complex", "query": "학교 보험 안내랑 공단 기준이 다르면 뭘 믿어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "i_cplx_5", "stratum": "complex", "query": "건강보험으로 안 되는 치료가 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "i_uncov_1", "stratum": "uncovered", "query": "올해 외국인 건강보험 적용 고시 바뀐 거 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "i_dirty_2", "stratum": "dirty", "query": "보험료 안내면 비자에 영향 감??", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "w_cplx_1", "stratum": "complex", "query": "허가 없이 아르바이트하면 어떻게 돼?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:어떻게"}
+{"set": "v3", "id": "w_cplx_5", "stratum": "complex", "query": "알바 자리를 바꾸면 허가를 다시 받아야 해?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "w_cplx_6", "stratum": "complex", "query": "졸업하고 취업하려면 비자를 어떻게 해야 해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:하려면"}
+{"set": "v3", "id": "w_uncov_1", "stratum": "uncovered", "query": "이번 학기 시간제취업 학교 확인 신청 마감 언제야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v3", "id": "w_dirty_2", "stratum": "dirty", "query": "알바 허가 없이 그냥 하면 어케됨?", "route": "faq", "matched_entry_index": 5, "score": 1, "reason": null}
+{"set": "v3", "id": "a_cplx_1", "stratum": "complex", "query": "학교 서류랑 출입국 서류 중 뭘 먼저 준비해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:먼저"}
+{"set": "v3", "id": "a_cplx_2", "stratum": "complex", "query": "비자 문제는 국제교류과랑 출입국 중 어디에 먼저 물어봐?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:먼저"}
+{"set": "v3", "id": "a_uncov_1", "stratum": "uncovered", "query": "국제교류과 이번 주 상담 가능한 시간 알려줘", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "s_cplx_1", "stratum": "complex", "query": "성적이 떨어지면 장학금이 끊겨?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "s_cplx_2", "stratum": "complex", "query": "한국어트랙이랑 영어트랙 장학 기준이 어떻게 달라?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:어떻게 달라"}
+{"set": "v3", "id": "s_uncov_1", "stratum": "uncovered", "query": "이번 학기 장학금 신청은 언제까지야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v3", "id": "ac_cplx_1", "stratum": "complex", "query": "등록금 안 내면 제적돼?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "ac_cplx_2", "stratum": "complex", "query": "복학하면 바로 수강신청 할 수 있어?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v3", "id": "ac_cplx_3", "stratum": "complex", "query": "휴학이 비자에 영향을 줘?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "ac_uncov_1", "stratum": "uncovered", "query": "이번 학기 수강신청 날짜 알려줘", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v3", "id": "ac_uncov_2", "stratum": "uncovered", "query": "이번 학기 등록금 납부 마감일 언제야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:납부"}
+{"set": "v3", "id": "h_cplx_1", "stratum": "complex", "query": "부민캠퍼스 다니는데 승학캠퍼스 한림생활관에 들어갈 수 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "h_cplx_2", "stratum": "complex", "query": "외국인 유학생은 기숙사 우선 배정이 돼?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "h_uncov_1", "stratum": "uncovered", "query": "이번 학기 석당 글로벌하우스 입사 신청 언제까지야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v3", "id": "h_uncov_2", "stratum": "uncovered", "query": "다음 학기 한림생활관 모집 공고 떴어?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:다음 학기"}
+{"set": "v3", "id": "b_uncov_1", "stratum": "uncovered", "query": "요즘 모바일 외국인등록증으로 계좌 개설 되는 은행 어디야?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "t_cplx_1", "stratum": "complex", "query": "외국인등록증 없이 후불 핸드폰 개통 가능해?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "t_dirty_1", "stratum": "dirty", "query": "핸드폰 개통 뭐 필요함?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "sp_cplx_1", "stratum": "complex", "query": "출입국 관련 무료 법률·통역 상담을 받을 수 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "ac_uncov_3", "stratum": "uncovered", "query": "이번 학기 졸업사정(졸업요건 심사) 신청 마감일 언제야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v3", "id": "r_uncov_1", "stratum": "uncovered", "query": "다음 학기 복학 신청 기간 언제부터야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v3", "id": "w_uncov_2", "stratum": "uncovered", "query": "이번 학기 시간제취업 허가 연장(재신청) 마감일 언제야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v3", "id": "im_uncov_1", "stratum": "uncovered", "query": "이번 달 하이코리아 통합신청서비스 시스템 점검 일정 있어?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v3", "id": "im_uncov_2", "stratum": "uncovered", "query": "부산출입국·외국인청 이번 주 민원 상담 운영시간 변동 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "t_uncov_1", "stratum": "uncovered", "query": "올해 외국인 유학생도 종합소득세 신고 대상이면 신고 기간이 언제까지야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:기간"}
+{"set": "v3", "id": "h_uncov_3", "stratum": "uncovered", "query": "석당 글로벌하우스 이번 학기 퇴사(퇴소) 신청 마감일 언제야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:신청"}
+{"set": "v3", "id": "s_uncov_2", "stratum": "uncovered", "query": "다음 학기 성적우수 장학금 발표일 언제야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:다음 학기"}
+{"set": "v3", "id": "ch_vi_1", "stratum": "cross_hop", "query": "건강보험료 미납이 있으면 D-2 비자 연장할 때 어떻게 돼?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:할 때"}
+{"set": "v3", "id": "ch_vi_2", "stratum": "cross_hop", "query": "보험료 체납 있어도 전부 납부하면 비자 정상 연장돼?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:납부"}
+{"set": "v3", "id": "ch_vi_3", "stratum": "cross_hop", "query": "비자 연장 전에 세금이랑 건강보험료 둘 다 확인받아?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:둘 다"}
+{"set": "v3", "id": "ch_vt_1", "stratum": "cross_hop", "query": "외국인등록증 받으면 바로 후불 핸드폰 개통할 수 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "ch_vt_2", "stratum": "cross_hop", "query": "외국인등록 하기 전에도 후불 핸드폰 개통 가능해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:하기 전에"}
+{"set": "v3", "id": "ch_vb_1", "stratum": "cross_hop", "query": "외국인등록하면 바로 은행 계좌 개설 가능해?", "route": "faq", "matched_entry_index": 16, "score": 1, "reason": null}
+{"set": "v3", "id": "ch_vb_2", "stratum": "cross_hop", "query": "모바일 외국인등록증으로 통장 개설되는 은행이 어디야?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "ch_mob_1", "stratum": "cross_hop", "query": "모바일 외국인등록증 만들려면 뭐가 필요해?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "ch_mob_2", "stratum": "cross_hop", "query": "외국인등록 하자마자 모바일 등록증 바로 만들 수 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "ch_mob_3", "stratum": "cross_hop", "query": "IC 칩 없는 기존 외국인등록증으로 모바일 등록증 발급 가능해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:발급"}
+{"set": "v3", "id": "ch_vc_1", "stratum": "cross_hop", "query": "D-4에서 D-2로 자격 바꾸면 외국인등록도 다시 해야 해?", "route": "faq", "matched_entry_index": 9, "score": 1, "reason": null}
+{"set": "v3", "id": "ch_vc_2", "stratum": "cross_hop", "query": "어학연수 끝나고 대학 입학하면 비자 변경 절차가 어떻게 돼?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:절차"}
+{"set": "v3", "id": "ch_vc_3", "stratum": "cross_hop", "query": "체류자격 변경하면 외국인등록증을 새로 발급받아야 해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:발급"}
+{"set": "v3", "id": "ch_vci_1", "stratum": "cross_hop", "query": "D-4에서 D-2로 비자 바꾸면 건강보험도 새로 가입해야 해?", "route": "faq", "matched_entry_index": 9, "score": 1, "reason": null}
+{"set": "v3", "id": "ch_vci_2", "stratum": "cross_hop", "query": "어학연수에서 학부로 올라가면 보험료가 달라져?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "ch_wv_1", "stratum": "cross_hop", "query": "D-4 비자로 아르바이트 허가받으려면 언제부터 가능해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:언제부터"}
+{"set": "v3", "id": "ch_wv_2", "stratum": "cross_hop", "query": "아르바이트 허가 없이 일하다 걸리면 어떻게 돼?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:어떻게"}
+{"set": "v3", "id": "ch_wv_4", "stratum": "cross_hop", "query": "시간제취업 허가 받으면 비자 연장 서류가 달라져?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v3", "id": "ch_wi_1", "stratum": "cross_hop", "query": "아르바이트 시작하면 건강보험이 어떻게 바뀌어?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:어떻게"}
+{"set": "v3", "id": "ch_wi_2", "stratum": "cross_hop", "query": "아르바이트 수입이 생기면 보험료가 올라가?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "ch_hr_1", "stratum": "cross_hop", "query": "기숙사 들어가면 체류지 변경신고 해야 해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:변경"}
+{"set": "v3", "id": "ch_hr_2", "stratum": "cross_hop", "query": "기숙사에서 나와서 자취방으로 이사하면 어디에 신고해?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "ch_hv_1", "stratum": "cross_hop", "query": "기숙사 살면 비자 연장할 때 체류지 증명은 어떻게 해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:할 때"}
+{"set": "v3", "id": "ch_hv_2", "stratum": "cross_hop", "query": "한림생활관에 살면 비자 연장 체류지 서류를 학교에서 받아?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v3", "id": "ch_lv_1", "stratum": "cross_hop", "query": "유학생이 휴학하면 D-2 비자에 어떤 영향이 있어?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:어떤 영향"}
+{"set": "v3", "id": "ch_lv_2", "stratum": "cross_hop", "query": "휴학하기 전에 출입국에 신고해야 해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:하기 전에"}
+{"set": "v3", "id": "ch_lv_3", "stratum": "cross_hop", "query": "휴학 기간 중에 비자가 만료되면 어떻게 해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:어떻게"}
+{"set": "v3", "id": "ch_li_1", "stratum": "cross_hop", "query": "휴학하면 건강보험 계속 내야 해?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "ch_li_2", "stratum": "cross_hop", "query": "휴학 중 보험료 안 내면 복학 후 비자 연장에 문제 생겨?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v3", "id": "ch_ra_1", "stratum": "cross_hop", "query": "복학하면 등록금 납부는 어떻게 해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:납부"}
+{"set": "v3", "id": "ch_ra_2", "stratum": "cross_hop", "query": "복학 신청하고 등록금 납부까지 순서가 어떻게 돼?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:납부"}
+{"set": "v3", "id": "ch_rv_1", "stratum": "cross_hop", "query": "휴학 후 복학할 때 비자도 갱신해야 해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:할 때"}
+{"set": "v3", "id": "ch_rv_2", "stratum": "cross_hop", "query": "복학하면 재학증명서로 비자 연장 서류에 쓸 수 있어?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v3", "id": "ch_sv_1", "stratum": "cross_hop", "query": "장학금 받으면 비자 연장 때 재정능력 증빙 안 해도 돼?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v3", "id": "ch_sv_2", "stratum": "cross_hop", "query": "장학금 유지 조건인 성적 기준이 비자 연장 성적 기준과 같아?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v3", "id": "ch_sv_3", "stratum": "cross_hop", "query": "장학금 못 받으면 비자 연장이 어려워지나?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v3", "id": "ch_sa_1", "stratum": "cross_hop", "query": "장학금으로 등록금을 전액 낼 수 있어?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "ch_av_1", "stratum": "cross_hop", "query": "등록금 납부 증명서가 비자 연장에 필요해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:납부"}
+{"set": "v3", "id": "ch_ri_1", "stratum": "cross_hop", "query": "이사하면 건강보험 주소도 바꿔야 해?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "ch_ri_2", "stratum": "cross_hop", "query": "체류지 변경 신고 안 하면 보험료 고지서가 이전 주소로 나와?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:변경"}
+{"set": "v3", "id": "ch_vh_1", "stratum": "cross_hop", "query": "기숙사 사는 외국인 비자 연장할 때 체류지 증명 서류 뭐야?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:할 때"}
+{"set": "v3", "id": "ch_wvc_1", "stratum": "cross_hop", "query": "아르바이트 허가 받고 있는 D-4인데 D-2로 바꾸면 허가는 어떻게 돼?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:어떻게"}
+{"set": "v3", "id": "ch_vreg_1", "stratum": "cross_hop", "query": "처음 외국인등록 하고 비자 연장은 언제 신청하면 돼?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
+{"set": "v3", "id": "ch_wreg_1", "stratum": "cross_hop", "query": "아르바이트 하는 곳이랑 내가 사는 곳이 다른데 신고해야 해?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "ch_reissue_1", "stratum": "cross_hop", "query": "외국인등록증 재발급받을 때 이사하면 주소도 같이 바꿀 수 있어?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:발급"}
+{"set": "v3", "id": "ch_ih_1", "stratum": "cross_hop", "query": "기숙사 들어가면 건강보험 주소 신고 따로 해야 해?", "route": "rag_nomatch", "matched_entry_index": null, "score": 0, "reason": "keyword_miss"}
+{"set": "v3", "id": "ch_rav_1", "stratum": "cross_hop", "query": "휴학하고 복학할 때 비자랑 등록금을 어떤 순서로 처리해야 해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:할 때"}
+{"set": "v3", "id": "ch_la_1", "stratum": "cross_hop", "query": "등록금 납부하고 나서 휴학하면 등록금은 어떻게 돼?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:납부"}
+{"set": "v3", "id": "ch_mb_1", "stratum": "cross_hop", "query": "모바일 외국인등록증 발급받고 바로 비대면으로 통장 개설 가능해?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:발급"}
+{"set": "v3", "id": "ch_vfee_1", "stratum": "cross_hop", "query": "비자(체류기간) 연장 신청하면 수수료랑 처리기간이 어떻게 돼?", "route": "rag_gate", "matched_entry_index": null, "score": 0, "reason": "complex_indicator:연장"}
