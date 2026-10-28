@@ -1421,6 +1421,21 @@ export const globalStyles = `
 
   .cta-primary:active { opacity: .85; transform: scale(.98); }
 
+  /* 기본 정보 입력 — "나중에 입력할게요" */
+  .ob-skip {
+    display: block;
+    margin: -8px auto 14px;
+    padding: 8px 14px;
+    border: none;
+    background: none;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--c-t2);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
   .footnote {
     text-align: left;
     font-size: 12px;

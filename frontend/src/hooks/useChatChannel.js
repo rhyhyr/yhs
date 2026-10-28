@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp } from './useApp';
 import { sendMessage } from '../api/chat';
+import { visaTypeCode } from '../data/visaTypes';
 
 /**
  * 채널 채팅 공통 로직 훅
@@ -14,8 +15,24 @@ import { sendMessage } from '../api/chat';
  * suggestedChannelId: 백엔드 RAG가 답변 후 추천한 채널 ID (null이면 없음)
  * clearSuggestion:    추천 배너를 수동으로 닫을 때 호출
  */
+/**
+ * 맞춤 답변용으로 채팅 요청에 같이 보낼 프로필 — 비어 있는 값은 빼고 보낸다.
+ * (이름은 답변에 필요 없어서 보내지 않음)
+ */
+function buildChatProfile(p) {
+  if (!p) return undefined;
+  const picked = {
+    visaType:    p.visaType && visaTypeCode(p.visaType),
+    school:      p.school,
+    grade:       p.grade,
+    nationality: p.nationality,
+  };
+  const filled = Object.fromEntries(Object.entries(picked).filter(([, v]) => v));
+  return Object.keys(filled).length ? filled : undefined;
+}
+
 export function useChatChannel(channelId, extraHistory = []) {
-  const { getMessages, addMessage } = useApp();
+  const { getMessages, addMessage, userProfile } = useApp();
   const [isLoading, setIsLoading] = useState(false);
   const [suggestedChannelId, setSuggestedChannelId] = useState(null);
 
@@ -44,7 +61,7 @@ export function useChatChannel(channelId, extraHistory = []) {
 
     try {
       const { answer, tags, sources, suggestedChannelId: suggested, checklistId, path } =
-        await sendMessage({ channelId, message: trimmed, history });
+        await sendMessage({ channelId, message: trimmed, history, profile: buildChatProfile(userProfile) });
 
       addMessage(channelId, {
         id: `${channelId}-${Date.now()}-ai`,

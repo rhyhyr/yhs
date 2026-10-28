@@ -14,8 +14,11 @@
  *   {
  *     "channelId": "visa",
  *     "message":   "비자 연장 방법 알려주세요",
- *     "history":   [{ "role": "user", "content": "..." }, ...]
+ *     "history":   [{ "role": "user", "content": "..." }, ...],
+ *     "profile":   { "visaType": "D-2", "school": "동아대학교", "grade": "3", "nationality": "중국" }
  *   }
+ *   profile: 맞춤 답변용 사용자 정보 (선택 — 입력 안 했으면 아예 빠짐).
+ *            프론트는 이미 보내고 있음. 백엔드가 아직 안 쓰면 그냥 무시된다(pydantic 기본 동작).
  * Response:
  *   {
  *     "answer":  "D-2 비자 연장은 만료일 4개월 전부터...",
@@ -85,6 +88,7 @@ export async function getChannelMessages(channelId) {
  * @param {string}   params.channelId  — 채널 ID
  * @param {string}   params.message    — 사용자 입력 텍스트
  * @param {Array}    params.history    — 이전 대화 [{ role, content }]
+ * @param {object}   [params.profile]  — 맞춤 답변용 { visaType, school, grade, nationality }
  * @returns {Promise<{ answer: string, sources: Source[], tags: string[] }>}
  *
  * [실제 API 교체 시]
@@ -110,7 +114,7 @@ function detectSuggestedChannel(message) {
   return null;
 }
 
-export async function sendMessage({ channelId, message, history }) {
+export async function sendMessage({ channelId, message, history, profile }) {
   // 채널 추천은 클라이언트에서 판단한다 (백엔드 계약에 없는 UI 전용 기능).
   const suggestedChannelId = channelId === 'main' ? detectSuggestedChannel(message) : null;
 
@@ -122,7 +126,7 @@ export async function sendMessage({ channelId, message, history }) {
     const res = await fetch(`${BASE_URL}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ channelId, message, history }),
+      body: JSON.stringify({ channelId, message, history, profile }),
     });
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
