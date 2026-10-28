@@ -240,7 +240,7 @@ export default {
     languageSheetTitle: '언어 선택',
     editProfile: '개인정보 수정',
     editProfileSub: '이름, 학교, 학과',
-    logout: '로그아웃',
+    logout: '처음 화면으로',
   },
 
   google: {
@@ -248,6 +248,20 @@ export default {
     notConfigured: '구글 캘린더 연동이 아직 설정되지 않았어요.',
     connectCancelled: '구글 캘린더 연결이 취소됐어요.',
     tokenExpired: '구글 연결이 만료됐어요. 다시 연결해주세요.',
+  },
+
+  auth: {
+    langTitle: '사용할 언어를 선택하세요',
+    langSub: '언제든 내 정보 › 언어에서 바꿀 수 있어요',
+    continue: '계속하기',
+    startTitle: '계정 없이 바로 시작해요',
+    startSub: '회원가입이나 로그인 없이 사용할 수 있어요.\n입력한 정보는 이 기기에만 저장돼요.',
+    point1: '비자·학교·취업·주거 행정 질문',
+    point2: '공식 문서를 근거로 한 답변',
+    point3: '한국어·中文·English 지원',
+    start: '시작하기',
+    welcomeBack: '{name}님, 다시 오셨네요 👋',
+    welcomeBackNoName: '다시 오셨네요 👋',
   },
 
   onboarding: {

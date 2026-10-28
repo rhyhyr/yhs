@@ -12,7 +12,7 @@ function getInitial(name) {
 export default function ProfileScreen() {
   const {
     navigate, showToast, toggles, setToggles, userProfile,
-    googleAccessToken, googleConnecting, connectGoogleCalendar, disconnectGoogleCalendar,
+    googleAccessToken, googleConnecting, connectGoogleCalendar, disconnectGoogleCalendar, resetTo,
   } = useApp();
   const { t, locale, setLocale, languages } = useI18n();
   const [langOpen, setLangOpen] = useState(false);
@@ -161,7 +161,7 @@ export default function ProfileScreen() {
           <div style={{ fontSize: '18px', color: 'var(--c-t3)' }}>›</div>
         </div>
 
-        <div className="logout-btn" onClick={() => navigate('s-onboarding')}>{t('profile.logout')}</div>
+        <div className="logout-btn" onClick={() => resetTo('s-language')}>{t('profile.logout')}</div>
         <div style={{ height: '20px' }} />
       </div>
       <BottomNav active="s-profile" />

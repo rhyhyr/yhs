@@ -779,6 +779,68 @@ export const globalStyles = `
 
   .send-btn:active { transform: scale(.92); opacity: .85; }
 
+  /* ── 언어 선택 · 시작(계정 없이) ── */
+  .auth-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 0 calc(8px + var(--safe-bot, 0px));
+    overflow-y: auto;
+    background: var(--c-surface);
+  }
+  .auth-top { display: flex; align-items: center; justify-content: space-between; padding: 0 12px; min-height: 40px; }
+  .auth-lang-pill {
+    border: 1px solid var(--c-border);
+    background: var(--c-bg);
+    border-radius: 16px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--c-t1);
+    cursor: pointer;
+  }
+  .auth-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 36px 16px 26px; }
+  .auth-logo { width: 76px; height: 76px; border-radius: 20px; box-shadow: 0 8px 24px rgba(33,85,205,.18); }
+  .auth-app { font-size: 22px; font-weight: 800; letter-spacing: -.5px; color: var(--c-t1); }
+  .auth-title { font-size: 20px; font-weight: 700; color: var(--c-t1); padding: 0 20px; letter-spacing: -.4px; }
+  .auth-sub { font-size: 13px; color: var(--c-t2); padding: 6px 20px 20px; line-height: 1.5; }
+  .auth-lang-list { display: flex; flex-direction: column; gap: 10px; padding: 0 16px; }
+  .auth-lang {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 15px 16px;
+    border: 1.5px solid var(--c-border);
+    border-radius: 14px;
+    background: var(--c-surface);
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: all .15s;
+  }
+  .auth-lang.on { border-color: var(--c-accent); background: var(--c-accent-l); }
+  .auth-lang-badge {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: grid; place-items: center;
+    background: var(--c-bg); color: var(--c-t1);
+    font-size: 15px; font-weight: 700;
+  }
+  .auth-lang.on .auth-lang-badge { background: var(--c-accent); color: #fff; }
+  .auth-lang-name { flex: 1; font-size: 16px; font-weight: 600; color: var(--c-t1); }
+  .auth-lang-check { color: var(--c-accent); font-weight: 800; font-size: 16px; }
+  .auth-cta { margin-top: 16px; }
+  .auth-points {
+    margin: 0 16px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: var(--c-bg);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--c-t1);
+  }
+
   .slim-header {
     display: flex;
     align-items: center;

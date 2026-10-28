@@ -239,7 +239,7 @@ export default {
     languageSheetTitle: '选择语言',
     editProfile: '修改个人信息',
     editProfileSub: '姓名、学校、专业',
-    logout: '退出登录',
+    logout: '返回初始页面',
   },
 
   google: {
@@ -247,6 +247,20 @@ export default {
     notConfigured: '谷歌日历同步还没有设置好。',
     connectCancelled: '已取消连接谷歌日历。',
     tokenExpired: '谷歌连接已过期，请重新连接。',
+  },
+
+  auth: {
+    langTitle: '请选择使用语言',
+    langSub: '随时可以在 我的信息 › 语言 中更改',
+    continue: '继续',
+    startTitle: '无需账号，马上开始',
+    startSub: '不用注册或登录即可使用。\n填写的信息只保存在本设备上。',
+    point1: '签证·学校·就业·住房行政问题',
+    point2: '基于官方文件的回答',
+    point3: '支持 한국어·中文·English',
+    start: '开始使用',
+    welcomeBack: '{name}，欢迎回来 👋',
+    welcomeBackNoName: '欢迎回来 👋',
   },
 
   onboarding: {

@@ -237,7 +237,7 @@ export default {
     languageSheetTitle: 'Choose language',
     editProfile: 'Edit personal info',
     editProfileSub: 'Name, school, major',
-    logout: 'Log out',
+    logout: 'Back to start',
   },
 
   google: {
@@ -245,6 +245,20 @@ export default {
     notConfigured: 'Google Calendar sync isn\'t set up yet.',
     connectCancelled: 'Google Calendar connection was cancelled.',
     tokenExpired: 'Your Google connection expired. Please connect again.',
+  },
+
+  auth: {
+    langTitle: 'Choose your language',
+    langSub: 'You can change it anytime in My Info › Language',
+    continue: 'Continue',
+    startTitle: 'Start right away — no account needed',
+    startSub: 'No sign-up or login required.\nYour info is saved only on this device.',
+    point1: 'Visa, school, job & housing questions',
+    point2: 'Answers based on official documents',
+    point3: 'Korean · 中文 · English',
+    start: 'Get started',
+    welcomeBack: 'Welcome back, {name} 👋',
+    welcomeBackNoName: 'Welcome back 👋',
   },
 
   onboarding: {
