@@ -5,7 +5,8 @@
  * Props:
  *   isOpen   : boolean
  *   onClose  : () => void
- *   sources  : Array<{ label: string, detail: string }>
+ *   sources  : Array<{ label: string, detail: string, url?: string }>
+ *              url이 있으면 공식 링크를 함께 보여준다 (새 탭으로 열림)
  */
 import { useI18n } from '../../i18n';
 
@@ -21,7 +22,12 @@ export default function SourceModal({ isOpen, onClose, sources = [] }) {
           {sources.map((src, i) => (
             <div key={i} className="source-modal-item">
               <div className="source-modal-label">{src.label}</div>
-              <div className="source-modal-detail">{src.detail}</div>
+              {src.detail && <div className="source-modal-detail">{src.detail}</div>}
+              {src.url && (
+                <a className="source-modal-link" href={src.url} target="_blank" rel="noreferrer">
+                  🔗 {src.url.replace(/^https?:\/\//, '')}
+                </a>
+              )}
             </div>
           ))}
         </div>

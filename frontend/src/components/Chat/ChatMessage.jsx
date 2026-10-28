@@ -77,7 +77,11 @@ function renderContent(text) {
   return nodes;
 }
 
-export default function ChatMessage({ role, children, style, path }) {
+/**
+ * sources: 답변 근거 출처 [{ label, detail, url }] — 있으면 말풍선 아래에 출처 줄 표시
+ * onSourcesClick: 출처 줄을 눌렀을 때 호출 (화면에서 SourceModal을 연다)
+ */
+export default function ChatMessage({ role, children, style, path, sources, onSourcesClick }) {
   if (role === 'user') {
     return (
       <div className="msg-user">
@@ -95,6 +99,14 @@ export default function ChatMessage({ role, children, style, path }) {
           </span>
         )}
         <div className="bubble-ai" style={style}>{renderContent(children)}</div>
+        {sources?.length > 0 && (
+          <button className="msg-sources" onClick={() => onSourcesClick?.(sources)}>
+            <span className="msg-sources-icon">📎</span>
+            <span className="msg-sources-label">{sources[0].label}</span>
+            {sources.length > 1 && <span className="msg-sources-more">+{sources.length - 1}</span>}
+            <span className="msg-sources-arrow">›</span>
+          </button>
+        )}
       </div>
     </div>
   );

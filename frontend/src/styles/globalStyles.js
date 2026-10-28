@@ -548,6 +548,32 @@ export const globalStyles = `
   .path-badge--fast { background: #E4F5ED; color: #1A8C5B; }
   .path-badge--deep { background: #EEEBFB; color: #5B45C2; }
 
+  /* 답변 말풍선 아래 출처 줄 — 누르면 SourceModal */
+  .msg-sources {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 252px;
+    padding: 5px 10px;
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+    background: var(--c-surface);
+    font-size: 11.5px;
+    color: var(--c-t2);
+    cursor: pointer;
+    align-self: flex-start;
+    font-family: inherit;
+  }
+  .msg-sources:active { opacity: .7; }
+  .msg-sources-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .msg-sources-more { color: var(--c-accent); font-weight: 600; flex-shrink: 0; }
+  .msg-sources-arrow { color: var(--c-t3); flex-shrink: 0; }
+
   .msg-user { display: flex; justify-content: flex-end; }
 
   .bubble-user {
@@ -1724,6 +1750,15 @@ export const globalStyles = `
     font-size: 12px;
     color: var(--c-t2);
     margin-top: 3px;
+  }
+
+  .source-modal-link {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: var(--c-accent);
+    text-decoration: none;
+    word-break: break-all;
   }
 
   .source-modal-close {
