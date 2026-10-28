@@ -483,6 +483,12 @@ export const globalStyles = `
     background: #D4E2FA;
   }
 
+  /* 예시용 퀵액션 버튼 — 실제 대화로 만든 게 아니라 미리 준비된 샘플로 바로 이동함을 표시 */
+  .qa-btn-example {
+    border-style: dashed;
+    color: var(--c-t3);
+  }
+
   .chat-area {
     padding: 10px 14px;
     display: flex;
@@ -541,6 +547,32 @@ export const globalStyles = `
   }
   .path-badge--fast { background: #E4F5ED; color: #1A8C5B; }
   .path-badge--deep { background: #EEEBFB; color: #5B45C2; }
+
+  /* 답변 말풍선 아래 출처 줄 — 누르면 SourceModal */
+  .msg-sources {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 252px;
+    padding: 5px 10px;
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+    background: var(--c-surface);
+    font-size: 11.5px;
+    color: var(--c-t2);
+    cursor: pointer;
+    align-self: flex-start;
+    font-family: inherit;
+  }
+  .msg-sources:active { opacity: .7; }
+  .msg-sources-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .msg-sources-more { color: var(--c-accent); font-weight: 600; flex-shrink: 0; }
+  .msg-sources-arrow { color: var(--c-t3); flex-shrink: 0; }
 
   .msg-user { display: flex; justify-content: flex-end; }
 
@@ -746,6 +778,86 @@ export const globalStyles = `
   }
 
   .send-btn:active { transform: scale(.92); opacity: .85; }
+
+  /* 🎙️ 음성 입력 버튼 — STT 연결은 utils/speechToText.js */
+  .mic-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--c-bg);
+    border: 1.5px solid var(--c-border);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform .1s, background .15s;
+  }
+  .mic-btn:active { transform: scale(.92); }
+  .mic-btn.listening { background: #FEE2E2; border-color: #F87171; animation: micPulse 1.2s ease-in-out infinite; }
+  @keyframes micPulse { 50% { box-shadow: 0 0 0 6px rgba(248,113,113,.2); } }
+
+  /* ── 언어 선택 · 시작(계정 없이) ── */
+  .auth-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 0 calc(8px + var(--safe-bot, 0px));
+    overflow-y: auto;
+    background: var(--c-surface);
+  }
+  .auth-top { display: flex; align-items: center; justify-content: space-between; padding: 0 12px; min-height: 40px; }
+  .auth-lang-pill {
+    border: 1px solid var(--c-border);
+    background: var(--c-bg);
+    border-radius: 16px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--c-t1);
+    cursor: pointer;
+  }
+  .auth-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 36px 16px 26px; }
+  .auth-logo { width: 76px; height: 76px; border-radius: 20px; box-shadow: 0 8px 24px rgba(33,85,205,.18); }
+  .auth-app { font-size: 22px; font-weight: 800; letter-spacing: -.5px; color: var(--c-t1); }
+  .auth-title { font-size: 20px; font-weight: 700; color: var(--c-t1); padding: 0 20px; letter-spacing: -.4px; }
+  .auth-sub { font-size: 13px; color: var(--c-t2); padding: 6px 20px 20px; line-height: 1.5; }
+  .auth-lang-list { display: flex; flex-direction: column; gap: 10px; padding: 0 16px; }
+  .auth-lang {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 15px 16px;
+    border: 1.5px solid var(--c-border);
+    border-radius: 14px;
+    background: var(--c-surface);
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: all .15s;
+  }
+  .auth-lang.on { border-color: var(--c-accent); background: var(--c-accent-l); }
+  .auth-lang-badge {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: grid; place-items: center;
+    background: var(--c-bg); color: var(--c-t1);
+    font-size: 15px; font-weight: 700;
+  }
+  .auth-lang.on .auth-lang-badge { background: var(--c-accent); color: #fff; }
+  .auth-lang-name { flex: 1; font-size: 16px; font-weight: 600; color: var(--c-t1); }
+  .auth-lang-check { color: var(--c-accent); font-weight: 800; font-size: 16px; }
+  .auth-cta { margin-top: 16px; }
+  .auth-points {
+    margin: 0 16px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: var(--c-bg);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--c-t1);
+  }
 
   .slim-header {
     display: flex;
@@ -1327,6 +1439,21 @@ export const globalStyles = `
 
   .cta-primary:active { opacity: .85; transform: scale(.98); }
 
+  /* 기본 정보 입력 — "나중에 입력할게요" */
+  .ob-skip {
+    display: block;
+    margin: -8px auto 14px;
+    padding: 8px 14px;
+    border: none;
+    background: none;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--c-t2);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
   .footnote {
     text-align: left;
     font-size: 12px;
@@ -1718,6 +1845,15 @@ export const globalStyles = `
     font-size: 12px;
     color: var(--c-t2);
     margin-top: 3px;
+  }
+
+  .source-modal-link {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: var(--c-accent);
+    text-decoration: none;
+    word-break: break-all;
   }
 
   .source-modal-close {

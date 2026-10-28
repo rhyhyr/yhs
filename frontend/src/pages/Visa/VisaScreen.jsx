@@ -8,8 +8,9 @@ import { convertChecklistItemsToEvents } from '../../api/calendar';
 import { BackIcon } from '../../components/Common/icons';
 import ChatInput from '../../components/Chat/ChatInput';
 import ChatMessage from '../../components/Chat/ChatMessage';
+import SourceModal from '../../components/Chat/SourceModal';
 import ChecklistAskCard from '../../components/Chat/ChecklistAskCard';
-import { CHECKLIST_SCREEN } from '../../data/mockChecklistData';
+import { CHECKLIST_SCREEN, CHECKLIST_NAV_LABEL_KEY } from '../../data/mockChecklistData';
 import CalendarLinkCard from '../../components/Chat/CalendarLinkCard';
 import CalendarRedirectCard from '../../components/Chat/CalendarRedirectCard';
 import ChecklistSelectModal from '../../components/Chat/ChecklistSelectModal';
@@ -34,6 +35,8 @@ export default function VisaScreen() {
   const [showModal, setShowModal]                 = useState(false);
   const [showRedirect, setShowRedirect]           = useState(false);
   const [linkedEarliestDate, setLinkedEarliestDate] = useState(null);
+  // 출처 시트에 띄울 출처 목록 (null이면 닫힘)
+  const [openSources, setOpenSources] = useState(null);
 
   // ── 캘린더 "관련 대화 보기"에서 돌아왔을 때 해당 메시지로 스크롤 ──
   // 채팅 기록은 새로고침하면 사라지는 구조라, 못 찾으면 조용히 그냥 둔다.
@@ -144,11 +147,11 @@ export default function VisaScreen() {
             className="qa-btn qa-btn-checklist"
             onClick={() => navigate(CHECKLIST_SCREEN[activeChecklistId])}
           >
-            {t('channel.checklist')}
+            {t(CHECKLIST_NAV_LABEL_KEY[activeChecklistId] ?? 'channel.checklist')}
           </button>
         )}
         {quickActions.map(action => (
-          <button key={action.label} className="qa-btn"
+          <button key={action.label} className={`qa-btn${action.example ? ' qa-btn-example' : ''}`}
             onClick={() => handleQuickAction(action)} disabled={isLoading}>
             {action.label}
           </button>
@@ -166,7 +169,7 @@ export default function VisaScreen() {
               ref={el => { msgRefs.current[msg.id] = el; }}
               className={highlightedId === msg.id ? 'msg-highlighted' : ''}
             >
-              <ChatMessage role={msg.role} path={msg.path} sources={msg.sources}>{msg.text}</ChatMessage>
+              <ChatMessage role={msg.role} path={msg.path} sources={msg.sources} onSourcesClick={setOpenSources}>{msg.text}</ChatMessage>
             </div>
           ))}
           {isLoading && <ChatMessage role="ai">…</ChatMessage>}
@@ -215,6 +218,11 @@ export default function VisaScreen() {
           onClose={() => setShowModal(false)}
         />
       )}
+      <SourceModal
+        isOpen={!!openSources}
+        sources={openSources ?? []}
+        onClose={() => setOpenSources(null)}
+      />
     </>
   );
 }

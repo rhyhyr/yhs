@@ -5,6 +5,7 @@ import BottomNav from '../../components/Common/BottomNav';
 import ChatInput from '../../components/Chat/ChatInput';
 import ChatMessage from '../../components/Chat/ChatMessage';
 import ChannelCreateModal from '../../components/Chat/ChannelCreateModal';
+import SourceModal from '../../components/Chat/SourceModal';
 import { useI18n } from '../../i18n';
 import { getChannel } from '../../api/channels';
 
@@ -37,6 +38,8 @@ export default function ChatScreen() {
 
   const [showWelcome, setShowWelcome] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  // 출처 시트에 띄울 출처 목록 (null이면 닫힘)
+  const [openSources, setOpenSources] = useState(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -160,7 +163,7 @@ export default function ChatScreen() {
               <ChatMessage role="ai">{welcomeMsg}</ChatMessage>
             )}
             {messages.map(msg => (
-              <ChatMessage key={msg.id} role={msg.role} sources={msg.sources}>
+              <ChatMessage key={msg.id} role={msg.role} sources={msg.sources} onSourcesClick={setOpenSources}>
                 {msg.text}
               </ChatMessage>
             ))}
@@ -200,6 +203,12 @@ export default function ChatScreen() {
       )}
 
       <BottomNav active="s-main" />
+
+      <SourceModal
+        isOpen={!!openSources}
+        sources={openSources ?? []}
+        onClose={() => setOpenSources(null)}
+      />
 
       {/* ── 채널 생성 확인 모달 ── */}
       {selectedCategory && (

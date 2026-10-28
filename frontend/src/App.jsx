@@ -18,6 +18,8 @@ import JobScreen from './pages/Channel/JobScreen';
 import HouseScreen from './pages/Channel/HouseScreen';
 import InsuranceScreen from './pages/Channel/InsuranceScreen';
 import KnowledgeScreen from './pages/Search/KnowledgeScreen';
+import LanguageScreen from './pages/Auth/LanguageScreen';
+import StartScreen from './pages/Auth/StartScreen';
 import OnboardingScreen from './pages/Profile/OnboardingScreen';
 import BridgeScreen from './pages/Profile/BridgeScreen';
 import SearchScreen from './pages/Search/SearchScreen';
@@ -101,6 +103,8 @@ function AppShell() {
 
       {/* ── 화면 목록 ── */}
       <div className="screens">
+        <div className={sc('s-language')}     id="s-language">     <LanguageScreen /></div>
+        <div className={sc('s-start')}        id="s-start">        <StartScreen /></div>
         <div className={sc('s-home')}         id="s-home">         <HomeScreen /></div>
         <div className={sc('s-visa')}         id="s-visa">         <VisaScreen /></div>
         <div className={sc('s-step')}         id="s-step">         <StepGuideScreen /></div>

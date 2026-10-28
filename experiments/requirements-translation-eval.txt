@@ -1,0 +1,6 @@
+﻿# Install the existing backend dependencies first; these are evaluation extras.
+sacrebleu==2.5.1
+bert-score==0.3.13
+playwright==1.55.0
+# NLLB .bin loading with Transformers 4.57 requires torch >=2.6.
+# Tested with torch==2.6.0+cpu, transformers==4.57.6, sentencepiece==0.2.2.

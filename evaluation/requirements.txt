@@ -1,0 +1,8 @@
+﻿# Install existing backend dependencies first.
+sacrebleu==2.5.1
+bert-score==0.3.13
+openai==3.26.0
+fastapi==0.142.4
+httpx==0.28.1
+# Tested with torch 2.6.0+cpu, transformers 4.57.6; see result protocol for full versions.
+google-genai==2.29.0

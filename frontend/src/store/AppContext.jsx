@@ -27,9 +27,10 @@ export function AppProvider({ children }) {
   const { t } = useI18n();
 
   // ── 네비게이션 ──
-  const [current, setCurrent] = useState('s-home');
+  // 앱은 항상 언어 선택 → 시작(계정 없이) 순서로 시작한다 (시연 시 매번 첫 화면부터 보여주기 위함)
+  const [current, setCurrent] = useState('s-language');
   const [prev, setPrev] = useState(null);
-  const [historyStack, setHistoryStack] = useState(['s-home']);
+  const [historyStack, setHistoryStack] = useState(['s-language']);
 
   // ── 토스트 ──
   const [toastMsg, setToastMsg] = useState('');
@@ -229,6 +230,14 @@ export function AppProvider({ children }) {
     setHistoryStack(h => [...h, id]);
   }
 
+  /** 뒤로가기 기록을 지우고 해당 화면으로 (시작하기·처음 화면으로처럼 되돌아가면 안 되는 전환) */
+  function resetTo(id, params = {}) {
+    setPrev(current);
+    setCurrent(id);
+    setNavParams(params);
+    setHistoryStack([id]);
+  }
+
   function back() {
     if (historyStack.length <= 1) return;
     const newStack = [...historyStack];
@@ -298,7 +307,7 @@ export function AppProvider({ children }) {
   return (
     <AppContext.Provider value={{
       // 네비게이션
-      current, prev, navParams, navigate, back,
+      current, prev, navParams, navigate, back, resetTo,
       // 토스트
       toastMsg, toastVisible, showToast,
       // 단계 (비자 연장)

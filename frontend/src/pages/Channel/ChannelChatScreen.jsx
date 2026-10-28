@@ -5,6 +5,7 @@ import { getChannelById } from '../../data/channels';
 import { BackIcon } from '../../components/Common/icons';
 import ChatInput from '../../components/Chat/ChatInput';
 import ChatMessage from '../../components/Chat/ChatMessage';
+import SourceModal from '../../components/Chat/SourceModal';
 import { useI18n } from '../../i18n';
 
 /**
@@ -26,6 +27,8 @@ export default function ChannelChatScreen({ channelId }) {
   const [initialHistory] = useState(() => navParams?.initialHistory ?? []);
   const { messages, isLoading, handleSend } = useChatChannel(channelId, initialHistory);
   const bottomRef = useRef(null);
+  // 출처 시트에 띄울 출처 목록 (null이면 닫힘)
+  const [openSources, setOpenSources] = useState(null);
 
   // 새 메시지 도착 시 스크롤 하단 이동
   useEffect(() => {
@@ -75,7 +78,7 @@ export default function ChannelChatScreen({ channelId }) {
       {quickActions.length > 0 && (
         <div className="qa-scroll">
           {quickActions.map(action => (
-            <button key={action.label} className="qa-btn"
+            <button key={action.label} className={`qa-btn${action.example ? ' qa-btn-example' : ''}`}
               onClick={() => handleQuickAction(action)} disabled={isLoading}>
               {action.label}
             </button>
@@ -96,7 +99,7 @@ export default function ChannelChatScreen({ channelId }) {
               ref={el => { msgRefs.current[msg.id] = el; }}
               className={highlightedId === msg.id ? 'msg-highlighted' : ''}
             >
-              <ChatMessage role={msg.role} sources={msg.sources}>{msg.text}</ChatMessage>
+              <ChatMessage role={msg.role} sources={msg.sources} onSourcesClick={setOpenSources}>{msg.text}</ChatMessage>
             </div>
           ))}
           {isLoading && <ChatMessage role="ai">…</ChatMessage>}
@@ -112,6 +115,11 @@ export default function ChannelChatScreen({ channelId }) {
         placeholder={placeholder}
         onSend={handleSend}
         disabled={isLoading}
+      />
+      <SourceModal
+        isOpen={!!openSources}
+        sources={openSources ?? []}
+        onClose={() => setOpenSources(null)}
       />
     </>
   );

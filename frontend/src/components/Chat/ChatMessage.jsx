@@ -114,7 +114,12 @@ function renderContent(text, sources) {
   return nodes;
 }
 
-export default function ChatMessage({ role, children, style, path, sources = [] }) {
+/**
+ * sources: 답변 근거 출처 [{ label, detail, url }]
+ *   - 본문 속 [문서명, p.N] 인용은 url 이 있는 출처와 맞춰 링크로 바꾼다
+ *   - 말풍선 아래에 '📎 문서명 +N' 한 줄로 보여주고, 누르면 onSourcesClick (SourceModal)
+ */
+export default function ChatMessage({ role, children, style, path, sources = [], onSourcesClick }) {
   if (role === 'user') {
     return (
       <div className="msg-user">
@@ -134,25 +139,15 @@ export default function ChatMessage({ role, children, style, path, sources = [] 
             {path === 'fast' ? '⚡ FAST' : '🔍 DEEP'}
           </span>
         )}
-        <div className="bubble-ai" style={style}>
-          {renderContent(children, linkedSources)}
-          {linkedSources.length > 0 && (
-            <div className="message-sources">
-              <div className="message-sources-title">출처</div>
-              {linkedSources.map((source) => (
-                <a
-                  key={source.id || source.url || source.label}
-                  className="message-source-link"
-                  href={source.url || undefined}
-                  target={source.url ? '_blank' : undefined}
-                  rel={source.url ? 'noreferrer' : undefined}
-                >
-                  {source.label}{source.detail ? ` · ${source.detail}` : ''}
-                </a>
-              ))}
-            </div>
-          )}
-        </div>
+        <div className="bubble-ai" style={style}>{renderContent(children, linkedSources)}</div>
+        {sources.length > 0 && onSourcesClick && (
+          <button className="msg-sources" onClick={() => onSourcesClick(sources)}>
+            <span className="msg-sources-icon">📎</span>
+            <span className="msg-sources-label">{sources[0].label}</span>
+            {sources.length > 1 && <span className="msg-sources-more">+{sources.length - 1}</span>}
+            <span className="msg-sources-arrow">›</span>
+          </button>
+        )}
       </div>
     </div>
   );
