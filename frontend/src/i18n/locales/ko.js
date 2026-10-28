@@ -80,6 +80,8 @@ export default {
     createdSection: '✅ 방금 생성된 채널',
     createdPreview: '전문 채널에서 더 자세한 답변을 받아보세요',
     viewInChannel: '채널에서 자세히 보기',
+    voiceInput: '음성으로 입력',
+    voiceSoon: '🎙️ 음성 입력은 곧 지원될 예정이에요',
     channelCreated: '{name} 채널이 생성되었어요 🎉',
     createTitle: '{name} 채널을 생성할까요?',
     createDesc: '더 자세하고 전문적인 답변을\n받아보실 수 있어요.',

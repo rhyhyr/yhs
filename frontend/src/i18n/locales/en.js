@@ -78,6 +78,8 @@ export default {
     createdSection: '✅ Newly created channels',
     createdPreview: 'Get more detailed answers in the dedicated channel',
     viewInChannel: 'channel — see more details',
+    voiceInput: 'Voice input',
+    voiceSoon: '🎙️ Voice input is coming soon',
     channelCreated: '{name} channel created 🎉',
     createTitle: 'Create the {name} channel?',
     createDesc: 'You will get more detailed,\nspecialized answers.',

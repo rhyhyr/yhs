@@ -80,6 +80,8 @@ export default {
     createdSection: '✅ 刚创建的频道',
     createdPreview: '在专属频道获得更详细的解答',
     viewInChannel: '频道 — 查看详情',
+    voiceInput: '语音输入',
+    voiceSoon: '🎙️ 语音输入即将上线',
     channelCreated: '“{name}”频道已创建 🎉',
     createTitle: '要创建“{name}”频道吗？',
     createDesc: '您将获得更详细、\n更专业的解答。',

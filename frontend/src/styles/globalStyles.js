@@ -779,6 +779,24 @@ export const globalStyles = `
 
   .send-btn:active { transform: scale(.92); opacity: .85; }
 
+  /* 🎙️ 음성 입력 버튼 — STT 연결은 utils/speechToText.js */
+  .mic-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--c-bg);
+    border: 1.5px solid var(--c-border);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform .1s, background .15s;
+  }
+  .mic-btn:active { transform: scale(.92); }
+  .mic-btn.listening { background: #FEE2E2; border-color: #F87171; animation: micPulse 1.2s ease-in-out infinite; }
+  @keyframes micPulse { 50% { box-shadow: 0 0 0 6px rgba(248,113,113,.2); } }
+
   /* ── 언어 선택 · 시작(계정 없이) ── */
   .auth-wrap {
     flex: 1;
