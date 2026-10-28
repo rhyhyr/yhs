@@ -42,7 +42,13 @@ PREDICATE_TYPES: dict[str, tuple[set[str] | None, set[str] | None]] = {
     # PRODUCT 를 REQUIRES 의 subject 로 허용한다.
     #   유선전화 및 인터넷 -[REQUIRES]-> 여권   (개통에 필요한 서류)
     # 제도·서비스를 신청할 때 내는 서류는 절차의 서류와 성격이 같다.
-    "REQUIRES":          ({"PROCEDURE", "VISA", "PRODUCT"},
+    # DOCUMENT 를 REQUIRES 의 subject 로 허용한다.
+    #   외국인등록증 -[REQUIRES]-> 여권   (재발급에 내는 서류)
+    # 절차 문단인데 추출기가 절차 노드를 만들지 않고 그 절차의 대상 서류를
+    # subject 로 세우는 경우가 있다. 10_외국인등록증_재발급 이 그렇다 —
+    # PROCEDURE 엔티티가 없어 관계 10건이 전부 타입 불일치로 탈락했고,
+    # 그 결과 재발급 서류 6종이 그래프에 하나도 붙지 못했다.
+    "REQUIRES":          ({"PROCEDURE", "VISA", "PRODUCT", "DOCUMENT"},
                           {"DOCUMENT", "CONDITION", "PROCEDURE"}),
     # DOCUMENT 와 PERSON_GROUP 을 HAS_CONDITION 의 subject 로 허용한다.
     #   재정능력입증서 -[HAS_CONDITION]-> 1600만원 이상   (서류가 갖춰야 할 요건)
@@ -50,7 +56,10 @@ PREDICATE_TYPES: dict[str, tuple[set[str] | None, set[str] | None]] = {
     # object 는 여전히 CONDITION 만이므로 기관·서류가 조건 자리에 오지는 못한다.
     "HAS_CONDITION":     ({"PROCEDURE", "VISA", "PRODUCT",
                            "DOCUMENT", "PERSON_GROUP"}, {"CONDITION"}),
-    "HAS_EXCEPTION":     ({"PROCEDURE", "VISA", "CONDITION"}, {"CONDITION", "PERSON_GROUP"}),
+    # DOCUMENT 를 HAS_EXCEPTION 의 subject 로 허용한다. 위와 같은 이유다.
+    #   외국인등록증 -[HAS_EXCEPTION]-> 분실되거나 없어진 때   (재발급 사유)
+    "HAS_EXCEPTION":     ({"PROCEDURE", "VISA", "CONDITION", "DOCUMENT"},
+                          {"CONDITION", "PERSON_GROUP"}),
     "BLOCKS":            ({"CONDITION"}, {"PROCEDURE", "VISA"}),
     "ENABLES":           ({"DOCUMENT", "CONDITION", "PROCEDURE"}, {"PROCEDURE", "VISA"}),
     "PRECEDES":          ({"PROCEDURE", "VISA"}, {"PROCEDURE", "VISA"}),
