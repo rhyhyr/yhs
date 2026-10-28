@@ -10,6 +10,10 @@ rerank:
   candidate_top_k: 10
   final_top_k: 6
   min_chunk_score: 0.3
+  # 한 문서(source_file)가 top-k 자리를 몇 개까지 차지할 수 있는지.
+  # 라우팅 청크는 이 제한에서 빠진다. 없으면 한 문서의 청크 5개가
+  # 6자리를 다 먹어 정답이 든 다른 문서가 밀려난다 (complex 회귀 원인).
+  max_per_source: 2
   # 라우팅된 청크에 확보해 줄 최소 자리 수.
   #
   # base_scores.routed 만으로는 top-k 진입이 보장되지 않는다.

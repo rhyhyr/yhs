@@ -41,9 +41,9 @@ from yhs.rag.llm.openai_client import OpenAIRuntimeClient
 from yhs.rag.runtime import GateThresholds, expand_query, should_use_deep_path
 from yhs.schema.types import ChunkNode, RetrievalResult
 
-RUNS_PATH = "experiments/results/runs_v3b.jsonl"
-SCORES_PATH = "experiments/results/scores_v3b.jsonl"
-RESULTS_PATH = "experiments/results/results_v3b.md"
+RUNS_PATH = "experiments/results/runs_v6.jsonl"
+SCORES_PATH = "experiments/results/scores_v6.jsonl"
+RESULTS_PATH = "experiments/results/results_v6.md"
 
 CRAWLER_TIMEOUT = 15
 

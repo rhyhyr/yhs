@@ -45,6 +45,7 @@ _CANDIDATE_TOP_K = _cfg["rerank"]["candidate_top_k"]
 _FINAL_TOP_K = _cfg["rerank"]["final_top_k"]
 _MIN_CHUNK_SCORE = _cfg["rerank"]["min_chunk_score"]
 _ROUTED_MIN_SLOTS = _cfg["rerank"].get("routed_min_slots", 0)
+_MAX_PER_SOURCE = _cfg["rerank"].get("max_per_source", 0)
 
 # 병합 스코어 가중치
 _W_BASE = _cfg["weights"]["base"]        # 출처 기반 점수 (그래프 홉 점수 or 벡터 cosine)
@@ -379,6 +380,19 @@ class RetrievalEngine:
         # 같은 본문이 top-k 자리를 나눠 먹지 않도록 내용 기준으로 한 번 거른다.
         ranked = _dedupe_by_text(ranked)
 
+        # 한 문서가 top-k 를 독점하지 않도록 문서별 상한을 건다 (라우팅 청크 제외).
+        if _MAX_PER_SOURCE > 0:
+            per_source: dict[str, int] = {}
+            capped: list[dict] = []
+            for c in ranked:
+                if c.get("_from") != "routed":
+                    src = c.get("source_file", "")
+                    if per_source.get(src, 0) >= _MAX_PER_SOURCE:
+                        continue
+                    per_source[src] = per_source.get(src, 0) + 1
+                capped.append(c)
+            ranked = capped
+
         if not ranked:
             logger.info(
                 "병합 재랭크 결과가 임계값 미달로 비어 있음 (threshold=%.2f)",
@@ -444,7 +458,7 @@ class RetrievalEngine:
 
         if result.chunks:
             lines.append("[원문]")
-            for chunk in result.chunks[:4]:
+            for chunk in result.chunks:
                 # 출처 메타데이터 표시
                 loc_parts = []
                 if chunk.source_file:
