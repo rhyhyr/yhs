@@ -120,6 +120,8 @@ class Settings(BaseSettings):
 
     # ── 기능 토글 ───────────────────────────────────────────────────────
     enable_zh_translation: bool = True
+    # 번역 모델: ko/en/zh 를 한 모델로 처리 (NLLB-200 distilled 600M)
+    translation_model: str = "facebook/nllb-200-distilled-600M"
 
     # ── API ─────────────────────────────────────────────────────────────
     # 운영에서는 nginx 가 프론트와 /api 를 같은 오리진으로 묶으므로 CORS 가

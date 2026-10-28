@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApp } from './useApp';
+import { useI18n } from '../i18n';
 import { sendMessage } from '../api/chat';
 import { visaTypeCode } from '../data/visaTypes';
 
@@ -33,6 +34,7 @@ function buildChatProfile(p) {
 
 export function useChatChannel(channelId, extraHistory = []) {
   const { getMessages, addMessage, userProfile } = useApp();
+  const { locale } = useI18n();
   const [isLoading, setIsLoading] = useState(false);
   const [suggestedChannelId, setSuggestedChannelId] = useState(null);
 
@@ -61,7 +63,11 @@ export function useChatChannel(channelId, extraHistory = []) {
 
     try {
       const { answer, tags, sources, suggestedChannelId: suggested, checklistId, path } =
-        await sendMessage({ channelId, message: trimmed, history, profile: buildChatProfile(userProfile) });
+        await sendMessage({
+          channelId, message: trimmed, history,
+          languages: userProfile?.languages?.length ? userProfile.languages : [locale],
+          profile: buildChatProfile(userProfile),
+        });
 
       addMessage(channelId, {
         id: `${channelId}-${Date.now()}-ai`,

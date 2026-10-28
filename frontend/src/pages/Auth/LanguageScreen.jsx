@@ -9,9 +9,10 @@ const BADGES = { ko: '한', zh: '中', en: 'En', vi: 'Vi' };
 /**
  * 앱 첫 화면 — 언어 선택
  * 고르는 즉시 앱 전체 언어가 바뀌므로, 이 화면의 문구도 바로 그 언어로 바뀐다.
+ * 답변 언어(profile.languages)도 함께 바꿔서, 백엔드가 이 언어로 답하게 한다.
  */
 export default function LanguageScreen() {
-  const { navigate } = useApp();
+  const { navigate, updateUserProfile } = useApp();
   const { t, locale, setLocale, languages } = useI18n();
 
   return (
@@ -29,7 +30,7 @@ export default function LanguageScreen() {
           <button
             key={code}
             className={`auth-lang${locale === code ? ' on' : ''}`}
-            onClick={() => setLocale(code)}
+            onClick={() => { setLocale(code); updateUserProfile({ languages: [code] }); }}
           >
             <span className="auth-lang-badge">{BADGES[code] ?? code}</span>
             <span className="auth-lang-name">{nativeName}</span>

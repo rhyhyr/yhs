@@ -25,7 +25,7 @@ def _state(request: Request) -> AppState:
 
 @router.post("/api/chat", response_model=ChatResponse, tags=["chat"])
 def chat(body: ChatRequest, request: Request) -> ChatResponse:
-    answer = answer_question(_state(request), body.message)
+    answer = answer_question(_state(request), body.message, body.languages)
     return ChatResponse(answer=answer.text, sources=answer.sources, path=answer.path)
 
 

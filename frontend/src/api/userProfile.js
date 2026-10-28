@@ -18,8 +18,22 @@ import { saveUserProfileLocal, loadUserProfile } from '../utils/storage';
  * @returns {Promise<object|null>}
  */
 export async function getUserProfile() {
-  // ── 현재: localStorage
-  return loadUserProfile();
+  const local = loadUserProfile();
+  try {
+    const res = await fetch('/api/user/profile', { headers: { 'X-Client-Id': getClientId() } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const remote = await res.json();
+    if (Object.keys(remote).length) {
+      saveUserProfileLocal(remote); // 다른 기기에서 저장한 값을 이 기기에도 반영
+      return remote;
+    }
+  } catch (err) {
+    console.warn('프로필 서버 조회 실패, 로컬 값을 사용합니다:', err);
+    return local;
+  }
+  // 서버에 아직 없으면 이 기기의 로컬 프로필을 올려 둔다
+  if (local) await persistUserProfile(local);
+  return local;
 
   /* ── API 전환 예시 (위 줄 삭제 후 아래 주석 해제)
   const res = await fetch('/api/user/profile', { headers: authHeader() });
@@ -34,11 +48,21 @@ export async function getUserProfile() {
  * @returns {Promise<object>} 저장된 profile
  */
 export async function persistUserProfile(profile) {
-  // ── 현재: localStorage
+  // 로컬에 먼저 저장하고, 서버 저장은 실패해도 앱을 막지 않는다.
   saveUserProfileLocal(profile);
+  try {
+    const res = await fetch('/api/user/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Client-Id': getClientId() },
+      body: JSON.stringify(profile),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  } catch (err) {
+    console.warn('프로필 서버 저장 실패 (로컬에는 저장됨):', err);
+  }
   return profile;
 
-  /* ── API 전환 예시 (위 두 줄 삭제 후 아래 주석 해제)
+  /* ── 이전 주석 (참고용)
   const res = await fetch('/api/user/profile', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeader() },
@@ -47,6 +71,18 @@ export async function persistUserProfile(profile) {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
   */
+}
+
+// 브라우저마다 한 번 만들어 두는 ID — 인증 전까지 프로필을 기기별로 나누는 키
+const CLIENT_ID_KEY = 'yhs_client_id';
+
+function getClientId() {
+  let id = localStorage.getItem(CLIENT_ID_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(CLIENT_ID_KEY, id);
+  }
+  return id;
 }
 
 // function authHeader() {

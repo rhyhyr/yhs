@@ -47,6 +47,10 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_DEV_API_TARGET || 'http://localhost:8000',
           changeOrigin: true,
         },
+        '/sources': {
+          target: env.VITE_DEV_API_TARGET || 'http://localhost:8000',
+          changeOrigin: true,
+        },
       },
       // Vite 는 기본적으로 모르는 Host 헤더의 요청을 403으로 막는다(DNS 리바인딩 방지).
       // cloudflared 임시 터널(폰 실기기 테스트용)로 들어오는 요청만 예외로 허용.

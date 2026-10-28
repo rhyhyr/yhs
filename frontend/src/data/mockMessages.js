@@ -30,13 +30,15 @@ import { translateData } from '../i18n/core';
 
 // ── Mock Source 샘플 ───────────────────────────────────────────────────────
 
+const sourceUrl = (url) => url;
+
 export const MOCK_SOURCES = {
   visa: [
     {
       id: 'src-visa-1',
       label: '법무부 출입국관리법 시행규칙 (2024)',
       detail: '제76조 – 체류자격 변경·연장 절차 및 제출서류',
-      url: '',
+      url: sourceUrl('https://rfc.donga.ac.kr/global/CMS/Contents/Contents.do?mCode=MN064'),
     },
     {
       id: 'src-visa-2',
@@ -50,7 +52,7 @@ export const MOCK_SOURCES = {
       id: 'src-school-1',
       label: '부산대학교 학사운영규정',
       detail: '제12조 – 수강신청 및 변경 절차',
-      url: '',
+      url: sourceUrl('https://www.donga.ac.kr/kor/CMS/Contents/Contents.do?mCode=MN318'),
     },
   ],
   job: [
@@ -58,7 +60,7 @@ export const MOCK_SOURCES = {
       id: 'src-job-1',
       label: '출입국관리법 시행령 제23조',
       detail: '유학생 시간제 취업 허가 기준 (주 20시간)',
-      url: '',
+      url: sourceUrl('https://www.hikorea.go.kr/info/InfoDatail.pt?CAT_SEQ=187&PARENT_ID=142'),
     },
   ],
   house: [
@@ -66,7 +68,7 @@ export const MOCK_SOURCES = {
       id: 'src-house-1',
       label: '주택임대차보호법 제3조',
       detail: '전입신고 및 확정일자 요건',
-      url: '',
+      url: sourceUrl('https://rfc.donga.ac.kr/global/CMS/Contents/Contents.do?mCode=MN062'),
     },
   ],
   insurance: [
@@ -74,7 +76,7 @@ export const MOCK_SOURCES = {
       id: 'src-insurance-1',
       label: '국민건강보험법 시행령',
       detail: '외국인 유학생 건강보험 의무가입 기준 (6개월 이상 체류)',
-      url: 'https://www.nhis.or.kr',
+      url: sourceUrl('https://rfc.donga.ac.kr/global/CMS/Contents/Contents.do?mCode=MN063'),
     },
   ],
   main: [],

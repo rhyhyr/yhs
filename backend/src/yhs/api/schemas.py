@@ -31,6 +31,7 @@ class ChatRequest(BaseModel):
     message: str
     channel_id: str = Field(default="main", alias="channelId")
     history: list[ChatMessage] = Field(default_factory=list)
+    languages: list[str] = Field(default_factory=list)  # 사용자가 고른 응답 언어 (대표 언어가 맨 앞)
 
     model_config = {"populate_by_name": True}
 

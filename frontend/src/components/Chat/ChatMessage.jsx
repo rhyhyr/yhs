@@ -13,7 +13,44 @@
  * - "제목:"    → 볼드 섹션 헤더
  * - 빈 줄      → 간격
  */
-function renderContent(text) {
+function renderInline(text, sources) {
+  if (!sources.length || typeof text !== 'string') return text;
+
+  const citationPattern = /\[([^\]\n]+,\s*(?:p\.?\s*)?\d+\s*(?:페이지)?)\]/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = citationPattern.exec(text)) !== null) {
+    parts.push(text.slice(lastIndex, match.index));
+    const citation = match[1];
+    const pageMatch = citation.match(/(?:p\.?\s*|페이지\s*)(\d+)/i) || citation.match(/(\d+)\s*$/);
+    const page = pageMatch?.[1];
+    const documentName = citation.slice(0, citation.lastIndexOf(',')).trim().replace(/\.pdf$/i, '');
+    const source = sources.find((item) => {
+      const label = (item.label || '').replace(/\.pdf$/i, '');
+      const sourcePage = item.detail?.match(/p\.(\d+)/i)?.[1];
+      return page === sourcePage && (label.includes(documentName) || documentName.includes(label));
+    }) || sources.find((item) => item.detail?.match(/p\.(\d+)/i)?.[1] === page);
+
+    if (source?.url) {
+      parts.push(
+        <a key={`citation-${match.index}`} href={source.url} target="_blank" rel="noreferrer">
+          [{citation}]
+        </a>
+      );
+    } else {
+      parts.push(`[${citation}]`);
+    }
+    lastIndex = citationPattern.lastIndex;
+  }
+
+  if (!parts.length) return text;
+  parts.push(text.slice(lastIndex));
+  return parts;
+}
+
+function renderContent(text, sources) {
   if (typeof text !== 'string') return text;
 
   const lines = text.split('\n');
@@ -34,7 +71,7 @@ function renderContent(text) {
       nodes.push(
         <div key={k++} className="msg-step">
           <span className="msg-step-num">{numMatch[1]}</span>
-          <span>{numMatch[2]}</span>
+          <span>{renderInline(numMatch[2], sources)}</span>
         </div>
       );
       continue;
@@ -45,7 +82,7 @@ function renderContent(text) {
       nodes.push(
         <div key={k++} className="msg-bullet">
           <span className="msg-bullet-dot">•</span>
-          <span>{t.slice(2)}</span>
+          <span>{renderInline(t.slice(2), sources)}</span>
         </div>
       );
       continue;
@@ -71,17 +108,18 @@ function renderContent(text) {
     }
 
     // 일반 텍스트
-    nodes.push(<p key={k++} className="msg-line">{t}</p>);
+    nodes.push(<p key={k++} className="msg-line">{renderInline(t, sources)}</p>);
   }
 
   return nodes;
 }
 
 /**
- * sources: 답변 근거 출처 [{ label, detail, url }] — 있으면 말풍선 아래에 출처 줄 표시
- * onSourcesClick: 출처 줄을 눌렀을 때 호출 (화면에서 SourceModal을 연다)
+ * sources: 답변 근거 출처 [{ label, detail, url }]
+ *   - 본문 속 [문서명, p.N] 인용은 url 이 있는 출처와 맞춰 링크로 바꾼다
+ *   - 말풍선 아래에 '📎 문서명 +N' 한 줄로 보여주고, 누르면 onSourcesClick (SourceModal)
  */
-export default function ChatMessage({ role, children, style, path, sources, onSourcesClick }) {
+export default function ChatMessage({ role, children, style, path, sources = [], onSourcesClick }) {
   if (role === 'user') {
     return (
       <div className="msg-user">
@@ -89,6 +127,9 @@ export default function ChatMessage({ role, children, style, path, sources, onSo
       </div>
     );
   }
+  const linkedSources = sources.filter((source) =>
+    source.url?.startsWith('/sources/') || source.url?.startsWith('https://')
+  );
   return (
     <div className="msg-ai">
       <div className="ai-av">AI</div>
@@ -98,9 +139,9 @@ export default function ChatMessage({ role, children, style, path, sources, onSo
             {path === 'fast' ? '⚡ FAST' : '🔍 DEEP'}
           </span>
         )}
-        <div className="bubble-ai" style={style}>{renderContent(children)}</div>
-        {sources?.length > 0 && (
-          <button className="msg-sources" onClick={() => onSourcesClick?.(sources)}>
+        <div className="bubble-ai" style={style}>{renderContent(children, linkedSources)}</div>
+        {sources.length > 0 && onSourcesClick && (
+          <button className="msg-sources" onClick={() => onSourcesClick(sources)}>
             <span className="msg-sources-icon">📎</span>
             <span className="msg-sources-label">{sources[0].label}</span>
             {sources.length > 1 && <span className="msg-sources-more">+{sources.length - 1}</span>}

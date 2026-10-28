@@ -11,7 +11,7 @@ function getInitial(name) {
 
 export default function ProfileScreen() {
   const {
-    navigate, showToast, toggles, setToggles, userProfile,
+    navigate, showToast, toggles, setToggles, userProfile, updateUserProfile,
     googleAccessToken, googleConnecting, connectGoogleCalendar, disconnectGoogleCalendar, resetTo,
   } = useApp();
   const { t, locale, setLocale, languages } = useI18n();
@@ -44,6 +44,7 @@ export default function ProfileScreen() {
 
   function chooseLanguage(code) {
     setLocale(code);
+    updateUserProfile({ languages: [code] });
     setLangOpen(false);
   }
 

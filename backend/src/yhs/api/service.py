@@ -15,9 +15,11 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from urllib.parse import quote
 
 from yhs.api.deps import AppState
 from yhs.api.schemas import Source
+from yhs.rag.retrieval.translator import get_translator, resolve_response_language
 from yhs.rag.runtime import (
     detect_language,
     expand_query,
@@ -28,8 +30,24 @@ from yhs.schema.types import ChunkNode
 
 logger = logging.getLogger(__name__)
 
+
+def _to_response_language(text: str, language: str) -> str:
+    """FAQ·LLM 답변은 한국어 기준이라, 응답 언어가 다르면 번역한다."""
+    if language == "ko":
+        return text
+    return get_translator().translate_answer(text, language)
+
 # 응답에 실어 보낼 최대 출처 개수 (프론트 출처 카드가 감당할 수 있는 수준)
 _MAX_SOURCES = 5
+
+_SOURCE_URLS = {
+    "02_하이코리아_체류자격외활동_시간제취업.pdf": "https://www.hikorea.go.kr/info/InfoDatail.pt?CAT_SEQ=187&PARENT_ID=142",
+    "04_하이코리아_외국인등록_제출서류.pdf": "https://www.hikorea.go.kr/info/InfoDatail.pt?CAT_SEQ=177&PARENT_ID=139",
+    "07_동아대_국제교류과_VISA정보.pdf": "https://rfc.donga.ac.kr/global/CMS/Contents/Contents.do?mCode=MN064",
+    "08_동아대_기숙사.pdf": "https://rfc.donga.ac.kr/global/CMS/Contents/Contents.do?mCode=MN062",
+    "20_동아대_국제교류과_보험안내.pdf": "https://rfc.donga.ac.kr/global/CMS/Contents/Contents.do?mCode=MN063",
+    "25_동아대_등록안내_2026_1.pdf": "https://www.donga.ac.kr/kor/CMS/Contents/Contents.do?mCode=MN318",
+}
 
 
 @dataclass
@@ -59,22 +77,29 @@ def _chunk_to_source(chunk: ChunkNode) -> Source:
         id=chunk.id,
         label=_pretty_label(chunk.source_file),
         detail=" · ".join(detail_parts),
+        url=_SOURCE_URLS.get(
+            chunk.source_file,
+            f"/sources/{quote(chunk.source_file, safe='')}",
+        ),
         score=round(chunk.score, 4),
     )
 
 
-def answer_question(state: AppState, question: str) -> Answer:
-    """질문 하나에 대한 답변과 근거를 만든다."""
+def answer_question(state: AppState, question: str, user_languages: list[str] | None = None) -> Answer:
+    """질문 하나에 대한 답변과 근거를 만든다. 답변 언어는 사용자가 고른 언어를 따른다."""
     question = question.strip()
     if not question:
         return Answer(text="질문을 입력해주세요.")
 
+    language = resolve_response_language(question, user_languages)
+
     # 1. FAQ 빠른 경로
     faq_answer = state.faq.match(question)
     if faq_answer:
-        return Answer(text=faq_answer)
+        return Answer(text=_to_response_language(faq_answer, language))
 
-    language = detect_language(question)
+    # 검색·쿼리 확장은 질문 자체의 언어 기준 (KB 가 한국어라 번역 질의에 쓰인다)
+    query_lang = detect_language(question)
 
     # 2. fast path 검색
     result = state.engine.retrieve(question)
@@ -86,7 +111,7 @@ def answer_question(state: AppState, question: str) -> Answer:
 
     # 3~4. deep path — 쿼리 확장 후에도 부족하면 웹 크롤링
     if use_deep:
-        variants = expand_query(question, language)[1:]
+        variants = expand_query(question, query_lang)[1:]
         extra = [r for v in variants for r in [state.engine.retrieve(v)]
                  if r.retrieval_method != "no_answer"]
         if extra:
@@ -120,6 +145,7 @@ def answer_question(state: AppState, question: str) -> Answer:
         # LLM 을 못 쓰면 검색 컨텍스트라도 그대로 돌려준다 (디버깅 목적)
         logger.warning("LLM 을 사용할 수 없어 검색 컨텍스트를 그대로 반환합니다.")
         text = context
+    text = _to_response_language(text, language)
 
     sources = [_chunk_to_source(c) for c in result.chunks[:_MAX_SOURCES]]
     sources += [
