@@ -19,6 +19,7 @@ export function buildAnswerHistory(chatState) {
   Object.entries(chatState).forEach(([channelId, msgs]) => {
     msgs.forEach((msg, i) => {
       if (msg.role !== 'ai') return;
+      if (msg.flow) return; // 선택형 안내 트리 메시지는 질문/답변 기록이 아님
 
       // 같은 채널 메시지 배열에서 이 AI 답변 바로 앞에 있는 사용자 질문을 찾는다
       const question = msgs.slice(0, i).reverse().find(m => m.role === 'user');

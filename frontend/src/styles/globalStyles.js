@@ -484,6 +484,12 @@ export const globalStyles = `
   }
 
   /* 예시용 퀵액션 버튼 — 실제 대화로 만든 게 아니라 미리 준비된 샘플로 바로 이동함을 표시 */
+  .flow-opts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 6px 0 4px;
+  }
   .qa-btn-example {
     border-style: dashed;
     color: var(--c-t3);

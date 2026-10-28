@@ -8,6 +8,7 @@ import HomeScreen from './pages/Home/HomeScreen';
 import VisaScreen from './pages/Visa/VisaScreen';
 import StepGuideScreen from './pages/Guide/StepGuideScreen';
 import ArcRenewChecklistScreen from './pages/Guide/ArcRenewChecklistScreen';
+import FlowChecklistScreen from './pages/Guide/FlowChecklistScreen';
 import SchoolChecklistScreen from './pages/Guide/SchoolChecklistScreen';
 import ChatScreen from './pages/Channel/ChatScreen';
 import CalendarScreen from './pages/Calendar/CalendarScreen';
@@ -109,6 +110,7 @@ function AppShell() {
         <div className={sc('s-visa')}         id="s-visa">         <VisaScreen /></div>
         <div className={sc('s-step')}         id="s-step">         <StepGuideScreen /></div>
         <div className={sc('s-arc-checklist')}    id="s-arc-checklist">    <ArcRenewChecklistScreen /></div>
+        <div className={sc('s-flow-checklist')}   id="s-flow-checklist">   <FlowChecklistScreen /></div>
         <div className={sc('s-school-checklist')} id="s-school-checklist"> <SchoolChecklistScreen /></div>
         <div className={sc('s-main')}         id="s-main">         <ChatScreen /></div>
         <div className={sc('s-calendar')}     id="s-calendar">     <CalendarScreen /></div>

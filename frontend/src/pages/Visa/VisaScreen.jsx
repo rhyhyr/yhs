@@ -14,15 +14,26 @@ import { CHECKLIST_SCREEN, CHECKLIST_NAV_LABEL_KEY } from '../../data/mockCheckl
 import CalendarLinkCard from '../../components/Chat/CalendarLinkCard';
 import CalendarRedirectCard from '../../components/Chat/CalendarRedirectCard';
 import ChecklistSelectModal from '../../components/Chat/ChecklistSelectModal';
+import ChecklistNavCard from '../../components/Chat/ChecklistNavCard';
+import { GUIDE_FLOWS } from '../../data/guideFlows';
 import { useI18n } from '../../i18n';
 
 const CHANNEL_ID = 'visa';
+
+// 선택형 안내 트리: 고른 버튼을 사용자 말풍선으로, 다음 노드를 AI 말풍선으로 붙인다.
+// 백엔드를 부르지 않는 고정 안내라 즉시 나온다.
+function postFlowStep(addMessage, flowId, nodeId, label) {
+  const now = Date.now();
+  addMessage(CHANNEL_ID, { id: `${CHANNEL_ID}-${now}-user`, role: 'user', text: label, flow: flowId });
+  addMessage(CHANNEL_ID, { id: `${CHANNEL_ID}-${now}-ai`, role: 'ai', flow: flowId, flowNode: nodeId,
+    text: GUIDE_FLOWS[flowId].nodes[nodeId].text });
+}
 
 // 플로우 단계
 // 'idle' → 'ask-checklist' → 'checklist-created' → 'ask-calendar' → 'done'
 
 export default function VisaScreen() {
-  const { navigate, back, infoOpen, setInfoOpen, showToast, addChatChecklistToCalendar, setDraft, navParams } = useApp();
+  const { navigate, back, infoOpen, setInfoOpen, showToast, addChatChecklistToCalendar, setDraft, navParams, addMessage } = useApp();
   const { messages, isLoading, handleSend } = useChatChannel(CHANNEL_ID);
   const { t, localizeChannel } = useI18n();
   const bottomRef = useRef(null);
@@ -117,6 +128,7 @@ export default function VisaScreen() {
   // 질문형 버튼은 바로 전송하지 않고 입력창에 채워서, 사용자가 확인/수정 후 직접 전송하게 함
   function handleQuickAction(action) {
     if (action.type === 'navigate') navigate(action.target);
+    else if (action.type === 'flow') postFlowStep(addMessage, action.flow, GUIDE_FLOWS[action.flow].start, action.label);
     else setDraft(CHANNEL_ID, action.text);
   }
 
@@ -170,6 +182,28 @@ export default function VisaScreen() {
               className={highlightedId === msg.id ? 'msg-highlighted' : ''}
             >
               <ChatMessage role={msg.role} path={msg.path} sources={msg.sources} onSourcesClick={setOpenSources}>{msg.text}</ChatMessage>
+              {msg.flowNode && (() => {
+                const node = GUIDE_FLOWS[msg.flow].nodes[msg.flowNode];
+                if (node.checklist) return (
+                  <ChecklistNavCard
+                    title={node.checklist.title}
+                    count={node.checklist.groups.reduce((n, g) => n + g.items.length, 0)}
+                    onClick={() => navigate('s-flow-checklist', { flow: msg.flow, node: msg.flowNode })}
+                  />
+                );
+                if (!node.options) return null;
+                // 이미 지나간 단계의 선택지는 다시 누르지 못하게 마지막 메시지에서만 보인다
+                return msg.id === messages.at(-1)?.id && (
+                  <div className="flow-opts">
+                    {node.options.map(o => (
+                      <button key={o.next} className="qa-btn" disabled={isLoading}
+                        onClick={() => postFlowStep(addMessage, msg.flow, o.next, o.label)}>
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           ))}
           {isLoading && <ChatMessage role="ai">…</ChatMessage>}

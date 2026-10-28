@@ -1,42 +1,23 @@
-import { useApp } from '../../hooks/useApp';
-import { getMockChecklist } from '../../data/mockChecklistData';
 import { useI18n } from '../../i18n';
 
-// checklistId → 이동할 화면 ID
-const CHECKLIST_SCREEN = {
-  'arc-renew':           's-arc-checklist',
-  'visa-extension':      's-step',
-  'school-registration': 's-school-checklist',
-};
-
 /**
- * 체크리스트 생성 후 채팅 영역에 표시되는 이동 버튼 카드
- * 탭하면 해당 체크리스트 화면으로 이동합니다.
+ * 채팅 영역에 붙는 체크리스트 이동 카드. 탭하면 onClick 으로 체크리스트 화면을 연다.
+ * (선택형 안내 트리의 마지막 단계에서 쓴다 — data/guideFlows.js)
  */
-export default function ChecklistNavCard({ checklistId }) {
-  const { navigate } = useApp();
-  const { t, localizeChecklist } = useI18n();
-  const checklist = localizeChecklist(getMockChecklist(checklistId));
-  if (!checklist) return null;
-
-  const screenId = CHECKLIST_SCREEN[checklistId];
-
+export default function ChecklistNavCard({ title, count, onClick, color = '#2155CD' }) {
+  const { t } = useI18n();
   return (
     <div
       className="cl-nav-card"
-      style={{ borderColor: checklist.color, background: `${checklist.color}0D` }}
-      onClick={() => navigate(screenId)}
+      style={{ borderColor: color, background: `${color}0D` }}
+      onClick={onClick}
     >
       <div className="cl-nav-icon">📋</div>
       <div className="cl-nav-body">
-        <div className="cl-nav-title" style={{ color: checklist.color }}>
-          {t('checklist.navTitle')}
-        </div>
-        <div className="cl-nav-sub">
-          {t('checklist.navSub', { title: checklist.title, n: checklist.items.length })}
-        </div>
+        <div className="cl-nav-title" style={{ color }}>{t('checklist.navTitle')}</div>
+        <div className="cl-nav-sub">{t('checklist.navSub', { title, n: count })}</div>
       </div>
-      <div className="cl-nav-arrow" style={{ color: checklist.color }}>›</div>
+      <div className="cl-nav-arrow" style={{ color }}>›</div>
     </div>
   );
 }
