@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useApp } from '../../hooks/useApp';
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 import { useI18n } from '../../i18n';
 import { SendIcon, MicIcon } from '../Common/icons';
-import { STT_READY, recognizeSpeech } from '../../utils/speechToText';
 
 /**
  * ChatInput
@@ -11,8 +11,8 @@ import { STT_READY, recognizeSpeech } from '../../utils/speechToText';
  *   channelId — 어느 채널의 입력창인지 (draft를 채널별로 구분해서 저장하기 위함)
  *   onSend(text) — 전송 시 입력 텍스트를 인자로 전달
  *
- * 🎙️ 버튼: utils/speechToText.js 를 호출해 인식된 문장을 입력창에 채운다 (전송은 사용자가 직접).
- * STT 가 아직 연결 전이면 안내 토스트만 띄운다.
+ * 🎙️ 버튼: useSpeechRecognition 훅으로 인식된 문장을 입력창에 채운다 (전송은 사용자가 직접).
+ * 인식 중 버튼을 다시 누르면 현재 음성을 확정하고 인식을 중지한다.
  *
  * 입력 중인 텍스트는 이 컴포넌트가 들고 있지 않고 AppContext의 draft로 관리한다.
  * 그래서 다른 화면으로 이동했다가 돌아와도(=이 컴포넌트가 언마운트/재마운트돼도)
@@ -22,22 +22,69 @@ import { STT_READY, recognizeSpeech } from '../../utils/speechToText';
 export default function ChatInput({ placeholder, inputId, channelId, onSend, disabled }) {
   const { getDraft, setDraft, clearDraft, showToast } = useApp();
   const { t, languages, locale } = useI18n();
-  const [listening, setListening] = useState(false);
   const text = getDraft(channelId);
+  const lang = languages.find(language => language.code === locale)?.tag ?? 'ko-KR';
+  const {
+    isSupported,
+    status,
+    transcript,
+    error,
+    start,
+    stop,
+  } = useSpeechRecognition({ lang });
+  const textRef = useRef(text);
+  const appliedTranscriptRef = useRef('');
+  const handledErrorRef = useRef(null);
+  const voiceActive = status === 'starting' || status === 'listening' || status === 'stopping';
 
-  async function handleVoice() {
-    if (!STT_READY) { showToast(t('chat.voiceSoon')); return; }
-    if (listening || disabled) return;
-    setListening(true);
-    try {
-      const tag = languages.find(l => l.code === locale)?.tag;
-      const heard = (await recognizeSpeech({ lang: tag })).trim();
-      if (heard) setDraft(channelId, text ? `${text} ${heard}` : heard);
-    } catch (err) {
-      console.warn('[stt] 음성 인식 실패', err);
-    } finally {
-      setListening(false);
+  useEffect(() => {
+    textRef.current = text;
+  }, [text]);
+
+  useEffect(() => {
+    if (!transcript || transcript === appliedTranscriptRef.current) return;
+
+    const previousTranscript = appliedTranscriptRef.current;
+    const currentText = textRef.current;
+    const baseText = previousTranscript && currentText.endsWith(previousTranscript)
+      ? currentText.slice(0, -previousTranscript.length).trimEnd()
+      : currentText.trimEnd();
+    const nextText = baseText ? `${baseText} ${transcript}` : transcript;
+
+    appliedTranscriptRef.current = transcript;
+    textRef.current = nextText;
+    setDraft(channelId, nextText);
+  }, [channelId, setDraft, transcript]);
+
+  useEffect(() => {
+    if (!error || handledErrorRef.current === error) return;
+    handledErrorRef.current = error;
+    console.warn('[stt] voice recognition failed', error);
+
+    if (error.code === 'not-allowed' || error.code === 'service-not-allowed') {
+      showToast(t('chat.voicePermissionDenied'));
+    } else if (error.code === 'no-speech') {
+      showToast(t('chat.voiceNoSpeech'));
+    } else if (error.code === 'unsupported' || error.code === 'insecure-context') {
+      showToast(t('chat.voiceUnsupported'));
+    } else if (error.code !== 'aborted') {
+      showToast(t('chat.voiceError'));
     }
+  }, [error, showToast, t]);
+
+  function handleVoice() {
+    if (disabled || status === 'stopping') return;
+    if (!isSupported) {
+      showToast(t('chat.voiceUnsupported'));
+      return;
+    }
+    if (status === 'starting' || status === 'listening') {
+      stop();
+      return;
+    }
+
+    appliedTranscriptRef.current = '';
+    start();
   }
 
   function handleSend() {
@@ -66,11 +113,13 @@ export default function ChatInput({ placeholder, inputId, channelId, onSend, dis
         disabled={disabled}
       />
       <button
-        className={`mic-btn${listening ? ' listening' : ''}`}
+        type="button"
+        className={`mic-btn${voiceActive ? ' listening' : ''}`}
         onClick={handleVoice}
-        disabled={disabled}
-        aria-label={t('chat.voiceInput')}
-        title={t('chat.voiceInput')}
+        disabled={disabled || status === 'stopping'}
+        aria-label={voiceActive ? t('chat.voiceStop') : t('chat.voiceInput')}
+        aria-pressed={voiceActive}
+        title={voiceActive ? t('chat.voiceStop') : t('chat.voiceInput')}
       >
         <MicIcon />
       </button>

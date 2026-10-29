@@ -785,7 +785,7 @@ export const globalStyles = `
 
   .send-btn:active { transform: scale(.92); opacity: .85; }
 
-  /* 🎙️ 음성 입력 버튼 — STT 연결은 utils/speechToText.js */
+  /* 🎙️ 음성 입력 버튼 */
   .mic-btn {
     width: 36px;
     height: 36px;
