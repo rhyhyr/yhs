@@ -34,7 +34,7 @@ function buildChatProfile(p) {
 
 export function useChatChannel(channelId, extraHistory = []) {
   const { getMessages, addMessage, userProfile } = useApp();
-  const { locale } = useI18n();
+  const { locale, languages: appLanguages } = useI18n();
   const [isLoading, setIsLoading] = useState(false);
   const [suggestedChannelId, setSuggestedChannelId] = useState(null);
 
@@ -65,7 +65,10 @@ export function useChatChannel(channelId, extraHistory = []) {
       const { answer, tags, sources, suggestedChannelId: suggested, checklistId, path } =
         await sendMessage({
           channelId, message: trimmed, history,
-          languages: userProfile?.languages?.length ? userProfile.languages : [locale],
+          // 대표 언어(현재 앱 언어)를 맨 앞에, 그 뒤에 지원 언어 전부 —
+          // 백엔드는 질문 언어가 이 목록에 있으면 그 언어로 답하므로,
+          // 한국어 화면에서 중국어로 물어도 중국어로 답한다 (질문 언어가 애매하면 앱 언어)
+          languages: [...new Set([locale, ...appLanguages.map(l => l.code)])],
           profile: buildChatProfile(userProfile),
         });
 
