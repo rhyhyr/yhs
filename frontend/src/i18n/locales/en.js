@@ -143,6 +143,8 @@ export default {
   },
 
   checklist: {
+    addToCalendar: 'Add to calendar',
+    connectGoogle: '🔗 Connect Google Calendar',
     createdTitle: '{title} checklist',
     total: '{n} items in total',
     navTitle: 'Checklist',

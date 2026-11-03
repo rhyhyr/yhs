@@ -145,6 +145,8 @@ export default {
   },
 
   checklist: {
+    addToCalendar: '캘린더에 일정으로 등록',
+    connectGoogle: '🔗 구글 캘린더 연결',
     createdTitle: '{title} 체크리스트',
     total: '총 {n}개 항목',
     navTitle: '체크리스트',

@@ -145,6 +145,8 @@ export default {
   },
 
   checklist: {
+    addToCalendar: '添加到日历',
+    connectGoogle: '🔗 连接 Google 日历',
     createdTitle: '{title}清单',
     total: '共 {n} 项',
     navTitle: '清单',

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getMockChecklist } from '../../data/mockChecklistData';
 import { downloadIcsFile, createGoogleCalendarEvents } from '../../utils/googleCalendar';
+import { hasGoogleClientId } from '../../utils/googleAuth';
 import { useApp } from '../../hooks/useApp';
 import { useI18n } from '../../i18n';
 
@@ -8,14 +9,16 @@ import { useI18n } from '../../i18n';
  * 캘린더 연동할 항목을 선택하는 바텀 시트 모달
  *
  * props:
- *   checklistId — 표시할 체크리스트 ID
+ *   checklistId — 표시할 체크리스트 ID (mock 체크리스트)
+ *   checklist   — 또는 체크리스트 객체를 직접 ({ id, title, type, color, items: [{ id, text, sub, dueDate }] })
+ *                 안내 트리(FlowChecklistScreen)처럼 mock 에 없는 체크리스트용
  *   onConfirm   — (selectedItemIds: number[], dateOverrides: Record<number,string>) => void
  *   onClose     — 모달 닫기
  */
-export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }) {
+export default function ChecklistSelectModal({ checklistId, checklist: checklistProp, onConfirm, onClose }) {
   const { t, fmt, localizeChecklist } = useI18n();
-  const { googleAccessToken, showToast, invalidateGoogleToken } = useApp();
-  const checklist = localizeChecklist(getMockChecklist(checklistId));
+  const { googleAccessToken, googleConnecting, connectGoogleCalendar, showToast, invalidateGoogleToken } = useApp();
+  const checklist = localizeChecklist(checklistProp ?? getMockChecklist(checklistId));
   const [addingToGoogle, setAddingToGoogle] = useState(false);
   const [selected, setSelected] = useState(
     () => new Set(checklist?.items.map(i => i.id) ?? [])
@@ -156,6 +159,20 @@ export default function ChecklistSelectModal({ checklistId, onConfirm, onClose }
             );
           })}
         </div>
+
+        {/* 구글 연결 전이면 여기서 바로 연결 (내 정보 화면까지 갈 필요 없게) — 클라이언트 ID 가 설정된 빌드에서만 */}
+        {!googleAccessToken && hasGoogleClientId() && (
+          <div style={{ padding: '0 16px 4px' }}>
+            <button
+              className="qa-btn"
+              style={{ width: '100%', textAlign: 'center', borderRadius: '11px', padding: '10px 14px' }}
+              disabled={googleConnecting}
+              onClick={connectGoogleCalendar}
+            >
+              {googleConnecting ? t('profile.googleConnecting') : t('checklist.connectGoogle')}
+            </button>
+          </div>
+        )}
 
         {/* 구글 연결이 돼 있으면, 로그인 없는 .ics 방식 대신 바로 등록하는 버튼도 보여줌 */}
         {googleAccessToken && (

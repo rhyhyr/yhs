@@ -1445,6 +1445,9 @@ export const globalStyles = `
 
   .cta-primary:active { opacity: .85; transform: scale(.98); }
 
+  /* 안내 트리 체크리스트 — 캘린더 등록 버튼 */
+  .flow-cal-btn { display: block; width: calc(100% - 32px); margin: 8px 16px 4px; }
+
   /* 기본 정보 입력 — "나중에 입력할게요" */
   .ob-skip {
     display: block;
