@@ -17,6 +17,7 @@ import ChecklistSelectModal from '../../components/Chat/ChecklistSelectModal';
 import ChecklistNavCard from '../../components/Chat/ChecklistNavCard';
 import { GUIDE_FLOWS } from '../../data/guideFlows';
 import { useI18n } from '../../i18n';
+import { DEMO_VISA_DDAY, fromToday, dotLabel } from '../../utils/demoDates';
 
 const CHANNEL_ID = 'visa';
 
@@ -121,8 +122,8 @@ export default function VisaScreen() {
     setShowRedirect(false);
   }
 
-  const dDay        = visa?.dDay        ?? '87';
-  const expiryLabel = visa?.expiryLabel ?? '2026. 8. 15';
+  const dDay        = visa?.dDay        ?? DEMO_VISA_DDAY;
+  const expiryLabel = visa?.expiryLabel ?? dotLabel(fromToday(DEMO_VISA_DDAY));
   const visaType    = visa?.type        ?? 'D-2';
 
   // 질문형 버튼은 바로 전송하지 않고 입력창에 채워서, 사용자가 확인/수정 후 직접 전송하게 함

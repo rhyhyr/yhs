@@ -27,6 +27,7 @@
  */
 
 import { BASE_URL } from './config';
+import { DEMO_VISA_DDAY, fromToday, dotLabel } from '../utils/demoDates';
 
 // ── Mock 데이터 ───────────────────────────────────────────────────────────
 
@@ -40,12 +41,14 @@ const MOCK_PROFILE = {
   nationalityFlag: '🇨🇳',
 };
 
+// 만료일은 오늘 기준으로 계산 (고정 날짜면 시간이 지나 이미 지난 날짜가 보임)
+const MOCK_EXPIRY = fromToday(DEMO_VISA_DDAY);
 const MOCK_VISA = {
   type: 'D-2',
   label: 'D-2 (학생)',
-  expiryDate: '2026-08-15',
-  expiryLabel: '2026. 8. 15',
-  dDay: 87,
+  expiryDate: MOCK_EXPIRY,
+  expiryLabel: dotLabel(MOCK_EXPIRY),
+  dDay: DEMO_VISA_DDAY,
 };
 
 // ── API 함수 ─────────────────────────────────────────────────────────────
