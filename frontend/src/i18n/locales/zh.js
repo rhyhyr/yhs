@@ -174,7 +174,10 @@ export default {
     goBody: '要立即前往日历吗？',
   },
 
-  source: { title: '📎 来源' },
+  source: {
+    title: '📎 来源',
+    openPdf: '查看原文 PDF',
+  },
 
   kb: {
     channelLabel: '{name}频道',

@@ -10,6 +10,18 @@
  */
 import { useI18n } from '../../i18n';
 
+/**
+ * 링크에 보여줄 글자
+ * - '/sources/12_…pdf' (서버에 올린 원문 PDF) → '원문 PDF 보기'
+ * - 웹 주소 → 'www.hikorea.go.kr/…' 처럼 사람이 읽을 수 있게 (퍼센트 인코딩 풀기)
+ */
+function linkText(url, t) {
+  if (url.startsWith('/sources/')) return t('source.openPdf');
+  let text = url.replace(/^https?:\/\//, '');
+  try { text = decodeURI(text); } catch { /* 잘못된 인코딩이면 그대로 */ }
+  return text.length > 60 ? `${text.slice(0, 57)}…` : text;
+}
+
 export default function SourceModal({ isOpen, onClose, sources = [] }) {
   const { t } = useI18n();
   if (!isOpen) return null;
@@ -25,7 +37,7 @@ export default function SourceModal({ isOpen, onClose, sources = [] }) {
               {src.detail && <div className="source-modal-detail">{src.detail}</div>}
               {src.url && (
                 <a className="source-modal-link" href={src.url} target="_blank" rel="noreferrer">
-                  🔗 {src.url.replace(/^https?:\/\//, '')}
+                  {src.url.startsWith('/sources/') ? '📄' : '🔗'} {linkText(src.url, t)}
                 </a>
               )}
             </div>

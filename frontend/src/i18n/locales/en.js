@@ -172,7 +172,10 @@ export default {
     goBody: 'Go to the calendar now?',
   },
 
-  source: { title: '📎 Sources' },
+  source: {
+    title: '📎 Sources',
+    openPdf: 'Open original PDF',
+  },
 
   kb: {
     channelLabel: '{name} channel',

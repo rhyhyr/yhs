@@ -174,7 +174,10 @@ export default {
     goBody: '캘린더로 바로 이동하시겠어요?',
   },
 
-  source: { title: '📎 출처' },
+  source: {
+    title: '📎 출처',
+    openPdf: '원문 PDF 보기',
+  },
 
   kb: {
     channelLabel: '{name} 채널',
