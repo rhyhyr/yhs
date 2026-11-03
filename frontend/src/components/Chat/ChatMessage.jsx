@@ -5,6 +5,8 @@
  * style: bubble에 추가할 인라인 스타일 (선택)
  */
 
+import { Fragment } from 'react';
+
 // 본문 인용 형식: [문서명, p.N] / [문서명.pdf, 3페이지] 등
 const CITATION_RE = /\[([^\]\n]+,\s*(?:p\.?\s*)?\d+\s*(?:페이지)?)\]/g;
 
@@ -66,18 +68,23 @@ function linkCitations(text, sources, keyPrefix) {
   return parts;
 }
 
-/** 한 줄 안의 [문서명, p.N] 인용을 출처 링크로 */
+/** 한 줄 안의 꾸밈 — **굵게** 와 [문서명, p.N] 인용 링크 */
 function renderInline(text, sources) {
   if (typeof text !== 'string') return text;
-  return linkCitations(text, sources, 't');
+  const segs = text.split(/\*\*(.+?)\*\*/g); // 홀수 번째가 굵은 글씨
+  if (segs.length === 1) return linkCitations(text, sources, 't');
+  return segs.map((seg, i) => (i % 2
+    ? <strong key={`b${i}`}>{linkCitations(seg, sources, `b${i}`)}</strong>
+    : <Fragment key={`t${i}`}>{linkCitations(seg, sources, `t${i}`)}</Fragment>));
 }
 
 /**
  * AI 응답 텍스트를 파싱해 구조화된 JSX로 변환
+ * - "### 제목" / "제목:" → 볼드 섹션 헤더 (LLM 마크다운 헤딩 포함)
  * - "1. 내용"  → 번호 뱃지 + 텍스트
  * - "- 내용"   → 불릿 + 텍스트
  * - "#태그..."  → 태그 칩 모음
- * - "제목:"    → 볼드 섹션 헤더
+ * - **굵게**   → 굵은 글씨, [문서명, p.N] → 출처 링크
  * - 빈 줄      → 간격
  */
 function renderContent(text, sources) {
@@ -92,6 +99,19 @@ function renderContent(text, sources) {
 
     if (!t) {
       nodes.push(<div key={k++} className="msg-spacer" />);
+      continue;
+    }
+
+    // "---" 구분선은 그냥 간격으로
+    if (/^-{3,}$/.test(t)) {
+      nodes.push(<div key={k++} className="msg-spacer" />);
+      continue;
+    }
+
+    // "### 제목" 마크다운 헤딩 → 섹션 헤더
+    const heading = t.match(/^#{1,6}\s+(.+)/);
+    if (heading) {
+      nodes.push(<div key={k++} className="msg-section">{renderInline(heading[1].replace(/:$/, ''), sources)}</div>);
       continue;
     }
 
@@ -133,7 +153,7 @@ function renderContent(text, sources) {
 
     // "제목:" 형식 (섹션 헤더)
     if (t.endsWith(':')) {
-      nodes.push(<div key={k++} className="msg-section">{t}</div>);
+      nodes.push(<div key={k++} className="msg-section">{renderInline(t, sources)}</div>);
       continue;
     }
 
